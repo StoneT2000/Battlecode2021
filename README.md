@@ -33,3 +33,9 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - `./gradlew update`
     Update to the newest version! Run every so often
 
+## Random strats we thought of
+
+- Mega brain / computer of units in the back sending info to the front
+- Using slowness of slanderers to determine if unit is politician or slanderer
+- Muckrakers build with 1 influence, makes politicians waste influence on them. Sending them one by one can cause a lot of trouble
+- Muckraker wall to protect slanderers in the back cheaply.
