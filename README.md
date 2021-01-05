@@ -40,3 +40,20 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - Muckrakers build with 1 influence, makes politicians waste influence on them. Sending them one by one can cause a lot of trouble
 - Muckraker wall to protect slanderers in the back cheaply.
 - have Beefy politicians that defend
+- Slanderers in multiples of 20. Politicians also maybe to hide them. 
+
+## Important questions to answer ASAP
+Q: How many dudes can a center build per round? Is it limited by space around the center...
+A:
+
+Q: Can a bot tell they are near the edge of the map?
+A:
+
+Q: Bytecode is less than last year? What pathing to use.
+A: 
+
+Q: Can we acess the value of the current empower buff value globally? 
+A:
+
+Q: What information do we know about the bids once they occur? Can we get the winning bid? Can we see the other guy's bid?
+A:
