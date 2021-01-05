@@ -43,17 +43,17 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - Slanderers in multiples of 20. Politicians also maybe to hide them. 
 
 ## Important questions to answer ASAP
-Q: How many dudes can a center build per round? Is it limited by space around the center...
+Q: How many dudes can a center build per round? Is it limited by space around the center...  
 A:
 
-Q: Can a bot tell they are near the edge of the map?
+Q: Can a bot tell they are near the edge of the map?  
 A:
 
-Q: Bytecode is less than last year? What pathing to use.
+Q: Bytecode is less than last year? What pathing to use.  
 A: 
 
-Q: Can we acess the value of the current empower buff value globally? 
+Q: Can we acess the value of the current empower buff value globally?   
 A:
 
-Q: What information do we know about the bids once they occur? Can we get the winning bid? Can we see the other guy's bid?
+Q: What information do we know about the bids once they occur? Can we get the winning bid? Can we see the other guy's bid?  
 A:
