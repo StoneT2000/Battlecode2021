@@ -39,3 +39,4 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - Using slowness of slanderers to determine if unit is politician or slanderer
 - Muckrakers build with 1 influence, makes politicians waste influence on them. Sending them one by one can cause a lot of trouble
 - Muckraker wall to protect slanderers in the back cheaply.
+- have Beefy politicians that defend
