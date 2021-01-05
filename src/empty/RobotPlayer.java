@@ -1,9 +1,15 @@
-package givemeaname;
+package empty;
 
 import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
+
+    static final RobotType[] spawnableRobot = { RobotType.POLITICIAN, RobotType.SLANDERER, RobotType.MUCKRAKER, };
+
+    static final Direction[] directions = { Direction.NORTH, Direction.NORTHEAST, Direction.EAST, Direction.SOUTHEAST,
+            Direction.SOUTH, Direction.SOUTHWEST, Direction.WEST, Direction.NORTHWEST, };
+
     static int turnCount;
 
     /**
@@ -20,6 +26,7 @@ public strictfp class RobotPlayer {
 
         turnCount = 0;
 
+        // System.out.println("I'm a " + rc.getType() + " and I just got created!");
         while (true) {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to freeze
@@ -27,21 +34,8 @@ public strictfp class RobotPlayer {
                 // Here, we've separated the controls into a different method for each
                 // RobotType.
                 // You may rewrite this into your own control structure if you wish.
-                switch (rc.getType()) {
-                    case ENLIGHTENMENT_CENTER:
-                        // new instance like this takes ~7 bytecode
-                        EnlightmentCenter.run();
-                        break;
-                    case POLITICIAN:
-                        Politician.run();
-                        break;
-                    case SLANDERER:
-                        Slanderer.run();
-                        break;
-                    case MUCKRAKER:
-                        Muckraker.run();
-                        break;
-                }
+                // System.out.println("I'm a " + rc.getType() + "! Location " +
+                // rc.getLocation());
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform
                 // this loop again
