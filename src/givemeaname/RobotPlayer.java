@@ -22,7 +22,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
         myTeam = rc.getTeam();
         oppTeam = rc.getTeam().opponent();
-
+        System.out.println("BC LEft " + Clock.getBytecodesLeft());
         turnCount = 0;
         switch (rc.getType()) {
             case ENLIGHTENMENT_CENTER:
@@ -41,6 +41,7 @@ public strictfp class RobotPlayer {
                 break;
         }
         while (true) {
+            System.out.println("BC LEft " + Clock.getBytecodesLeft());
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to freeze
             try {
