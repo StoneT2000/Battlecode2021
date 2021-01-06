@@ -42,6 +42,7 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - Slanderers in multiples of 20. Politicians also maybe to hide them.
 - Use different strats depending on passability of the EC. if low passability, build beefy units, if high passability, prefer spamming. Moreeover, if EC is on back line or closer to opponent, have a different building schedule / priority. Passability and location and influence required to control a neutral / opponent EC -> impact value of taking that EC perhaps.
 - Building network of muckrakers helps kill slanderers, buff our politicians, and relay messages across network.
+- cheap 1 cost muckrakers to protect important units (surround it so if opposing politican empowers, most of the influence is diluted away)
 
 ## Important questions to answer ASAP
 
