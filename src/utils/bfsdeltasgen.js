@@ -37,5 +37,5 @@ function turnToJavaArray(arr) {
     }
     return "{" + str + "}";
 }
-console.log(turnToJavaArray(calculateManhattanDeltas(40)));
+console.log(turnToJavaArray(calculateManhattanDeltas(30)));
 calculateManhattanDeltas(15).map((a) => a[0]*a[0] + a[1]*a[1])

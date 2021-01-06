@@ -6,6 +6,9 @@ public strictfp class RobotPlayer {
     static RobotController rc;
     static int turnCount;
 
+    static Team myTeam;
+    static Team oppTeam;
+
     /**
      * run() is the method that is called when a robot is instantiated in the
      * Battlecode world. If this method returns, the robot dies!
@@ -17,9 +20,26 @@ public strictfp class RobotPlayer {
         // robot,
         // and to get information on its current status.
         RobotPlayer.rc = rc;
+        myTeam = rc.getTeam();
+        oppTeam = rc.getTeam().opponent();
 
         turnCount = 0;
-
+        switch (rc.getType()) {
+            case ENLIGHTENMENT_CENTER:
+                // new instance like this takes ~7 bytecode
+                EnlightmentCenter.setup();
+                break;
+            case POLITICIAN:
+                Politician.setup();
+                break;
+            case SLANDERER:
+                Slanderer.setup();
+                break;
+            case MUCKRAKER:
+                System.out.println("RUN SETUP");
+                Muckraker.setup();
+                break;
+        }
         while (true) {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to freeze
