@@ -8,9 +8,10 @@ public class Slanderer extends Unit {
     }
 
     public static void run() throws GameActionException {
-        Direction dir = randomDirection();
-        if (rc.canMove(dir)) {
-            rc.move(dir);
-        }
+        // Direction dir = randomDirection();
+        // if (rc.canMove(dir)) {
+        //     rc.move(dir);
+        // }
+        
     }
 }

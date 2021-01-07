@@ -48,7 +48,7 @@ public class EnlightmentCenter extends RobotPlayer {
         // do smth with rc
         rc.bid(1);
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
-                + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role + " - Units Controlled EC: " + ecIDs.size
+                + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role + " - Units Controlled EC: " + ecIDs.size
                 + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size + ", M: " + muckrakerIDs.size);
 
         // global comms code independent of role
