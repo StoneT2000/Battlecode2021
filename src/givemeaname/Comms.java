@@ -45,7 +45,7 @@ public class Comms {
     }
 
     public static int getMapOffsetSignalXWidth(int offsetx, int mapWidth) {
-        return (MAP_OFFSET_X_AND_WIDTH | (offsetx << 5)) | (mapWidth);
+        return (MAP_OFFSET_X_AND_WIDTH | (offsetx << 5)) | (mapWidth - 32);
     }
     /**
      * 
@@ -56,11 +56,11 @@ public class Comms {
 
         int offsetx = (SIGNAL_MASK & signal) >> 5;
         // take rightmost 5 bits
-        int width = signal & 0x1f;
+        int width = 32 + (signal & 0x1f);
         return new int[]{offsetx, width};
     }
     public static int getMapOffsetSignalYHeight(int offsety, int mapHeight) {
-        return (MAP_OFFSET_Y_AND_HEIGHT | (offsety << 5)) | (mapHeight);
+        return (MAP_OFFSET_Y_AND_HEIGHT | (offsety << 5)) | (mapHeight - 32);
     }
     /**
      * 
@@ -70,7 +70,7 @@ public class Comms {
     public static int[] readMapOffsetSignalYHeight(int signal) {
         int offsety = (SIGNAL_MASK & signal) >> 5;
         // take rightmost 5 bits
-        int height = signal & 0x1f;
+        int height = 32 + (signal & 0x1f);
         return new int[]{offsety, height};
     }
 }

@@ -12,6 +12,11 @@ public class Muckraker extends Unit {
     static MapLocation homeEC = null;
     static int homeECID = -1;
 
+    static int offsetx = 0;
+    static int offsety = 0;
+    static int mapWidth = 0;
+    static int mapHeight = 0;
+
     static MapLocation foundCorner = null;
     /**
      * set this maploc to wherever u want the unit to go, pathing code then auto
@@ -39,6 +44,46 @@ public class Muckraker extends Unit {
 
     public static void run() throws GameActionException {
 
+        // global comms code independent of role
+
+
+        // sense ec flags
+        // TODO: possible issue if home ec is taken by opponent...
+        int homeECFlag = rc.getFlag(homeECID);
+        switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
+            case Comms.MAP_OFFSET_X_AND_WIDTH:
+                int[] vs = Comms.readMapOffsetSignalXWidth(homeECFlag);
+                offsetx = vs[0];
+                mapWidth = vs[1];
+                break;
+            case Comms.MAP_OFFSET_Y_AND_HEIGHT:
+                int[] vs2 = Comms.readMapOffsetSignalYHeight(homeECFlag);
+                offsety = vs2[0];
+                mapHeight = vs2[1];
+                break;
+        }
+        System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety +") - Width: " + mapWidth + " - Height: " + mapHeight);
+
+        // RobotInfo[] nearbyBots = rc.senseNearbyRobots();
+
+        // for (int i = nearbyBots.length; --i >= 0;) {
+        //     RobotInfo bot = nearbyBots[i];
+        //     if (bot.team == myTeam && bot.type == RobotType.MUCKRAKER) {
+        //         int flag = rc.getFlag(bot.ID);
+        //         switch (Comms.SIGNAL_TYPE_MASK & flag) {
+        //             case Comms.MAP_OFFSET_X_AND_WIDTH:
+        //                 int cx = Comms.readMapOffsetSignalXWidth(flag);
+        //                 break;
+        //             case Comms.MAP_OFFSET_Y_AND_HEIGHT:
+        //                 int cy = Comms.readCornerLocSignalY(flag);
+        //                 highMapY = Math.max(highMapY, cy);
+        //                 offsety = Math.min(offsety, cy);
+        //                 mapHeight = highMapY - offsety + 1;
+        //                 break;
+        //         }
+        //     }
+        // }
+
         switch (role) {
             case SCOUT_CORNERS:
                 /**
@@ -62,8 +107,7 @@ public class Muckraker extends Unit {
                 if (foundCorner == null) {
                     // shoot diagonal line and find intersection of line and edge of map (or corner)
                     Direction oppScoutDir = scoutDir.opposite();
-                    MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir)
-                            .add(scoutDir);
+                    MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir);
                     int edgeOrCornerReached = -1;
                     for (int i = 4; --i >= 0;) {
                         checkLoc = checkLoc.add(oppScoutDir);
@@ -97,7 +141,16 @@ public class Muckraker extends Unit {
                         targetLoc = rc.getLocation().add(scoutDir);
                     }
                 } else {
-
+                    // found corner, head back
+                    targetLoc = homeEC;
+                    // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
+                    // if (targetLoc.distanceSquaredTo(homeEC) <= MUCKRAKER_SENSE_RADIUS) {
+                    if (turnCount % 2 == 0) {
+                        rc.setFlag(Comms.getCornerLocSignalX(foundCorner));
+                    } else {
+                        rc.setFlag(Comms.getCornerLocSignalY(foundCorner));
+                    }
+                    // }
                 }
 
                 break;
