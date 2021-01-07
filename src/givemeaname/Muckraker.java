@@ -64,6 +64,11 @@ public class Muckraker extends Unit {
         }
         System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety +") - Width: " + mapWidth + " - Height: " + mapHeight);
 
+        // if values valid, we are done scouting, we have map dimensions
+        if (mapWidth >= 32 && mapHeight >= 32) {
+            role = LATTICE_NETWORK;
+        }
+
         // RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         // for (int i = nearbyBots.length; --i >= 0;) {
@@ -155,6 +160,7 @@ public class Muckraker extends Unit {
 
                 break;
             case LATTICE_NETWORK:
+                targetLoc = rc.getLocation().add(randomDirection());
                 break;
         }
         Direction dir = getNextDirOnPath(targetLoc);

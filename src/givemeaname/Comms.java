@@ -16,6 +16,9 @@ public class Comms {
     public static final int CORNER_LOC_Y = 0x200000;
     public static final int MAP_OFFSET_X_AND_WIDTH = 0x300000;
     public static final int MAP_OFFSET_Y_AND_HEIGHT = 0x400000;
+    /** bits 4-5 for unit type, rest for id */
+    public static final int BUILT_UNIT = 0x500000;
+
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
         int x = loc.x - offsetx;
@@ -60,6 +63,7 @@ public class Comms {
         return new int[]{offsetx, width};
     }
     public static int getMapOffsetSignalYHeight(int offsety, int mapHeight) {
+        // 32 offset so we can pack offsety and height in one signal
         return (MAP_OFFSET_Y_AND_HEIGHT | (offsety << 5)) | (mapHeight - 32);
     }
     /**
@@ -72,5 +76,34 @@ public class Comms {
         // take rightmost 5 bits
         int height = 32 + (signal & 0x1f);
         return new int[]{offsety, height};
+    }
+
+    // unit id range is 10000 to 32000
+    public static int getBuiltUnitSignal(int unitID, RobotType type) {
+        // default is 2 = muckraker
+        int typeind = 2;
+        // find index of type in our Constants.SPAWNABLE_ROBOTS Array
+        switch (type) {
+            case POLITICIAN:
+                typeind = 0;
+                break;
+            case SLANDERER:
+                typeind = 1;
+                break;
+            default:
+                typeind = 2;
+				break;
+        }   
+        return BUILT_UNIT | (typeind << 18) | unitID;
+    }
+    /**
+     * 
+     * @param signal
+     * @return [unitid, type]
+     */
+    public static int[] readBuiltUnitSignal(int signal) {
+        int typeind = (SIGNAL_MASK & signal) >> 18;
+        int id = (SIGNAL_MASK & signal) & 0x00ffff;
+        return new int[]{id, typeind};
     }
 }
