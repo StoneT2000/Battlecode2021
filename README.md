@@ -44,6 +44,11 @@ This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read h
 - Building network of muckrakers helps kill slanderers, buff our politicians, and relay messages across network.
 - cheap 1 cost muckrakers to protect important units (surround it so if opposing politican empowers, most of the influence is diluted away)
 
+Priority Strats:
+
+- use scouts to figure out how much opponents bid each round
+- 
+
 ## Important questions to answer ASAP
 
 Q: How many dudes can a center build per round? Is it limited by space around the center...  
