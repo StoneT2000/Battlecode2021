@@ -9,8 +9,6 @@ public class Muckraker extends Unit {
     static final int LATTICE_NETWORK = 10;
     static int role = LATTICE_NETWORK;
     static Direction scoutDir = null;
-    static MapLocation homeEC = null;
-    static int homeECID = -1;
 
     static int offsetx = 0;
     static int offsety = 0;
@@ -25,23 +23,11 @@ public class Muckraker extends Unit {
     static MapLocation targetLoc = null;
 
     public static void setup() throws GameActionException {
-        // find ec spawned from
-        MapLocation selfLoc = rc.getLocation();
-        for (int i = DIRECTIONS.length; --i >= 0;) {
-            MapLocation checkLoc = selfLoc.add(DIRECTIONS[i]);
-            RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-            if (bot != null && bot.type == RobotType.ENLIGHTENMENT_CENTER && bot.team == myTeam) {
-                homeEC = bot.location;
-                homeECID = bot.ID;
-
-                scoutDir = rc.getLocation().directionTo(homeEC).opposite();
-                break;
-            }
-        }
+        setHomeEC();
+        scoutDir = rc.getLocation().directionTo(homeEC).opposite();
     }
 
     public static void run() throws GameActionException {
-
         // global comms code independent of role
 
         // sense ec flags
@@ -116,9 +102,11 @@ public class Muckraker extends Unit {
                 }
                 break;
         }
-        Direction dir = getNextDirOnPath(targetLoc);
-        if (dir != Direction.CENTER) {
-            rc.move(dir);
+        if (rc.isReady()) {
+            Direction dir = getNextDirOnPath(targetLoc);
+            if (dir != Direction.CENTER) {
+                rc.move(dir);
+            }
         }
     }
 
@@ -155,7 +143,6 @@ public class Muckraker extends Unit {
                     targetLoc = rc.getLocation().add(scoutDir.rotateRight());
                 } else {
                     // we reached corner,
-                    System.out.println("Corner at " + checkLoc);
                     foundCorner = checkLoc;
                 }
             } else {

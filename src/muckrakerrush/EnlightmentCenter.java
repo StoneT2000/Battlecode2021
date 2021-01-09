@@ -25,13 +25,18 @@ public class EnlightmentCenter extends RobotPlayer {
     // TODO: when they convert, we need to remove that id and put new one
     static HashTable<Integer> slandererIDs = new HashTable<>(50);
     static HashTable<Integer> politicianIDs = new HashTable<>(20);
-
+    static boolean setFlagThisTurn = false;
+    static int lastBuildTurn = -1;
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
         static int slanderersBuilt = 0;
     }
 
+    public static void setFlag(int flag) throws GameActionException {
+        rc.setFlag(flag);
+        setFlagThisTurn = true;
+    }
     public static void setup() throws GameActionException {
         boolean firstEC = rc.getTeamVotes() == 0;
         // if (firstEC) {
@@ -46,6 +51,8 @@ public class EnlightmentCenter extends RobotPlayer {
     }
 
     public static void run() throws GameActionException {
+        setFlagThisTurn = false;
+
         // do smth with rc
         rc.bid(1);
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
@@ -110,23 +117,6 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
-        /**
-         * If mapheight and width resolved o some valid value [32, 64], then send out
-         * signals to everyone OPTIMIZATION: do this only when we build new units, or
-         * maybe if nearby unit requests this information
-         */
-        if (mapHeight >= 32 && mapWidth >= 32) {
-            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
-                    + " - Height: " + mapHeight);
-            if (turnCount % 2 == 0) {
-                int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
-                rc.setFlag(sig);
-            } else {
-                int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
-                rc.setFlag(sig);
-            }
-        }
-
         switch (role) {
             case BUILD_SCOUTS:
                 // TODO: handle edge cases if diagonals are blocked
@@ -138,7 +128,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
                         if (bot == null) {
                             // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            rc.setFlag(lastScoutBuildDirIndex + 1);
+                            setFlag(lastScoutBuildDirIndex + 1);
                             rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
                             Stats.muckrakersBuilt += 1;
                             // add new id
@@ -158,11 +148,14 @@ public class EnlightmentCenter extends RobotPlayer {
                             rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             politicianIDs.add(newbot.ID);
+                            lastBuildTurn = turnCount;
                             break;
                         }
                     }
                 }
+                // generate infinite influence
                 else if (rc.getEmpowerFactor(myTeam, 0) > 1.5) {
+                    // TODO: bug, some of this is wasted due to nearby friendly units
                     int minInfluence = (int) (GameConstants.EMPOWER_TAX / (rc.getEmpowerFactor(myTeam, 0) - 1.0));
                     if (rc.getInfluence() >= minInfluence) {
                         for (Direction dir : DIRECTIONS) {
@@ -171,7 +164,8 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 politicianIDs.add(newbot.ID);
-                                rc.setFlag(Comms.getPoliSacrificeSignal());
+                                setFlag(Comms.getPoliSacrificeSignal());
+                                lastBuildTurn = turnCount;
                                 break;
                             }
                         }
@@ -188,12 +182,35 @@ public class EnlightmentCenter extends RobotPlayer {
                             rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             muckrakerIDs.add(newbot.ID);
+                            int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                            setFlag(sig);
+                            lastBuildTurn = turnCount;
                             break;
                         }
                     }
                 }
                 break;
         }
+        /**
+         * If mapheight and width resolved o some valid value [32, 64], then send out
+         * signals to everyone OPTIMIZATION: do this only when we build new units, or
+         * maybe if nearby unit requests this information
+         */
+        if (mapHeight >= 32 && mapWidth >= 32) {
+            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
+                    + " - Height: " + mapHeight);
+            // TODO: this might be too long of a wait
+            if (!setFlagThisTurn && (turnCount - lastBuildTurn) >= 2) {
+                if (turnCount % 2 == 0) {
+                    int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
+                    rc.setFlag(sig);
+                } else {
+                    int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
+                    rc.setFlag(sig);
+                }
+            }
+        }
+
         // if (rc.canBuildRobot(RobotType.MUCKRAKER, Direction.NORTH, 1)) {
         // rc.buildRobot(RobotType.MUCKRAKER, Direction.NORTH, 1);
         // RobotInfo[] nearbyBots = rc.senseNearbyRobots();
