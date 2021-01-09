@@ -132,4 +132,11 @@ public strictfp class RobotPlayer {
             }
         }
     }
+
+    public static boolean wonInVotes() {
+        if (rc.getTeamVotes() >= GameConstants.GAME_MAX_NUMBER_OF_ROUNDS / 2 + 1) {
+            return true;
+        }
+        return false;
+    }
 }

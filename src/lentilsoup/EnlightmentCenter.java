@@ -27,6 +27,10 @@ public class EnlightmentCenter extends RobotPlayer {
     static HashTable<Integer> politicianIDs = new HashTable<>(20);
     static int lastBuildTurn = -1;
 
+    static double minBidAmount = 2;
+    static int lastTeamVotes = 0;
+    static int lastTurnInfluence = GameConstants.INITIAL_ENLIGHTENMENT_CENTER_INFLUENCE;
+
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -48,13 +52,37 @@ public class EnlightmentCenter extends RobotPlayer {
 
     public static void run() throws GameActionException {
         setFlagThisTurn = false;
+        // how much influence is spent on building
+        int spentInfluence = 0;
+        
+        int influenceGainedLastTurn = rc.getInfluence() - lastTurnInfluence;
+        // determine if we won or lost/tied bid?
+        if (!wonInVotes()) {
+            if (rc.getTeamVotes() > lastTeamVotes) {
+                // won, lower the bid
+                minBidAmount /= 1.25;
+                minBidAmount = Math.max(minBidAmount, 1);
+            } else {
+                // lost, increase bid, and see what happens
+                minBidAmount *= 1.5;
+            }
+            lastTeamVotes = rc.getTeamVotes();
 
-        // do smth with rc
-        rc.bid(1);
+            if (rc.getInfluence() >= minBidAmount && rc.getInfluence() >= 400) {
+                rc.bid((int) minBidAmount);
+            } else if (rc.getInfluence() >= 10) {
+                if (influenceGainedLastTurn > 2) {
+                    rc.bid(2);
+                } else {
+                    rc.bid(1);
+                }
+            }
+        }
+
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
                 + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
                 + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
-                + ", M: " + muckrakerIDs.size);
+                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence");
 
         // global comms code independent of role
 
@@ -144,7 +172,6 @@ public class EnlightmentCenter extends RobotPlayer {
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
-        
         int enemyPoliticianConvictionNearby = -1;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
@@ -195,28 +222,30 @@ public class EnlightmentCenter extends RobotPlayer {
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             politicianIDs.add(newbot.ID);
                             lastBuildTurn = turnCount;
+                            spentInfluence += rc.getConviction();
                             break;
                         }
                     }
                 }
                 // generate infinite influence
-                else if (rc.getEmpowerFactor(myTeam, 0) > 1.5) {
-                    // TODO: bug, some of this is wasted due to nearby friendly units
-                    int minInfluence = (int) (GameConstants.EMPOWER_TAX / (rc.getEmpowerFactor(myTeam, 0) - 1.0));
-                    if (rc.getInfluence() >= minInfluence) {
-                        for (Direction dir : DIRECTIONS) {
-                            MapLocation buildLoc = rc.getLocation().add(dir);
-                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
-                                rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
-                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                                politicianIDs.add(newbot.ID);
-                                setFlag(Comms.getPoliSacrificeSignal());
-                                lastBuildTurn = turnCount;
-                                break;
-                            }
-                        }
-                    }
-                } else {
+                // else if (rc.getEmpowerFactor(myTeam, 0) > 1.5) {
+                //     // TODO: bug, some of this is wasted due to nearby friendly units
+                //     int minInfluence = (int) (GameConstants.EMPOWER_TAX / (rc.getEmpowerFactor(myTeam, 0) - 1.0));
+                //     if (rc.getInfluence() >= minInfluence) {
+                //         for (Direction dir : DIRECTIONS) {
+                //             MapLocation buildLoc = rc.getLocation().add(dir);
+                //             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
+                //                 rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
+                //                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                //                 politicianIDs.add(newbot.ID);
+                //                 setFlag(Comms.getPoliSacrificeSignal());
+                //                 lastBuildTurn = turnCount;
+                //                 break;
+                //             }
+                //         }
+                //     }
+                // } 
+                else {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                     boolean buildSlanderer = false;
@@ -233,13 +262,15 @@ public class EnlightmentCenter extends RobotPlayer {
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
                         if (buildPoli && rc.getInfluence() >= 14) {
-                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 14)) {
-                                rc.buildRobot(RobotType.POLITICIAN, dir, 14);
+                            int influenceWant = 14;
+                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
+                                rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 politicianIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
                                 setFlag(sig);
                                 lastBuildTurn = turnCount;
+                                spentInfluence += influenceWant;
                                 break;
                             }
                         }
@@ -252,16 +283,19 @@ public class EnlightmentCenter extends RobotPlayer {
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
                                 setFlag(sig);
                                 lastBuildTurn = turnCount;
+                                spentInfluence += want;
                                 break;
                             }
                         } else {
-                            if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
-                                rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
+                            int influenceWant = 1;
+                            if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {
+                                rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 muckrakerIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
                                 setFlag(sig);
                                 lastBuildTurn = turnCount;
+                                spentInfluence += influenceWant;
                                 break;
                             }
                         }
@@ -272,9 +306,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         // signal stuff
         /**
-         * turncount modulus:
-         * 0, 1 = map details
-         * 2, 3, 4 = ec locations
+         * turncount modulus: 0, 1 = map details 2, 3, 4 = ec locations
          */
 
         int turnCountModulus = 2;
@@ -283,7 +315,7 @@ public class EnlightmentCenter extends RobotPlayer {
         }
         System.out.println("turncountmod " + turnCountModulus);
         if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
-            
+
             Node<Integer> ecLocHashNode = enemyECLocs.next();
             if (ecLocHashNode == null) {
                 enemyECLocs.resetIterator();
@@ -307,12 +339,15 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (turnCount % turnCountModulus == 0) {
                     int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
                     setFlag(sig);
-                } else if (turnCount % turnCountModulus == 1){
+                } else if (turnCount % turnCountModulus == 1) {
                     int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
                     setFlag(sig);
                 }
             }
         }
-        
+
+
+        lastTurnInfluence = rc.getInfluence() - spentInfluence;//stuff we do
+
     }
 }
