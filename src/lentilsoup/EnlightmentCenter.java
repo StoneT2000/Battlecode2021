@@ -123,14 +123,26 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
+        // strategy to take nearby neutral HQ asap
+        boolean buildEarlyPoliticianToTakeNeutralHQ = false;
+        // if enemy HQ is near
+        boolean nearbyEnemyHQ = false;
+
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
+        
         int enemyPoliticianConvictionNearby = -1;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
                 int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction);
                 enemyPoliticianConvictionNearby += c;
+            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                if (bot.team == Team.NEUTRAL && bot.influence <= 130) {
+                    buildEarlyPoliticianToTakeNeutralHQ = true;
+                } else if (bot.team == oppTeam) {
+                    nearbyEnemyHQ = true;
+                }
             }
         }
 
@@ -191,16 +203,18 @@ public class EnlightmentCenter extends RobotPlayer {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                     boolean buildSlanderer = false;
-                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 15 || turnCount == 1) {
+                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
+                    // System.out.println("Buildlsnader " + buildSlanderer + " - " + rc.getInfluence());
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (buildSlanderer) {
-                            if (rc.canBuildRobot(RobotType.SLANDERER, dir, 1)) {
-                                rc.buildRobot(RobotType.SLANDERER, dir, 1);
+                        if (buildSlanderer && rc.getInfluence() >= 148) {
+                            int want = Math.min(rc.getInfluence(), 200);
+                            if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
+                                rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 slandererIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
