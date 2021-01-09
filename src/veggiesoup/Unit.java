@@ -37,7 +37,7 @@ public abstract class Unit extends RobotPlayer {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
         Direction greedyDir = Direction.CENTER;
-        // System.out.println("======= " + turnCount + " =======");
+        System.out.println("======= " + turnCount + " =======");
         double bestValue = tileMoveCost(rc.getLocation()) + rc.getLocation().distanceSquaredTo(targetLoc);
         int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
         for (Direction dir : DIRECTIONS) {
@@ -49,14 +49,14 @@ public abstract class Unit extends RobotPlayer {
                 if (thisDist > origDist) {
                     val += 200000;
                 }
-                // System.out.println("Target: " + targetLoc + " - from " + rc.getLocation() + " check: " +  newloc + " - cost: " + val);
+                System.out.println("Target: " + targetLoc + " - from " + rc.getLocation() + " check: " +  newloc + " - cost: " + val);
                 if (val < bestValue) {
                     bestValue = val;
                     greedyDir = dir;
                 }
             }
         }
-        // System.out.println("Best " + greedyDir + " - " + bestValue);
+        System.out.println("Best " + greedyDir + " - " + bestValue);
         if (greedyDir == Direction.CENTER) {
             return Direction.CENTER;
         }

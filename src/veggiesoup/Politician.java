@@ -24,6 +24,8 @@ public class Politician extends Unit {
     static MapLocation targetLoc = null;
     static int LATTICE_SIZE = 5;
 
+    static MapLocation targetedEnemyLoc = null;
+
     public static void setup() throws GameActionException {
         // find ec spawned from
         setHomeEC();
@@ -131,7 +133,7 @@ public class Politician extends Unit {
                 }
             } else {
                 // move away from EC...
-                if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
+                if (homeEC != null && rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                 }
                 else {
@@ -155,16 +157,28 @@ public class Politician extends Unit {
             // repetitive code
             
             if (enemyECLocs.size > 0) {
-                Node<Integer> eclocnode = enemyECLocs.next();
-                if (eclocnode == null) {
-                    enemyECLocs.resetIterator();
-                    eclocnode = enemyECLocs.next();
+                // check current target is still there
+                if (targetedEnemyLoc != null) {
+                    if (!enemyECLocs.contains(Comms.encodeMapLocation(targetedEnemyLoc, offsetx, offsety))) {
+                        targetedEnemyLoc = null;
+                    }
                 }
-                // note, if we have these ec locs, then we already know offsets and can decode
-                MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
-                targetLoc = ECLoc;
-                if (rc.getLocation().distanceSquaredTo(ECLoc) <= 1) {
-                    rc.empower(1);
+                if (targetedEnemyLoc == null) {
+                    Node<Integer> eclocnode = enemyECLocs.next();
+                    if (eclocnode == null) {
+                        enemyECLocs.resetIterator();
+                        eclocnode = enemyECLocs.next();
+                    }
+                    MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
+                    targetedEnemyLoc = ECLoc;
+                }
+                // this shouldnt happen, buut if still null dont break
+                if (targetedEnemyLoc != null)  {
+                    targetLoc = targetedEnemyLoc;
+                    System.out.println("at " +rc.getLocation() + " targeting " + targetedEnemyLoc);
+                    if (rc.getLocation().distanceSquaredTo(targetedEnemyLoc) <= 1) {
+                        rc.empower(1);
+                    }
                 }
             } else {
                 // lattice instead
