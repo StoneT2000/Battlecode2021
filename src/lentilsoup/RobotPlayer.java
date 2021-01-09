@@ -88,8 +88,12 @@ public strictfp class RobotPlayer {
     }
 
     // TODO: this might be wrong calculation
-    public static int calculatePoliticianEmpowerConviction(Team team, int conviction) {
-        return (int) (conviction * rc.getEmpowerFactor(team, 0) - GameConstants.EMPOWER_TAX);
+    public static int calculatePoliticianEmpowerConviction(Team team, int conviction, int roundsInFuture) {
+        return (int) (conviction * rc.getEmpowerFactor(team, roundsInFuture) - GameConstants.EMPOWER_TAX);
+    }
+
+    public static int minimumConvictionNeededToSpreadNConviction(Team team, int n, int roundsInFuture) {
+        return (int)((n + GameConstants.EMPOWER_TAX) / rc.getEmpowerFactor(team, roundsInFuture));
     }
 
     public static void setFlag(int flag) throws GameActionException {
