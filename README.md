@@ -49,7 +49,7 @@ Priority Strats:
 
 - use scouts to figure out how much opponents bid each round
 - first 3-4 scouts are to find corners, rest separate and form lattice
-- if starting ec is near another ec, build buff politician first
+- if starting ec is near another neutral ec, build buff politician first
 - find symmetry first then explore where ECs
 
 ## Important questions to answer ASAP

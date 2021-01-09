@@ -48,16 +48,17 @@ public class Muckraker extends Unit {
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
-        MapLocation locOfBiggestSlanderer = null;
-        int biggestSlandererInfluence = 0;
+        MapLocation locOfClosestSlanderer = null;
+        int distToSlosestSlanderer = 99999999;
         MapLocation locOfClosestFriendlyMuckraker = null;
         int distToClosestFriendlyMuckraker = 999999999;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == oppTeam && bot.type == RobotType.SLANDERER) {
-                if (bot.influence > biggestSlandererInfluence) {
-                    biggestSlandererInfluence = bot.influence;
-                    locOfBiggestSlanderer = bot.location;
+                int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                if (dist < distToSlosestSlanderer) {
+                    distToSlosestSlanderer =dist;
+                    locOfClosestSlanderer = bot.location;
                 }
             } else if (bot.team == myTeam && bot.type == RobotType.MUCKRAKER) {
                 int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -76,12 +77,12 @@ public class Muckraker extends Unit {
                 targetLoc = rc.getLocation();
                 scoutCorners();
                 if (rc.isReady()) {
-                    if (locOfBiggestSlanderer != null) {
-                        if (locOfBiggestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
-                            rc.expose(locOfBiggestSlanderer);
+                    if (locOfClosestSlanderer != null) {
+                        if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
+                            rc.expose(locOfClosestSlanderer);
                         } else {
                             // not in range
-                            targetLoc = locOfBiggestSlanderer;
+                            targetLoc = locOfClosestSlanderer;
                             break;
                         }
                     } else {
