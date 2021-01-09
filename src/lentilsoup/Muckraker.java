@@ -4,10 +4,22 @@ import battlecode.common.*;
 import static lentilsoup.Constants.*;
 
 public class Muckraker extends Unit {
+    public static final int[][] BFS30 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
+        { 0, -2 }, { -1, -1 }, { -2, 0 }, { -1, 1 }, { 0, 2 }, { 1, 1 }, { 3, 0 }, { 2, -1 }, { 1, -2 }, { 0, -3 },
+        { -1, -2 }, { -2, -1 }, { -3, 0 }, { -2, 1 }, { -1, 2 }, { 0, 3 }, { 1, 2 }, { 2, 1 }, { 4, 0 }, { 3, -1 },
+        { 2, -2 }, { 1, -3 }, { 0, -4 }, { -1, -3 }, { -2, -2 }, { -3, -1 }, { -4, 0 }, { -3, 1 }, { -2, 2 },
+        { -1, 3 }, { 0, 4 }, { 1, 3 }, { 2, 2 }, { 3, 1 }, { 5, 0 }, { 4, -1 }, { 3, -2 }, { 2, -3 }, { 1, -4 },
+        { 0, -5 }, { -1, -4 }, { -2, -3 }, { -3, -2 }, { -4, -1 }, { -5, 0 }, { -4, 1 }, { -3, 2 }, { -2, 3 },
+        { -1, 4 }, { 0, 5 }, { 1, 4 }, { 2, 3 }, { 3, 2 }, { 4, 1 }, { 5, -1 }, { 4, -2 }, { 3, -3 }, { 2, -4 },
+        { 1, -5 }, { -1, -5 }, { -2, -4 }, { -3, -3 }, { -4, -2 }, { -5, -1 }, { -5, 1 }, { -4, 2 }, { -3, 3 },
+        { -2, 4 }, { -1, 5 }, { 1, 5 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 5, 1 }, { 5, -2 }, { 4, -3 }, { 3, -4 },
+        { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
+        { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
     static final int SCOUT_CORNERS = 0;
     static final int LATTICE_NETWORK = 10;
     static int role = LATTICE_NETWORK;
+    static final int LATTICE_SIZE = 5;
     static Direction scoutDir = null;
 
     static MapLocation foundCorner = null;
@@ -42,7 +54,7 @@ public class Muckraker extends Unit {
         }
 
         // if values valid, we are done scouting, we have map dimensions
-        if (mapWidth >= 32 && mapHeight >= 32) {
+        if (role == SCOUT_CORNERS && mapWidth >= 32 && mapHeight >= 32) {
             role = LATTICE_NETWORK;
         }
 
@@ -69,6 +81,26 @@ public class Muckraker extends Unit {
             }
         }
 
+        // search in sensor range for close stuff
+        MapLocation currLoc = rc.getLocation();
+        MapLocation closestLatticeLoc = null;
+        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0) {
+            closestLatticeLoc = currLoc;
+        }
+        for (int i = 0; ++i < BFS30.length;) {
+            int[] deltas = BFS30[i];
+
+            MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
+            if (rc.onTheMap(checkLoc)) {
+                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0) {
+                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                    if (bot == null || bot.ID == rc.getID()) {
+                        closestLatticeLoc = checkLoc;
+                    }
+                }
+            }
+        }
+
         switch (role) {
             case SCOUT_CORNERS:
                 scoutCorners();
@@ -86,13 +118,24 @@ public class Muckraker extends Unit {
                             break;
                         }
                     } else {
-                        if (locOfClosestFriendlyMuckraker != null) {
-                            // head in scoutDir, direction of spawning, and find lattice points, rotate left
-                            // if hit edge and no spots found
-                            targetLoc = rc.getLocation()
-                                    .add(locOfClosestFriendlyMuckraker.directionTo(rc.getLocation()));
-
+                        // in lattice mode, we move into a lattice position, otherwise, we run in a direction and change if we hit wall?
+                        if (closestLatticeLoc != null) {
+                            targetLoc = closestLatticeLoc;
                         }
+                        else {
+                            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                            if (!rc.onTheMap(targetLoc)) {
+                                scoutDir = scoutDir.rotateLeft().rotateLeft();
+                                targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                            }
+                        }
+                        // else if (locOfClosestFriendlyMuckraker != null) {
+                        //     // head in scoutDir, direction of spawning, and find lattice points, rotate left
+                        //     // if hit edge and no spots found
+                        //     targetLoc = rc.getLocation()
+                        //             .add(locOfClosestFriendlyMuckraker.directionTo(rc.getLocation()));
+
+                        // }
                     }
 
                 }
@@ -102,6 +145,14 @@ public class Muckraker extends Unit {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
+            } else if (!rc.getLocation().equals(targetLoc)){
+                // wiggle out if perhaps stuck
+                for (Direction wiggleDir : DIRECTIONS) {
+                    // MapLocation loc = rc.getLocation().add(wiggleDir);
+                    if (rc.canMove(wiggleDir)) {
+                        rc.move(wiggleDir);
+                    }
+                }
             }
         }
     }

@@ -4,35 +4,51 @@ import battlecode.common.*;
 import static lentilsoup.Constants.*;
 
 public class Politician extends Unit {
+    public static final int[][] BFS25 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
+            { 0, -2 }, { -1, -1 }, { -2, 0 }, { -1, 1 }, { 0, 2 }, { 1, 1 }, { 3, 0 }, { 2, -1 }, { 1, -2 }, { 0, -3 },
+            { -1, -2 }, { -2, -1 }, { -3, 0 }, { -2, 1 }, { -1, 2 }, { 0, 3 }, { 1, 2 }, { 2, 1 }, { 4, 0 }, { 3, -1 },
+            { 2, -2 }, { 1, -3 }, { 0, -4 }, { -1, -3 }, { -2, -2 }, { -3, -1 }, { -4, 0 }, { -3, 1 }, { -2, 2 },
+            { -1, 3 }, { 0, 4 }, { 1, 3 }, { 2, 2 }, { 3, 1 }, { 5, 0 }, { 4, -1 }, { 3, -2 }, { 2, -3 }, { 1, -4 },
+            { 0, -5 }, { -1, -4 }, { -2, -3 }, { -3, -2 }, { -4, -1 }, { -5, 0 }, { -4, 1 }, { -3, 2 }, { -2, 3 },
+            { -1, 4 }, { 0, 5 }, { 1, 4 }, { 2, 3 }, { 3, 2 }, { 4, 1 }, { 4, -2 }, { 3, -3 }, { 2, -4 }, { -2, -4 },
+            { -3, -3 }, { -4, -2 }, { -4, 2 }, { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 4, -3 }, { 3, -4 },
+            { -3, -4 }, { -4, -3 }, { -4, 3 }, { -3, 4 }, { 3, 4 }, { 4, 3 } };
     static final int SACRIFICE = 0;
     static final int EXPLORE = 1;
     static final int DEFEND_SLANDERER = 10;
+    static Direction exploreDir = Direction.NORTH;;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
+    static int LATTICE_SIZE = 5;
 
     public static void setup() throws GameActionException {
         // find ec spawned from
         setHomeEC();
-        // if null, we probablyy got a signal to do something instant like
+        // if null, we probably got a signal to do something instant like
         // sacrifice/empower
+        // or we converted from slanderer
         if (homeEC == null) {
-            role = SACRIFICE;
+            System.out.println("am slanderer");
+            // role = SACRIFICE;
+        }
+        else {
+            exploreDir = homeEC.directionTo(rc.getLocation());
         }
     }
 
     public static void run() throws GameActionException {
 
-        if (role == SACRIFICE) {
-            if (rc.isReady()) {
-                rc.empower(2);
-            }
-            return;
-        }
+        // if (role == SACRIFICE) {
+        //     if (rc.isReady()) {
+        //         rc.empower(2);
+        //     }
+        //     return;
+        // }
         int homeECFlag = rc.getFlag(homeECID);
         switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
-            case Comms.POLI_SACRIFICE:
-                role = SACRIFICE;
-                break;
+            // case Comms.POLI_SACRIFICE:
+            //     role = SACRIFICE;
+            //     break;
         }
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
         MapLocation locOfClosestFriendlyPoli = null;
@@ -55,6 +71,24 @@ public class Politician extends Unit {
                 }
             }
         }
+        MapLocation currLoc = rc.getLocation();
+        MapLocation closestLatticeLoc = null;
+        if (currLoc.x % LATTICE_SIZE == 2 && currLoc.y % LATTICE_SIZE == 2) {
+            closestLatticeLoc = currLoc;
+        }
+        for (int i = 0; ++i < BFS25.length;) {
+            int[] deltas = BFS25[i];
+            MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
+            if (rc.onTheMap(checkLoc)) {
+                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 2 && checkLoc.y % LATTICE_SIZE == 2) {
+                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                    if (bot == null || bot.ID == rc.getID()) {
+                        closestLatticeLoc = checkLoc;
+                    }
+                }
+            }
+        }
+
         if (role == EXPLORE) {
             if (locOfClosestFriendlyPoli != null) {
                 // head in scoutDir, direction of spawning, and find lattice points, rotate left
@@ -75,12 +109,35 @@ public class Politician extends Unit {
                 if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                 }
+                else {
+                    // if no lattice found, go in exploreDir
+                    if (closestLatticeLoc == null) {
+                        targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                        if (!rc.onTheMap(targetLoc)) {
+                            exploreDir = exploreDir.rotateLeft().rotateLeft();
+                            targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                        }
+                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                    }
+                    else {
+                        targetLoc = closestLatticeLoc;
+                    }
+                }
+
             }
         }
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
+            } else if (!rc.getLocation().equals(targetLoc)){
+                // wiggle out if perhaps stuck
+                for (Direction wiggleDir : DIRECTIONS) {
+                    // MapLocation loc = rc.getLocation().add(wiggleDir);
+                    if (rc.canMove(wiggleDir)) {
+                        rc.move(wiggleDir);
+                    }
+                }
             }
         }
     }
