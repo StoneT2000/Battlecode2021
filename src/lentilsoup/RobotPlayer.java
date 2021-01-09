@@ -116,7 +116,7 @@ public strictfp class RobotPlayer {
         int[] data = Comms.readFoundECSignal(flag);
         int teamval = data[0];
         if (!haveMapDimensions()) {
-            // TODO: store signal for later processing...
+            // TODO: store signal for later processing so we are a bit more efficient...
             return;
         }
         MapLocation ECLoc = Comms.decodeMapLocation(data[1], offsetx, offsety);

@@ -22,7 +22,6 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static HashTable<Integer> ecIDs = new HashTable<>(10);
     static HashTable<Integer> muckrakerIDs = new HashTable<>(50);
-    // TODO: when they convert, we need to remove that id and put new one
     static HashTable<Integer> slandererIDs = new HashTable<>(50);
     static HashTable<Integer> politicianIDs = new HashTable<>(20);
     static int lastBuildTurn = -1;
