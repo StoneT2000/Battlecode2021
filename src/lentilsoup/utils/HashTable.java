@@ -40,6 +40,7 @@ public class HashTable<T> {
         tabIndex = table.length;
         curr = null;
     }
+    // returns null if no elements exist or iterator exhausted
     public Node<T> next() {
         if (size != 0) {
             if (curr == null || curr.next == null) {

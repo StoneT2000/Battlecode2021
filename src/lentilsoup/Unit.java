@@ -1,17 +1,14 @@
 package lentilsoup;
 
 import battlecode.common.*;
+import lentilsoup.utils.HashTable;
+
 import static lentilsoup.Constants.*;
 
 public abstract class Unit extends RobotPlayer {
 
     static MapLocation homeEC = null;
     static int homeECID = -1;
-
-    static int offsetx = 0;
-    static int offsety = 0;
-    static int mapWidth = 0;
-    static int mapHeight = 0;
 
     /**
      * define helper methods for units in general e.g. pathing, comms etc.
@@ -79,7 +76,6 @@ public abstract class Unit extends RobotPlayer {
                 if (parsed == Comms.BUILT_UNIT) {
                     int[] data = Comms.readBuiltUnitSignal(flag);
                     int id = data[0];
-                    System.out.println(data[0] + " - " + data[1]);
                     if (id == rc.getID()) {
                         homeEC = bot.location;
                         homeECID = bot.ID;

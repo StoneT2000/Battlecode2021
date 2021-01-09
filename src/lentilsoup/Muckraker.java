@@ -1,24 +1,28 @@
 package lentilsoup;
 
 import battlecode.common.*;
+import lentilsoup.utils.LinkedList;
+import lentilsoup.utils.Node;
+import lentilsoup.utils.HashTable;
+
 import static lentilsoup.Constants.*;
 
 public class Muckraker extends Unit {
     public static final int[][] BFS30 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
-        { 0, -2 }, { -1, -1 }, { -2, 0 }, { -1, 1 }, { 0, 2 }, { 1, 1 }, { 3, 0 }, { 2, -1 }, { 1, -2 }, { 0, -3 },
-        { -1, -2 }, { -2, -1 }, { -3, 0 }, { -2, 1 }, { -1, 2 }, { 0, 3 }, { 1, 2 }, { 2, 1 }, { 4, 0 }, { 3, -1 },
-        { 2, -2 }, { 1, -3 }, { 0, -4 }, { -1, -3 }, { -2, -2 }, { -3, -1 }, { -4, 0 }, { -3, 1 }, { -2, 2 },
-        { -1, 3 }, { 0, 4 }, { 1, 3 }, { 2, 2 }, { 3, 1 }, { 5, 0 }, { 4, -1 }, { 3, -2 }, { 2, -3 }, { 1, -4 },
-        { 0, -5 }, { -1, -4 }, { -2, -3 }, { -3, -2 }, { -4, -1 }, { -5, 0 }, { -4, 1 }, { -3, 2 }, { -2, 3 },
-        { -1, 4 }, { 0, 5 }, { 1, 4 }, { 2, 3 }, { 3, 2 }, { 4, 1 }, { 5, -1 }, { 4, -2 }, { 3, -3 }, { 2, -4 },
-        { 1, -5 }, { -1, -5 }, { -2, -4 }, { -3, -3 }, { -4, -2 }, { -5, -1 }, { -5, 1 }, { -4, 2 }, { -3, 3 },
-        { -2, 4 }, { -1, 5 }, { 1, 5 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 5, 1 }, { 5, -2 }, { 4, -3 }, { 3, -4 },
-        { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
-        { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
+            { 0, -2 }, { -1, -1 }, { -2, 0 }, { -1, 1 }, { 0, 2 }, { 1, 1 }, { 3, 0 }, { 2, -1 }, { 1, -2 }, { 0, -3 },
+            { -1, -2 }, { -2, -1 }, { -3, 0 }, { -2, 1 }, { -1, 2 }, { 0, 3 }, { 1, 2 }, { 2, 1 }, { 4, 0 }, { 3, -1 },
+            { 2, -2 }, { 1, -3 }, { 0, -4 }, { -1, -3 }, { -2, -2 }, { -3, -1 }, { -4, 0 }, { -3, 1 }, { -2, 2 },
+            { -1, 3 }, { 0, 4 }, { 1, 3 }, { 2, 2 }, { 3, 1 }, { 5, 0 }, { 4, -1 }, { 3, -2 }, { 2, -3 }, { 1, -4 },
+            { 0, -5 }, { -1, -4 }, { -2, -3 }, { -3, -2 }, { -4, -1 }, { -5, 0 }, { -4, 1 }, { -3, 2 }, { -2, 3 },
+            { -1, 4 }, { 0, 5 }, { 1, 4 }, { 2, 3 }, { 3, 2 }, { 4, 1 }, { 5, -1 }, { 4, -2 }, { 3, -3 }, { 2, -4 },
+            { 1, -5 }, { -1, -5 }, { -2, -4 }, { -3, -3 }, { -4, -2 }, { -5, -1 }, { -5, 1 }, { -4, 2 }, { -3, 3 },
+            { -2, 4 }, { -1, 5 }, { 1, 5 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 5, 1 }, { 5, -2 }, { 4, -3 }, { 3, -4 },
+            { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
+            { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
     static final int SCOUT_CORNERS = 0;
     static final int LATTICE_NETWORK = 10;
-    static int role = LATTICE_NETWORK;
+    static int role = SCOUT_CORNERS;
     static final int LATTICE_SIZE = 5;
     static Direction scoutDir = null;
 
@@ -28,10 +32,31 @@ public class Muckraker extends Unit {
      * handles the unit movement to go there
      */
     static MapLocation targetLoc = null;
+    static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
+    static LinkedList<Integer> ECLocHashesToSend = new LinkedList<>();
+    static LinkedList<Integer> ECLocHashesTeamToSend = new LinkedList<>();
 
     public static void setup() throws GameActionException {
         setHomeEC();
         scoutDir = rc.getLocation().directionTo(homeEC).opposite();
+    }
+
+    public static void handleFlag(int flag) {
+        
+        switch (Comms.SIGNAL_TYPE_MASK & flag) {
+            case Comms.MAP_OFFSET_X_AND_WIDTH:
+                int[] vs = Comms.readMapOffsetSignalXWidth(flag);
+                offsetx = vs[0];
+                mapWidth = vs[1];
+                break;
+            case Comms.MAP_OFFSET_Y_AND_HEIGHT:
+                int[] vs2 = Comms.readMapOffsetSignalYHeight(flag);
+                offsety = vs2[0];
+                mapHeight = vs2[1];
+                break;
+            case Comms.FOUND_EC:
+                processFoundECFlag(flag);
+        }
     }
 
     public static void run() throws GameActionException {
@@ -39,22 +64,13 @@ public class Muckraker extends Unit {
 
         // sense ec flags
         // TODO: possible issue if home ec is taken by opponent...
-        int homeECFlag = rc.getFlag(homeECID);
-        switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
-            case Comms.MAP_OFFSET_X_AND_WIDTH:
-                int[] vs = Comms.readMapOffsetSignalXWidth(homeECFlag);
-                offsetx = vs[0];
-                mapWidth = vs[1];
-                break;
-            case Comms.MAP_OFFSET_Y_AND_HEIGHT:
-                int[] vs2 = Comms.readMapOffsetSignalYHeight(homeECFlag);
-                offsety = vs2[0];
-                mapHeight = vs2[1];
-                break;
+        if (rc.canGetFlag(homeECID)) {
+            int homeECFlag = rc.getFlag(homeECID);
+            handleFlag(homeECFlag);
         }
 
         // if values valid, we are done scouting, we have map dimensions
-        if (role == SCOUT_CORNERS && mapWidth >= 32 && mapHeight >= 32) {
+        if (role == SCOUT_CORNERS && haveMapDimensions()) {
             role = LATTICE_NETWORK;
         }
 
@@ -66,6 +82,9 @@ public class Muckraker extends Unit {
         int distToClosestFriendlyMuckraker = 999999999;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
+            if (bot.team == myTeam) {
+                handleFlag(rc.getFlag(bot.ID));
+            }
             if (bot.team == oppTeam && bot.type == RobotType.SLANDERER) {
                 int dist = rc.getLocation().distanceSquaredTo(bot.location);
                 if (dist < distToSlosestSlanderer) {
@@ -77,6 +96,20 @@ public class Muckraker extends Unit {
                 if (dist < distToClosestFriendlyMuckraker) {
                     distToClosestFriendlyMuckraker = dist;
                     locOfClosestFriendlyMuckraker = bot.location;
+                }
+            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                // we always send these signals out in the event the EC changes team
+                int hash = Comms.encodeMapLocationWithoutOffsets(bot.location);
+                if (!foundECLocHashes.contains(hash)) {
+                    foundECLocHashes.add(hash);
+                    ECLocHashesToSend.add(hash);
+                    if (bot.team == oppTeam) {
+                        ECLocHashesTeamToSend.add(TEAM_ENEMY);
+                    } else if (bot.team == myTeam) {
+                        ECLocHashesTeamToSend.add(TEAM_FRIEND);
+                    } else {
+                        ECLocHashesTeamToSend.add(TEAM_NEUTRAL);
+                    }
                 }
             }
         }
@@ -107,7 +140,9 @@ public class Muckraker extends Unit {
                 break;
             case LATTICE_NETWORK:
                 targetLoc = rc.getLocation();
-                scoutCorners();
+                if (!haveMapDimensions()) {
+                    scoutCorners();
+                }
                 if (rc.isReady()) {
                     if (locOfClosestSlanderer != null) {
                         if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
@@ -141,6 +176,22 @@ public class Muckraker extends Unit {
                 }
                 break;
         }
+
+        // comms work
+        if (haveMapDimensions()) {
+            // if we have map dimensions, send out scouting info
+            if (ECLocHashesToSend.size > 0) {
+                Node<Integer> hashnode = ECLocHashesToSend.dequeue();
+                Node<Integer> hashnodeteam = ECLocHashesTeamToSend.dequeue();
+                MapLocation ECLoc = Comms.decodeMapLocationWithoutOffsets(hashnode.val);
+                int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val, offsetx, offsety);
+                setFlag(signal);
+                // remove from table so we can search it again
+                foundECLocHashes.remove(hashnode.val);
+            }
+        }
+
+
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
@@ -196,16 +247,15 @@ public class Muckraker extends Unit {
                 targetLoc = rc.getLocation().add(scoutDir);
             }
         } else {
-            // found corner, head back
-            targetLoc = homeEC;
+            // found corner
             // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
-            // if (targetLoc.distanceSquaredTo(homeEC) <= MUCKRAKER_SENSE_RADIUS) {
-            if (turnCount % 2 == 0) {
-                rc.setFlag(Comms.getCornerLocSignalX(foundCorner));
-            } else {
-                rc.setFlag(Comms.getCornerLocSignalY(foundCorner));
+            if (!haveMapDimensions()) {
+                if (turnCount % 2 == 0) {
+                    setFlag(Comms.getCornerLocSignalX(foundCorner));
+                } else {
+                    setFlag(Comms.getCornerLocSignalY(foundCorner));
+                }
             }
-            // }
         }
     }
 }

@@ -12,6 +12,9 @@ public class Constants {
 
     public static final int MUCKRAKER_SENSE_RADIUS = 30;
     public static final int MUCKRAKER_ACTION_RADIUS = 12;
+    public static final int TEAM_FRIEND = 0;
+    public static final int TEAM_ENEMY = 1;
+    public static final int TEAM_NEUTRAL = 2;
     /** deltas from 0,0 ordered by manhattan distance within r^2 20 */
 
     // TODO: optimisation, move these to respective unit classes since some units dont need it.

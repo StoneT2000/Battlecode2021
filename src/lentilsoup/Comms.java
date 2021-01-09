@@ -19,6 +19,7 @@ public class Comms {
     /** bits 4-5 for unit type, rest for id */
     public static final int BUILT_UNIT = 0x500000;
     public static final int POLI_SACRIFICE = 0x600000;
+    public static final int FOUND_EC = 0x700000;
 
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
@@ -29,6 +30,15 @@ public class Comms {
     public static MapLocation decodeMapLocation(int hash, int offsetx, int offsety) {
         int y = hash % 64 + offsety;
         int x = hash / 64 + offsetx;
+        return new MapLocation(x, y);
+    }
+
+    public static int encodeMapLocationWithoutOffsets(MapLocation loc) {
+        return loc.x * 40000 + loc.y;
+    }
+    public static MapLocation decodeMapLocationWithoutOffsets(int hash) {
+        int y = hash % 40000;
+        int x = hash / 40000;
         return new MapLocation(x, y);
     }
     
@@ -110,5 +120,23 @@ public class Comms {
 
     public static int getPoliSacrificeSignal() {
         return POLI_SACRIFICE;
+    }
+
+    public static int getFoundECSignal(MapLocation ECLoc, int teamind, int offsetx, int offsety) {
+        // we send the type, friend, enemy, or neutral 2 bits (0, 1, 2)
+        // location: usually 12 bits
+
+        return FOUND_EC | (teamind << 18) | encodeMapLocation(ECLoc, offsetx, offsety);
+    }
+
+    /**
+     * 
+     * @param signal
+     * @return [team, location hash]
+     */
+    public static int[] readFoundECSignal(int signal) {
+        int team = (SIGNAL_MASK & signal) >> 18;
+        int lochash = signal & 0x03ffff;
+        return new int[]{team, lochash};
     }
 }

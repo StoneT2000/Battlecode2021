@@ -1,6 +1,8 @@
 package lentilsoup;
 
 import battlecode.common.*;
+import lentilsoup.utils.Node;
+
 import static lentilsoup.Constants.*;
 
 public class Politician extends Unit {
@@ -15,7 +17,8 @@ public class Politician extends Unit {
             { -3, -4 }, { -4, -3 }, { -4, 3 }, { -3, 4 }, { 3, 4 }, { 4, 3 } };
     static final int SACRIFICE = 0;
     static final int EXPLORE = 1;
-    static final int DEFEND_SLANDERER = 10;
+    static final int DEFEND_SLANDERER = 2;
+    static final int ATTACK_EC = 3;
     static Direction exploreDir = Direction.NORTH;;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
@@ -36,6 +39,27 @@ public class Politician extends Unit {
         }
     }
 
+    public static void handleFlag(int flag) {
+        switch (Comms.SIGNAL_TYPE_MASK & flag) {
+            case Comms.MAP_OFFSET_X_AND_WIDTH:
+                int[] vs = Comms.readMapOffsetSignalXWidth(flag);
+                offsetx = vs[0];
+                mapWidth = vs[1];
+                break;
+            case Comms.MAP_OFFSET_Y_AND_HEIGHT:
+                int[] vs2 = Comms.readMapOffsetSignalYHeight(flag);
+                offsety = vs2[0];
+                mapHeight = vs2[1];
+                break;
+            case Comms.POLI_SACRIFICE:
+                role = SACRIFICE;
+                break;
+            case Comms.FOUND_EC:
+                processFoundECFlag(flag);
+                break;
+        }
+    }
+
     public static void run() throws GameActionException {
 
         // if (role == SACRIFICE) {
@@ -44,11 +68,9 @@ public class Politician extends Unit {
         //     }
         //     return;
         // }
-        int homeECFlag = rc.getFlag(homeECID);
-        switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
-            // case Comms.POLI_SACRIFICE:
-            //     role = SACRIFICE;
-            //     break;
+        if (rc.canGetFlag(homeECID)) {
+            int homeECFlag = rc.getFlag(homeECID);
+            handleFlag(homeECFlag);
         }
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
         MapLocation locOfClosestFriendlyPoli = null;
@@ -88,6 +110,9 @@ public class Politician extends Unit {
                 }
             }
         }
+        if (rc.getConviction() >= 100) {
+            role = ATTACK_EC;
+        }
 
         if (role == EXPLORE) {
             if (locOfClosestFriendlyPoli != null) {
@@ -124,6 +149,39 @@ public class Politician extends Unit {
                     }
                 }
 
+            }
+        } else if (role == ATTACK_EC) {
+            // move away from EC...
+            // repetitive code
+            
+            if (enemyECLocs.size > 0) {
+                Node<Integer> eclocnode = enemyECLocs.next();
+                if (eclocnode == null) {
+                    enemyECLocs.resetIterator();
+                    eclocnode = enemyECLocs.next();
+                }
+                // note, if we have these ec locs, then we already know offsets and can decode
+                MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
+                targetLoc = ECLoc;
+            } else {
+                // lattice instead
+                if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
+                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                }
+                else {
+                    // if no lattice found, go in exploreDir
+                    if (closestLatticeLoc == null) {
+                        targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                        if (!rc.onTheMap(targetLoc)) {
+                            exploreDir = exploreDir.rotateLeft().rotateLeft();
+                            targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                        }
+                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                    }
+                    else {
+                        targetLoc = closestLatticeLoc;
+                    }
+                }
             }
         }
         if (rc.isReady()) {

@@ -24,7 +24,6 @@ public class LinkedList<T> {
         if (this.size > 0) {
             Node<T> removed = head;
             remove(head);
-            this.size--;
             return removed;
         }
         return null;

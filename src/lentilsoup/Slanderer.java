@@ -11,18 +11,20 @@ public class Slanderer extends Unit {
     }
 
     public static void run() throws GameActionException {
-        int homeECFlag = rc.getFlag(homeECID);
-        switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
-            case Comms.MAP_OFFSET_X_AND_WIDTH:
-                int[] vs = Comms.readMapOffsetSignalXWidth(homeECFlag);
-                offsetx = vs[0];
-                mapWidth = vs[1];
-                break;
-            case Comms.MAP_OFFSET_Y_AND_HEIGHT:
-                int[] vs2 = Comms.readMapOffsetSignalYHeight(homeECFlag);
-                offsety = vs2[0];
-                mapHeight = vs2[1];
-                break;
+        if (rc.canGetFlag(homeECID)) {
+            int homeECFlag = rc.getFlag(homeECID);
+            switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
+                case Comms.MAP_OFFSET_X_AND_WIDTH:
+                    int[] vs = Comms.readMapOffsetSignalXWidth(homeECFlag);
+                    offsetx = vs[0];
+                    mapWidth = vs[1];
+                    break;
+                case Comms.MAP_OFFSET_Y_AND_HEIGHT:
+                    int[] vs2 = Comms.readMapOffsetSignalYHeight(homeECFlag);
+                    offsety = vs2[0];
+                    mapHeight = vs2[1];
+                    break;
+            }
         }
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();

@@ -52,6 +52,14 @@ Priority Strats:
 - if starting ec is near another neutral ec, build buff politician first
 - find symmetry first then explore where ECs
 
+
+Comm stuff
+
+- muckrakers should constantly read locally flags from other muckrakers. if from different ecs, this will propgate info both ecs have
+  - e.g. corner data in case one ec doesnt get it as early
+  - e.g. EC locations etc.
+  - e.g. flag of friendly ec?
+
 ## Important questions to answer ASAP
 
 Q: How many dudes can a center build per round? Is it limited by space around the center...  

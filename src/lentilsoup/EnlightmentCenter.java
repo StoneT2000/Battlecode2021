@@ -25,7 +25,6 @@ public class EnlightmentCenter extends RobotPlayer {
     // TODO: when they convert, we need to remove that id and put new one
     static HashTable<Integer> slandererIDs = new HashTable<>(50);
     static HashTable<Integer> politicianIDs = new HashTable<>(20);
-    static boolean setFlagThisTurn = false;
     static int lastBuildTurn = -1;
 
     static class Stats {
@@ -34,20 +33,15 @@ public class EnlightmentCenter extends RobotPlayer {
         static int slanderersBuilt = 0;
     }
 
-    public static void setFlag(int flag) throws GameActionException {
-        rc.setFlag(flag);
-        setFlagThisTurn = true;
-    }
-
     public static void setup() throws GameActionException {
-        boolean firstEC = rc.getTeamVotes() == 0;
+        // boolean firstEC = rc.getTeamVotes() == 0;
         // if (firstEC) {
-        // // do scout building
-        // role = BUILD_SCOUTS;
-        // lastScoutBuildDirIndex = -1;
-        // // rc.setFlag(0);
+        // do scout building
+        role = BUILD_SCOUTS;
+        lastScoutBuildDirIndex = -1;
+        // rc.setFlag(0);
         // } else {
-        // // rc.setFlag(rc.getID());
+        // rc.setFlag(rc.getID());
         // }
         ecIDs.add(rc.getID());
     }
@@ -88,6 +82,8 @@ public class EnlightmentCenter extends RobotPlayer {
                         offsety = Math.min(offsety, cy);
                         mapHeight = highMapY - offsety + 1;
                         break;
+                    case Comms.FOUND_EC:
+                        processFoundECFlag(flag);
                 }
             } catch (GameActionException error) {
                 // lost this muck
@@ -184,6 +180,9 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                     }
                 }
+                if (lastScoutBuildDirIndex == 3) {
+                    role = NORMAL;
+                }
                 break;
             case NORMAL:
                 // TODO Calculate this
@@ -233,9 +232,9 @@ public class EnlightmentCenter extends RobotPlayer {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (buildPoli && rc.getInfluence() >= 20) {
-                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 20)) {
-                                rc.buildRobot(RobotType.POLITICIAN, dir, 20);
+                        if (buildPoli && rc.getInfluence() >= 14) {
+                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, 14)) {
+                                rc.buildRobot(RobotType.POLITICIAN, dir, 14);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 politicianIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
@@ -270,6 +269,31 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 break;
         }
+
+        // signal stuff
+        /**
+         * turncount modulus:
+         * 0, 1 = map details
+         * 2, 3, 4 = ec locations
+         */
+
+        int turnCountModulus = 2;
+        if (enemyECLocs.size > 0) {
+            turnCountModulus = 5;
+        }
+        System.out.println("turncountmod " + turnCountModulus);
+        if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
+            
+            Node<Integer> ecLocHashNode = enemyECLocs.next();
+            if (ecLocHashNode == null) {
+                enemyECLocs.resetIterator();
+                ecLocHashNode = enemyECLocs.next();
+            }
+            MapLocation ECLoc = Comms.decodeMapLocation(ecLocHashNode.val, offsetx, offsety);
+            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
+            setFlag(signal);
+        }
+
         /**
          * If mapheight and width resolved o some valid value [32, 64], then send out
          * signals to everyone OPTIMIZATION: do this only when we build new units, or
@@ -280,14 +304,15 @@ public class EnlightmentCenter extends RobotPlayer {
                     + " - Height: " + mapHeight);
             // TODO: this might be too long of a wait
             if (!setFlagThisTurn && (turnCount - lastBuildTurn) >= 2) {
-                if (turnCount % 2 == 0) {
+                if (turnCount % turnCountModulus == 0) {
                     int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
-                    rc.setFlag(sig);
-                } else {
+                    setFlag(sig);
+                } else if (turnCount % turnCountModulus == 1){
                     int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
-                    rc.setFlag(sig);
+                    setFlag(sig);
                 }
             }
         }
+        
     }
 }
