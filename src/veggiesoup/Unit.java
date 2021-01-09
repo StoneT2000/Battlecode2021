@@ -37,23 +37,26 @@ public abstract class Unit extends RobotPlayer {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
         Direction greedyDir = Direction.CENTER;
-        double bestValue = tileMoveCost(rc.getLocation()) * manhattanDist(rc.getLocation(), targetLoc);
-        int origManhattanDist = manhattanDist(rc.getLocation(), targetLoc);
+        // System.out.println("======= " + turnCount + " =======");
+        double bestValue = tileMoveCost(rc.getLocation()) + rc.getLocation().distanceSquaredTo(targetLoc);
+        int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
         for (Direction dir : DIRECTIONS) {
             MapLocation newloc = rc.getLocation().add(dir);
             if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
 
-                int thisManhattanDist =manhattanDist(newloc, targetLoc);
-                double val = tileMoveCost(newloc) * thisManhattanDist;
-                if (thisManhattanDist >= origManhattanDist) {
+                int thisDist = newloc.distanceSquaredTo(targetLoc);
+                double val = tileMoveCost(newloc) + thisDist;
+                if (thisDist > origDist) {
                     val += 200000;
                 }
+                // System.out.println("Target: " + targetLoc + " - from " + rc.getLocation() + " check: " +  newloc + " - cost: " + val);
                 if (val < bestValue) {
                     bestValue = val;
                     greedyDir = dir;
                 }
             }
         }
+        // System.out.println("Best " + greedyDir + " - " + bestValue);
         if (greedyDir == Direction.CENTER) {
             return Direction.CENTER;
         }

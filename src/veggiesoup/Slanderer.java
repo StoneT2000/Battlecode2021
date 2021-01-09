@@ -118,6 +118,14 @@ public class Slanderer extends Unit {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
+            } else if (!rc.getLocation().equals(targetLoc)){
+                // wiggle out if perhaps stuck
+                for (Direction wiggleDir : DIRECTIONS) {
+                    // MapLocation loc = rc.getLocation().add(wiggleDir);
+                    if (rc.canMove(wiggleDir)) {
+                        rc.move(wiggleDir);
+                    }
+                }
             }
         }
     }
