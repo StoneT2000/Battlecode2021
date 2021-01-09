@@ -27,6 +27,8 @@ public class Muckraker extends Unit {
     static Direction scoutDir = null;
 
     static MapLocation foundCorner = null;
+    static HashTable<Integer> cornerXs = new HashTable<>(4);
+    static HashTable<Integer> cornerYs = new HashTable<>(4);
     /**
      * set this maploc to wherever u want the unit to go, pathing code then auto
      * handles the unit movement to go there
@@ -44,6 +46,20 @@ public class Muckraker extends Unit {
     public static void handleFlag(int flag) {
         
         switch (Comms.SIGNAL_TYPE_MASK & flag) {
+            case Comms.CORNER_LOC_X:
+                int cx = Comms.readCornerLocSignalX(flag);
+                if (!cornerXs.contains(cx)) {
+                    // a different corner found by another unit, spread the word!
+                    cornerXs.add(cx);
+                }
+                break;
+            case Comms.CORNER_LOC_Y:
+                int cy = Comms.readCornerLocSignalX(flag);
+                if (!cornerYs.contains(cy)){
+                    // a different corner found by another unit, spread the word!
+                    cornerYs.add(cy);
+                }
+                break;
             case Comms.MAP_OFFSET_X_AND_WIDTH:
                 int[] vs = Comms.readMapOffsetSignalXWidth(flag);
                 offsetx = vs[0];
@@ -208,53 +224,118 @@ public class Muckraker extends Unit {
         }
     }
 
+    // finds edges by searching in straight line following direction dir
+    // returns null if not found
+    private static MapLocation findEdgeLocation(Direction dir) throws GameActionException {
+        MapLocation currLoc = rc.getLocation();
+        MapLocation checkLoc = currLoc.add(dir).add(dir).add(dir).add(dir);
+        Direction oppdir = dir.opposite();
+        int edgeReached = -1;
+        for (int i = 4; --i >= 0;) {
+            checkLoc = checkLoc.add(oppdir);
+            if (!rc.onTheMap(checkLoc)) {
+                // must see off map first before seeing on map
+                edgeReached = 0;
+                continue;
+            } else {
+                // if finally on map after previously not on map
+                if (edgeReached == 0) {
+                    edgeReached = 1;
+                }
+                break;
+            }
+        }
+        if (edgeReached == 1) {
+            return checkLoc;
+        }
+        return null;
+    }
     public static void scoutCorners() throws GameActionException {
         // scouts by finding intersection of line of scout dir with edge
         MapLocation currLoc = rc.getLocation();
-        if (foundCorner == null) {
-            // shoot diagonal line and find intersection of line and edge of map (or corner)
-            Direction oppScoutDir = scoutDir.opposite();
-            MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir);
-            int edgeOrCornerReached = -1;
-            for (int i = 4; --i >= 0;) {
-                checkLoc = checkLoc.add(oppScoutDir);
-                if (!rc.onTheMap(checkLoc)) {
-                    // must see off map first before seeing on map
-                    edgeOrCornerReached = 0;
-                    continue;
-                } else {
-                    // if finally on map,
-                    if (edgeOrCornerReached == 0) {
-                        edgeOrCornerReached = 1;
-                    }
-                    break;
-                }
-            }
-            if (edgeOrCornerReached == 1) {
-                // determrine if edge or corner, if edge, run along edge
-                MapLocation leftLoc = checkLoc.add(scoutDir.rotateLeft());
-                MapLocation rightLoc = checkLoc.add(scoutDir.rotateRight());
-                if (rc.onTheMap(leftLoc)) {
-                    // run along edge
-                    targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
-                } else if (rc.onTheMap(rightLoc)) {
-                    targetLoc = rc.getLocation().add(scoutDir.rotateRight());
-                } else {
-                    // we reached corner,
-                    foundCorner = checkLoc;
-                }
+
+        // shoot 4 cardinal lines to find edges
+        MapLocation northEdge = findEdgeLocation(Direction.NORTH);
+        MapLocation westEdge = findEdgeLocation(Direction.WEST);
+        MapLocation eastEdge = findEdgeLocation(Direction.EAST);
+        MapLocation southEdge = findEdgeLocation(Direction.SOUTH);
+
+        if (northEdge != null) {
+            cornerYs.add(northEdge.y);
+        }
+        if (southEdge != null) {
+            cornerYs.add(southEdge.y);
+        }
+        if (westEdge != null) {
+            cornerXs.add(westEdge.x);
+        }
+        if (eastEdge != null) {
+            cornerXs.add(eastEdge.x);
+        }
+
+
+        // shoot diagonal line and find intersection of line and edge of map (or corner), we use this to help navigate to corners and then travel around
+        Direction oppScoutDir = scoutDir.opposite();
+        MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir);
+        int edgeOrCornerReached = -1;
+        for (int i = 4; --i >= 0;) {
+            checkLoc = checkLoc.add(oppScoutDir);
+            if (!rc.onTheMap(checkLoc)) {
+                // must see off map first before seeing on map
+                edgeOrCornerReached = 0;
+                continue;
             } else {
-                targetLoc = rc.getLocation().add(scoutDir);
+                // if finally on map,
+                if (edgeOrCornerReached == 0) {
+                    edgeOrCornerReached = 1;
+                }
+                break;
+            }
+        }
+        if (edgeOrCornerReached == 1) {
+            // determrine if edge or corner, if edge, run along edge
+            MapLocation leftLoc = checkLoc.add(scoutDir.rotateLeft());
+            MapLocation rightLoc = checkLoc.add(scoutDir.rotateRight());
+            if (rc.onTheMap(leftLoc)) {
+                // run along edge
+                targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
+            } else if (rc.onTheMap(rightLoc)) {
+                targetLoc = rc.getLocation().add(scoutDir.rotateRight());
+            } else {
+                // we reached corner
+                targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
             }
         } else {
-            // found corner
-            // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
-            if (!haveMapDimensions()) {
-                if (turnCount % 2 == 0) {
-                    setFlag(Comms.getCornerLocSignalX(foundCorner));
-                } else {
-                    setFlag(Comms.getCornerLocSignalY(foundCorner));
+            targetLoc = rc.getLocation().add(scoutDir);
+        }
+        // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
+        if (!haveMapDimensions()) {
+            // if we have more corner points, send those out as well
+            int signalX = -1;
+            if (turnCount % 2 == 0) {
+                if (cornerXs.size > 0) {
+                    signalX = 1;
                 }
+            } else {
+                if (cornerYs.size > 0) {
+                    signalX = 0;
+                }
+            }
+            if (signalX == 1) {
+                Node<Integer> cornernode = cornerXs.next();
+                if (cornernode == null) {
+                    cornerXs.resetIterator();
+                    cornernode = cornerXs.next();
+                }
+                setFlag(Comms.getCornerLocSignalX(cornernode.val));
+            } else if (signalX == 0) {
+                // signal y then
+                Node<Integer> cornernode = cornerYs.next();
+                if (cornernode == null) {
+                    cornerYs.resetIterator();
+                    cornernode = cornerYs.next();
+                }
+                setFlag(Comms.getCornerLocSignalY(cornernode.val));
             }
         }
     }

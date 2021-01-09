@@ -44,15 +44,15 @@ public class Comms {
     
     // raw x and y range 10k to 30k, taking up minimum 29 bits to encode, even if offsetting by 10k
     // just one takes 15 bits. 4 reserved for signal type, so shift left 5 bits as 4+5+15 = 20
-    public static int getCornerLocSignalX(MapLocation loc) {
+    public static int getCornerLocSignalX(int x) {
         // bits 0-3 type, 4-18 x
-        return CORNER_LOC_X | (loc.x << 5);
+        return CORNER_LOC_X | (x << 5);
     }
     public static int readCornerLocSignalX(int signal) {
         return (SIGNAL_MASK & signal) >> 5;
     }
-    public static int getCornerLocSignalY(MapLocation loc) {
-        return CORNER_LOC_Y | (loc.y << 5);
+    public static int getCornerLocSignalY(int y) {
+        return CORNER_LOC_Y | (y << 5);
     }
     public static int readCornerLocSignalY(int signal) {
         return (SIGNAL_MASK & signal) >> 5;
