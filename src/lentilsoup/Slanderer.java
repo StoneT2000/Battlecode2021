@@ -5,13 +5,7 @@ import static lentilsoup.Constants.*;
 
 public class Slanderer extends Unit {
     static MapLocation targetLoc = null;
-    static MapLocation homeEC = null;
-    static int homeECID = -1;
 
-    static int offsetx = 0;
-    static int offsety = 0;
-    static int mapWidth = 0;
-    static int mapHeight = 0;
     public static void setup() throws GameActionException {
         setHomeEC();
     }

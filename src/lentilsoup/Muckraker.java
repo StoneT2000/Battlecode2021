@@ -10,11 +10,6 @@ public class Muckraker extends Unit {
     static int role = LATTICE_NETWORK;
     static Direction scoutDir = null;
 
-    static int offsetx = 0;
-    static int offsety = 0;
-    static int mapWidth = 0;
-    static int mapHeight = 0;
-
     static MapLocation foundCorner = null;
     /**
      * set this maploc to wherever u want the unit to go, pathing code then auto

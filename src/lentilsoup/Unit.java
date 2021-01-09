@@ -92,5 +92,6 @@ public abstract class Unit extends RobotPlayer {
                 }
             }
         }
+        // System.out.println("HOMEEC: " + homeEC + " - " + homeECID);
     }
 }

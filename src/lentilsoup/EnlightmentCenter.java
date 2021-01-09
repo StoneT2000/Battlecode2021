@@ -27,6 +27,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static HashTable<Integer> politicianIDs = new HashTable<>(20);
     static boolean setFlagThisTurn = false;
     static int lastBuildTurn = -1;
+
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -37,6 +38,7 @@ public class EnlightmentCenter extends RobotPlayer {
         rc.setFlag(flag);
         setFlagThisTurn = true;
     }
+
     public static void setup() throws GameActionException {
         boolean firstEC = rc.getTeamVotes() == 0;
         // if (firstEC) {
@@ -56,8 +58,9 @@ public class EnlightmentCenter extends RobotPlayer {
         // do smth with rc
         rc.bid(1);
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
-                + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role + " - Units Controlled EC: " + ecIDs.size
-                + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size + ", M: " + muckrakerIDs.size);
+                + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
+                + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
+                + ", M: " + muckrakerIDs.size);
 
         // global comms code independent of role
 
@@ -68,9 +71,9 @@ public class EnlightmentCenter extends RobotPlayer {
         politicianIDs.resetIterator();
 
         Node<Integer> currIDNode = muckrakerIDs.next();
-        LinkedList<Integer> muckrakerIDsToRemove = new LinkedList<>();
+        LinkedList<Integer> idsToRemove = new LinkedList<>();
         while (currIDNode != null) {
-            if (rc.canGetFlag(currIDNode.val)) {
+            try {
                 int flag = rc.getFlag(currIDNode.val);
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
                     case Comms.CORNER_LOC_X:
@@ -86,20 +89,37 @@ public class EnlightmentCenter extends RobotPlayer {
                         mapHeight = highMapY - offsety + 1;
                         break;
                 }
-
-            } else {
-                // unit dead?
-                muckrakerIDsToRemove.add(currIDNode.val);
+            } catch (GameActionException error) {
+                // lost this muck
+                idsToRemove.add(currIDNode.val);
             }
             currIDNode = muckrakerIDs.next();
         }
 
         while (true) {
-            Node<Integer> node = muckrakerIDsToRemove.dequeue();
+            Node<Integer> node = idsToRemove.dequeue();
             if (node == null)
                 break;
             else {
                 muckrakerIDs.remove(node.val);
+            }
+        }
+
+        currIDNode = slandererIDs.next();
+        while (currIDNode != null) {
+            try {
+                int flag = rc.getFlag(currIDNode.val);
+            } catch (GameActionException error) {
+                idsToRemove.add(currIDNode.val);
+            }
+            currIDNode = slandererIDs.next();
+        }
+        while (true) {
+            Node<Integer> node = idsToRemove.dequeue();
+            if (node == null)
+                break;
+            else {
+                slandererIDs.remove(node.val);
             }
         }
 
@@ -108,10 +128,7 @@ public class EnlightmentCenter extends RobotPlayer {
         int enemyPoliticianConvictionNearby = -1;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
-            if (bot.team == myTeam && bot.type == RobotType.MUCKRAKER) {
-                int flag = rc.getFlag(bot.ID);
-            }
-            else if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
+            if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
                 int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction);
                 enemyPoliticianConvictionNearby += c;
             }
@@ -170,22 +187,37 @@ public class EnlightmentCenter extends RobotPlayer {
                             }
                         }
                     }
-                }
-                else {
-                
-                    // otherwise spam muckrakers wherever possible
+                } else {
+
+                    // otherwise spam muckrakers wherever possible and ocassionally build slanderers
+                    boolean buildSlanderer = false;
+                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 15 || turnCount == 1) {
+                        buildSlanderer = true;
+                    }
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
-                            rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            muckrakerIDs.add(newbot.ID);
-                            int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                            setFlag(sig);
-                            lastBuildTurn = turnCount;
-                            break;
+                        if (buildSlanderer) {
+                            if (rc.canBuildRobot(RobotType.SLANDERER, dir, 1)) {
+                                rc.buildRobot(RobotType.SLANDERER, dir, 1);
+                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                                slandererIDs.add(newbot.ID);
+                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                                setFlag(sig);
+                                lastBuildTurn = turnCount;
+                                break;
+                            }
+                        } else {
+                            if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, 1)) {
+                                rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
+                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                                muckrakerIDs.add(newbot.ID);
+                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                                setFlag(sig);
+                                lastBuildTurn = turnCount;
+                                break;
+                            }
                         }
                     }
                 }
