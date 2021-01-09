@@ -31,12 +31,12 @@ public class Politician extends Unit {
         // sacrifice/empower
         // or we converted from slanderer
         if (homeEC == null) {
-            System.out.println("am slanderer");
             // role = SACRIFICE;
         }
         else {
             exploreDir = homeEC.directionTo(rc.getLocation());
         }
+        // first turn set flag to indiciate unit type
     }
 
     public static void handleFlag(int flag) {

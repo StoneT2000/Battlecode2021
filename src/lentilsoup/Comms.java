@@ -1,6 +1,7 @@
 package lentilsoup;
 
 import battlecode.common.*;
+import static lentilsoup.Constants.*;
 
 public class Comms {
     // reserve first few bits for signal type, here we reserve first 4
@@ -19,7 +20,9 @@ public class Comms {
     /** bits 4-5 for unit type, rest for id */
     public static final int BUILT_UNIT = 0x500000;
     public static final int POLI_SACRIFICE = 0x600000;
+    // TODO: add scouting on EC influence each turn...
     public static final int FOUND_EC = 0x700000;
+    public static final int UNIT_DETAILS = 0x800000;
 
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
@@ -96,13 +99,13 @@ public class Comms {
         // find index of type in our Constants.SPAWNABLE_ROBOTS Array
         switch (type) {
             case POLITICIAN:
-                typeind = 0;
+                typeind = TYPE_POLITICIAN;
                 break;
             case SLANDERER:
-                typeind = 1;
+                typeind = TYPE_SLANDERER;
                 break;
             default:
-                typeind = 2;
+                typeind = TYPE_MUCKRAKER;
 				break;
         }   
         return BUILT_UNIT | (typeind << 18) | unitID;
@@ -138,5 +141,18 @@ public class Comms {
         int team = (SIGNAL_MASK & signal) >> 18;
         int lochash = signal & 0x03ffff;
         return new int[]{team, lochash};
+    }
+
+    public static int getUnitDetailsSignal(int unittype) {
+        return UNIT_DETAILS | (unittype << 18);
+    }
+    /**
+     * 
+     * @param signal
+     * @return [unittype]
+     */
+    public static int[] readUnitDetails(int signal) {
+        int type = (SIGNAL_MASK & signal) >> 18;
+        return new int[]{type};
     }
 }

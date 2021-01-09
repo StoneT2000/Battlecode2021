@@ -34,6 +34,7 @@ public strictfp class RobotPlayer {
         // This is the RobotController object. You use it to perform actions from this
         // robot,
         // and to get information on its current status.
+        System.out.println("Spawend!");
         RobotPlayer.rc = rc;
         myTeam = rc.getTeam();
         oppTeam = rc.getTeam().opponent();
@@ -53,6 +54,7 @@ public strictfp class RobotPlayer {
                 Muckraker.setup();
                 break;
         }
+        RobotType spawnType = rc.getType();
         while (true) {
             turnCount += 1;
             // Try/catch blocks stop unhandled exceptions, which cause your robot to freeze
@@ -66,6 +68,11 @@ public strictfp class RobotPlayer {
                         EnlightmentCenter.run();
                         break;
                     case POLITICIAN:
+                        if (spawnType != rc.getType()) {
+                            setFlag(Comms.getUnitDetailsSignal(TYPE_POLITICIAN));
+                            spawnType = rc.getType();
+                            System.out.println("converted to poli from slander");
+                        }
                         Politician.run();
                         break;
                     case SLANDERER:
@@ -108,6 +115,10 @@ public strictfp class RobotPlayer {
     public static void processFoundECFlag(int flag) {
         int[] data = Comms.readFoundECSignal(flag);
         int teamval = data[0];
+        if (!haveMapDimensions()) {
+            // TODO: store signal for later processing...
+            return;
+        }
         MapLocation ECLoc = Comms.decodeMapLocation(data[1], offsetx, offsety);
         if (teamval == TEAM_ENEMY) {
             if (!enemyECLocs.contains(data[1])) {

@@ -15,6 +15,10 @@ public class Constants {
     public static final int TEAM_FRIEND = 0;
     public static final int TEAM_ENEMY = 1;
     public static final int TEAM_NEUTRAL = 2;
+    public static final int TYPE_POLITICIAN = 0;
+    public static final int TYPE_SLANDERER = 1;
+    public static final int TYPE_MUCKRAKER = 2;
+    public static final int TYPE_ENLIGHTMENT_CENTER = 3;
     /** deltas from 0,0 ordered by manhattan distance within r^2 20 */
 
     // TODO: optimisation, move these to respective unit classes since some units dont need it.

@@ -54,7 +54,7 @@ public class EnlightmentCenter extends RobotPlayer {
         setFlagThisTurn = false;
         // how much influence is spent on building
         int spentInfluence = 0;
-        
+
         int influenceGainedLastTurn = rc.getInfluence() - lastTurnInfluence;
         // determine if we won or lost/tied bid?
         if (!wonInVotes()) {
@@ -133,6 +133,14 @@ public class EnlightmentCenter extends RobotPlayer {
         while (currIDNode != null) {
             try {
                 int flag = rc.getFlag(currIDNode.val);
+                if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.UNIT_DETAILS) {
+                    // check if switched to politican, and remove/add appropriately
+                    int[] data = Comms.readUnitDetails(flag);
+                    if (data[0] == TYPE_POLITICIAN) {
+                        idsToRemove.add(currIDNode.val);
+                        politicianIDs.add(currIDNode.val);
+                    }
+                }
             } catch (GameActionException error) {
                 idsToRemove.add(currIDNode.val);
             }
@@ -169,7 +177,7 @@ public class EnlightmentCenter extends RobotPlayer {
         boolean buildEarlyPoliticianToTakeNeutralHQ = false;
         // if enemy HQ is near
         boolean nearbyEnemyHQ = false;
-
+        boolean nearbyEnemyMuckraker = false;
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         int enemyPoliticianConvictionNearby = -1;
@@ -184,6 +192,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 } else if (bot.team == oppTeam) {
                     nearbyEnemyHQ = true;
                 }
+            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
+                nearbyEnemyMuckraker = true;
             }
         }
 
@@ -252,9 +262,15 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
+                    if (nearbyEnemyMuckraker) {
+                        buildSlanderer = false;
+                    }
                     boolean buildPoli = false;
 
                     if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.5) {
+                        buildPoli = true;
+                    }
+                    if (nearbyEnemyMuckraker) {
                         buildPoli = true;
                     }
                     for (int i = 0; i < 8; i++) {
