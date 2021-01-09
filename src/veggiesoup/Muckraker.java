@@ -21,6 +21,7 @@ public class Muckraker extends Unit {
             { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
     static final int SCOUT_CORNERS = 0;
+    static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
     static int role = SCOUT_CORNERS;
     static final int LATTICE_SIZE = 5;
@@ -87,7 +88,7 @@ public class Muckraker extends Unit {
 
         // if values valid, we are done scouting, we have map dimensions
         if (role == SCOUT_CORNERS && haveMapDimensions()) {
-            role = LATTICE_NETWORK;
+            role = RUSH;
         }
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
@@ -118,6 +119,7 @@ public class Muckraker extends Unit {
                 int hash = Comms.encodeMapLocationWithoutOffsets(bot.location);
                 if (!foundECLocHashes.contains(hash)) {
                     foundECLocHashes.add(hash);
+                    
                     ECLocHashesToSend.add(hash);
                     if (bot.team == oppTeam) {
                         ECLocHashesTeamToSend.add(TEAM_ENEMY);
@@ -154,6 +156,41 @@ public class Muckraker extends Unit {
             case SCOUT_CORNERS:
                 scoutCorners();
                 break;
+            case RUSH:
+                targetLoc = rc.getLocation();
+                if (!haveMapDimensions()) {
+                    scoutCorners();
+                }
+                if (rc.isReady()) {
+                    if (locOfClosestSlanderer != null) {
+                        if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
+                            rc.expose(locOfClosestSlanderer);
+                        } else {
+                            // not in range
+                            targetLoc = locOfClosestSlanderer;
+                            break;
+                        }
+                    } else {
+                        if (enemyECLocs.size > 0) {
+                            Node<Integer> eclocnode = enemyECLocs.next();
+                            if (eclocnode == null) {
+                                enemyECLocs.resetIterator();
+                                eclocnode = enemyECLocs.next();
+                            }
+                            // note, if we have these ec locs, then we already know offsets and can decode
+                            MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
+                            targetLoc = ECLoc;
+                        }
+                        else {
+                            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                            if (!rc.onTheMap(targetLoc)) {
+                                scoutDir = scoutDir.rotateLeft();
+                                targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                            }
+                        }
+                    }
+                }
+                break;
             case LATTICE_NETWORK:
                 targetLoc = rc.getLocation();
                 if (!haveMapDimensions()) {
@@ -176,7 +213,7 @@ public class Muckraker extends Unit {
                         else {
                             targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                             if (!rc.onTheMap(targetLoc)) {
-                                scoutDir = scoutDir.rotateLeft().rotateLeft();
+                                scoutDir = scoutDir.rotateLeft();
                                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                             }
                         }

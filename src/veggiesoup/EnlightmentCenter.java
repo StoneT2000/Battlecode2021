@@ -15,8 +15,6 @@ public class EnlightmentCenter extends RobotPlayer {
     // offsets are also "lowMapX/Y"
     static int offsetx = Integer.MAX_VALUE;
     static int offsety = Integer.MAX_VALUE;
-    static int mapWidth = -1;
-    static int mapHeight = -1;
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
@@ -276,8 +274,8 @@ public class EnlightmentCenter extends RobotPlayer {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (buildPoli && rc.getInfluence() >= 14) {
-                            int influenceWant = 14;
+                        if (buildPoli && rc.getInfluence() >= 20) {
+                            int influenceWant = 20;
                             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
                                 rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);

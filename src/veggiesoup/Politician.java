@@ -163,6 +163,9 @@ public class Politician extends Unit {
                 // note, if we have these ec locs, then we already know offsets and can decode
                 MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
                 targetLoc = ECLoc;
+                if (rc.getLocation().distanceSquaredTo(ECLoc) <= 1) {
+                    rc.empower(1);
+                }
             } else {
                 // lattice instead
                 if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
