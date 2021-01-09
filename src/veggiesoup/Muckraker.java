@@ -343,7 +343,7 @@ public class Muckraker extends Unit {
                 targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
             }
         } else {
-            targetLoc = rc.getLocation().add(scoutDir);
+            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
         }
         // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
         if (!haveMapDimensions()) {

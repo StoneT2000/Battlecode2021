@@ -37,14 +37,19 @@ public abstract class Unit extends RobotPlayer {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
         Direction greedyDir = Direction.CENTER;
-        int closestToTarget = rc.getLocation().distanceSquaredTo(targetLoc);
+        double bestValue = tileMoveCost(rc.getLocation()) * manhattanDist(rc.getLocation(), targetLoc);
+        int origManhattanDist = manhattanDist(rc.getLocation(), targetLoc);
         for (Direction dir : DIRECTIONS) {
             MapLocation newloc = rc.getLocation().add(dir);
             if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
 
-                int dist = newloc.distanceSquaredTo(targetLoc);
-                if (dist < closestToTarget) {
-                    closestToTarget = dist;
+                int thisManhattanDist =manhattanDist(newloc, targetLoc);
+                double val = tileMoveCost(newloc) * thisManhattanDist;
+                if (thisManhattanDist >= origManhattanDist) {
+                    val += 200000;
+                }
+                if (val < bestValue) {
+                    bestValue = val;
                     greedyDir = dir;
                 }
             }
@@ -56,6 +61,24 @@ public abstract class Unit extends RobotPlayer {
             return greedyDir;
         }
         return Direction.CENTER;
+    }
+    private static int manhattanDist(MapLocation loc1, MapLocation loc2) {
+        return Math.abs(loc1.x - loc2.x) + Math.abs(loc1.y - loc2.y);
+    }
+    // /**
+    //  * 
+    //  * @param dir1
+    //  * @param dir2
+    //  * @return true if dir1 is generally opposite of dir 2
+    //  */
+    // private static boolean isGenerallyOpposite(Direction dir1, Direction dir2) {
+
+    // }
+
+    private static double tileMoveCost(MapLocation loc) throws GameActionException {
+        // double cost = 0f;
+        double pass = rc.sensePassability(loc);
+        return 1 / pass;
     }
 
     /**
