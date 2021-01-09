@@ -149,7 +149,7 @@ public class EnlightmentCenter extends RobotPlayer {
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
-                int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction);
+                int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
                 enemyPoliticianConvictionNearby += c;
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 if (bot.team == Team.NEUTRAL && bot.influence <= 130) {
