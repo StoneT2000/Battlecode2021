@@ -9,6 +9,7 @@ public abstract class Unit extends RobotPlayer {
 
     static MapLocation homeEC = null;
     static int homeECID = -1;
+    static Direction lastDir = null;
 
     /**
      * define helper methods for units in general e.g. pathing, comms etc.
@@ -37,30 +38,35 @@ public abstract class Unit extends RobotPlayer {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
         Direction greedyDir = Direction.CENTER;
-        System.out.println("======= " + turnCount + " =======");
         double bestValue = tileMoveCost(rc.getLocation()) + rc.getLocation().distanceSquaredTo(targetLoc);
         int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
         for (Direction dir : DIRECTIONS) {
             MapLocation newloc = rc.getLocation().add(dir);
+            if (lastDir != null && dir == lastDir) {
+                continue;
+            }
             if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
 
                 int thisDist = newloc.distanceSquaredTo(targetLoc);
+                
                 double val = tileMoveCost(newloc) + thisDist;
                 if (thisDist > origDist) {
                     val += 200000;
+                } 
+                if (thisDist == 0) {
+                    val = 0;
                 }
-                System.out.println("Target: " + targetLoc + " - from " + rc.getLocation() + " check: " +  newloc + " - cost: " + val);
                 if (val < bestValue) {
                     bestValue = val;
                     greedyDir = dir;
                 }
             }
         }
-        System.out.println("Best " + greedyDir + " - " + bestValue);
         if (greedyDir == Direction.CENTER) {
             return Direction.CENTER;
         }
         if (rc.canMove(greedyDir)) {
+            lastDir = greedyDir;
             return greedyDir;
         }
         return Direction.CENTER;
@@ -121,4 +127,63 @@ public abstract class Unit extends RobotPlayer {
     static Direction findDirAwayFromLocations(MapLocation[] locs) {
         return locs[0].directionTo(rc.getLocation());
     }
+
+    public static int getWallX(int buffer) {
+        int xdiff = (homeEC.x - offsetx) - mapWidth / 2;
+        int xsign = 1;
+        if (xdiff > 0) {
+            // right side
+            xsign = -1;
+        }
+        return buffer * xsign + homeEC.x;
+    }
+    public static int getWallY(int buffer) {
+        int ydiff = (homeEC.y - offsety) - mapHeight / 2;
+        int ysign = 1;
+        if (ydiff > 0) {
+            // bottom side
+            ysign = -1;
+        }
+        return buffer * ysign + homeEC.y;
+    }
+    public static boolean onOwnSide(MapLocation loc, int buffer) {
+        int xdiff = (homeEC.x - offsetx) - mapWidth / 2;
+        int ydiff = (homeEC.y - offsety) - mapHeight / 2;
+        int xsign = 1;
+        if (xdiff > 0) {
+            // right side
+            xsign = -1;
+        }
+        int ysign = 1;
+        if (ydiff > 0) {
+            // bottom side
+            ysign = -1;
+        }
+        boolean xviolated = false;
+        boolean yviolated = false;
+        if (xsign == 1) {
+            
+            if (loc.x < homeEC.x + buffer) {
+                xviolated =true;
+            }
+        } else {
+            if (loc.x > homeEC.x - buffer) {
+                xviolated = true;
+            } 
+        }
+        if (ysign == 1) {
+            if (loc.y < homeEC.y + buffer) {
+                yviolated = true;
+            }
+        } else {
+            if (loc.y > homeEC.y - buffer) {
+                yviolated = true;
+            } 
+        }
+        return xviolated && yviolated;
+    }
+
+    // public static boolean locInSquare(MapLocation loc, int ox, int oy, int width) {
+
+    // }
 }

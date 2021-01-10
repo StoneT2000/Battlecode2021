@@ -19,12 +19,17 @@ public class Politician extends Unit {
     static final int EXPLORE = 1;
     static final int DEFEND_SLANDERER = 2;
     static final int ATTACK_EC = 3;
+    static final int CIRCLE_DEFENCE = 4;
     static Direction exploreDir = Direction.NORTH;;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
     static int LATTICE_SIZE = 5;
 
+    static int defence_line_x = 4;
+
     static MapLocation targetedEnemyLoc = null;
+
+    int traverseDefenceSign = 1;
 
     public static void setup() throws GameActionException {
         // find ec spawned from
@@ -34,8 +39,7 @@ public class Politician extends Unit {
         // or we converted from slanderer
         if (homeEC == null) {
             // role = SACRIFICE;
-        }
-        else {
+        } else {
             exploreDir = homeEC.directionTo(rc.getLocation());
         }
         // first turn set flag to indiciate unit type
@@ -65,10 +69,10 @@ public class Politician extends Unit {
     public static void run() throws GameActionException {
 
         // if (role == SACRIFICE) {
-        //     if (rc.isReady()) {
-        //         rc.empower(2);
-        //     }
-        //     return;
+        // if (rc.isReady()) {
+        // rc.empower(2);
+        // }
+        // return;
         // }
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
@@ -112,9 +116,13 @@ public class Politician extends Unit {
                 }
             }
         }
+        if (haveMapDimensions() && homeEC != null) {
+            role = CIRCLE_DEFENCE;
+        }
         if (rc.getConviction() >= 100) {
             role = ATTACK_EC;
         }
+        
 
         if (role == EXPLORE) {
             if (locOfClosestFriendlyPoli != null) {
@@ -122,6 +130,67 @@ public class Politician extends Unit {
                 // if hit edge and no spots found
                 targetLoc = rc.getLocation().add(locOfClosestFriendlyPoli.directionTo(rc.getLocation()));
 
+            }
+        } else if (role == CIRCLE_DEFENCE) {
+            int buffer = 5;
+            if (rc.getID() %2 == 0) {
+                int choseny = rc.getLocation().y;
+                int chosenx = getWallX(buffer);
+                if (rc.getLocation().x != chosenx) {
+                    MapLocation origLoc = new MapLocation(chosenx, choseny);
+                    MapLocation wallLoc = new MapLocation(chosenx, choseny);
+                    int closestWallLocDist = 999999;
+                    for (int i = -4; i <=4 ;i++) {
+                        // todo: hardcoded to search height wise, depends on orientation..
+                        MapLocation checkLoc = new MapLocation(origLoc.x, origLoc.y + i);
+                        if (rc.canSenseLocation(checkLoc)) {
+                            RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                            if (bot == null || bot.team != myTeam) {
+                                // if no bot there or is not my team, valid loc
+                                int dist = rc.getLocation().distanceSquaredTo(checkLoc);
+                                if (dist < closestWallLocDist) {
+                                    closestWallLocDist = dist;
+                                    wallLoc = checkLoc;
+                                }
+                            }
+                        }
+                    }
+                    targetLoc = wallLoc;
+                    // System.out.println("Wall loc chosen" + wallLoc);
+                }
+            } else {
+                int chosenx = rc.getLocation().x;
+                int choseny = getWallY(buffer);
+                if (rc.getLocation().y != choseny) {
+                    MapLocation origLoc = new MapLocation(chosenx, choseny);
+                    MapLocation wallLoc = new MapLocation(chosenx, choseny);
+                    int closestWallLocDist = 999999;
+                    for (int i = -4; i <=4 ;i++) {
+                        // todo: hardcoded to search height wise, depends on orientation..
+                        MapLocation checkLoc = new MapLocation(origLoc.x + i, origLoc.y);
+                        if (rc.canSenseLocation(checkLoc)) {
+                            RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                            if (bot == null || bot.team != myTeam) {
+                                // if no bot there or is not my team, valid loc
+                                int dist = rc.getLocation().distanceSquaredTo(checkLoc);
+                                if (dist < closestWallLocDist) {
+                                    closestWallLocDist = dist;
+                                    wallLoc = checkLoc;
+                                }
+                            }
+                        }
+                    }
+                    targetLoc = wallLoc;
+                    // System.out.println("Wall loc chosen" + wallLoc);
+                }
+            }
+            
+            if (locOfClosestEnemyMuck != null && onOwnSide(locOfClosestEnemyMuck, buffer)) {
+                targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
+                int distToClosestMuck = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuck);
+                if (rc.canEmpower(distToClosestMuck)) {
+                    rc.empower(distToClosestEnemyMuck);
+                }
             }
         } else if (role == DEFEND_SLANDERER) {
             // to defend, stay near EC. FUTURE, move to cornern where we pack slanderers
@@ -135,8 +204,7 @@ public class Politician extends Unit {
                 // move away from EC...
                 if (homeEC != null && rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                }
-                else {
+                } else {
                     // if no lattice found, go in exploreDir
                     if (closestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
@@ -144,9 +212,9 @@ public class Politician extends Unit {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
                             targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         }
-                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                    }
-                    else {
+                        // targetLoc =
+                        // rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                    } else {
                         targetLoc = closestLatticeLoc;
                     }
                 }
@@ -155,7 +223,7 @@ public class Politician extends Unit {
         } else if (role == ATTACK_EC) {
             // move away from EC...
             // repetitive code
-            
+
             if (enemyECLocs.size > 0) {
                 // check current target is still there
                 if (targetedEnemyLoc != null) {
@@ -173,9 +241,9 @@ public class Politician extends Unit {
                     targetedEnemyLoc = ECLoc;
                 }
                 // this shouldnt happen, buut if still null dont break
-                if (targetedEnemyLoc != null)  {
+                if (targetedEnemyLoc != null) {
                     targetLoc = targetedEnemyLoc;
-                    System.out.println("at " +rc.getLocation() + " targeting " + targetedEnemyLoc);
+                    System.out.println("at " + rc.getLocation() + " targeting " + targetedEnemyLoc);
                     if (rc.getLocation().distanceSquaredTo(targetedEnemyLoc) <= 1) {
                         rc.empower(1);
                     }
@@ -184,8 +252,7 @@ public class Politician extends Unit {
                 // lattice instead
                 if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                }
-                else {
+                } else {
                     // if no lattice found, go in exploreDir
                     if (closestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
@@ -193,9 +260,9 @@ public class Politician extends Unit {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
                             targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         }
-                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                    }
-                    else {
+                        // targetLoc =
+                        // rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                    } else {
                         targetLoc = closestLatticeLoc;
                     }
                 }
@@ -205,7 +272,7 @@ public class Politician extends Unit {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)){
+            } else if (!rc.getLocation().equals(targetLoc)) {
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
                     // MapLocation loc = rc.getLocation().add(wiggleDir);

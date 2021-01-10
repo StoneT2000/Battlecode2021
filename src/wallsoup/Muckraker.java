@@ -91,6 +91,7 @@ public class Muckraker extends Unit {
             role = RUSH;
         }
 
+        System.out.println("Role " + role + " - ?");
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         MapLocation locOfClosestSlanderer = null;
@@ -310,41 +311,49 @@ public class Muckraker extends Unit {
             cornerXs.add(eastEdge.x);
         }
 
-
+        // System.out.println("Scot dir " + scoutDir);
+        targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+        if (!rc.onTheMap(targetLoc)) {
+            scoutDir = scoutDir.rotateLeft();
+        }
         // shoot diagonal line and find intersection of line and edge of map (or corner), we use this to help navigate to corners and then travel around
-        Direction oppScoutDir = scoutDir.opposite();
-        MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir);
-        int edgeOrCornerReached = -1;
-        for (int i = 4; --i >= 0;) {
-            checkLoc = checkLoc.add(oppScoutDir);
-            if (!rc.onTheMap(checkLoc)) {
-                // must see off map first before seeing on map
-                edgeOrCornerReached = 0;
-                continue;
-            } else {
-                // if finally on map,
-                if (edgeOrCornerReached == 0) {
-                    edgeOrCornerReached = 1;
-                }
-                break;
-            }
-        }
-        if (edgeOrCornerReached == 1) {
-            // determrine if edge or corner, if edge, run along edge
-            MapLocation leftLoc = checkLoc.add(scoutDir.rotateLeft());
-            MapLocation rightLoc = checkLoc.add(scoutDir.rotateRight());
-            if (rc.onTheMap(leftLoc)) {
-                // run along edge
-                targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
-            } else if (rc.onTheMap(rightLoc)) {
-                targetLoc = rc.getLocation().add(scoutDir.rotateRight());
-            } else {
-                // we reached corner
-                targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
-            }
-        } else {
-            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
-        }
+        // Direction oppScoutDir = scoutDir.opposite();
+        // MapLocation checkLoc = currLoc.add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir);
+        // int edgeOrCornerReached = -1;
+        // for (int i = 4; --i >= 0;) {
+        //     checkLoc = checkLoc.add(oppScoutDir);
+        //     if (!rc.onTheMap(checkLoc)) {
+        //         // must see off map first before seeing on map
+        //         edgeOrCornerReached = 0;
+        //         continue;
+        //     } else {
+        //         // if finally on map,
+        //         if (edgeOrCornerReached == 0) {
+        //             edgeOrCornerReached = 1;
+        //         }
+        //         break;
+        //     }
+        // }
+        // if (edgeOrCornerReached == 1) {
+        //     // determrine if edge or corner, if edge, run along edge
+        //     MapLocation leftLoc = checkLoc.add(scoutDir.rotateLeft());
+        //     MapLocation rightLoc = checkLoc.add(scoutDir.rotateRight());
+        //     if (rc.onTheMap(leftLoc)) {
+        //         // run along edge
+        //         targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
+        //     } else if (rc.onTheMap(rightLoc)) {
+        //         targetLoc = rc.getLocation().add(scoutDir.rotateRight());
+        //     } else {
+        //         // we reached corner
+        //         targetLoc = rc.getLocation().add(scoutDir.rotateLeft());
+        //     }
+        // } else {
+        //     targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+        // }
+        // if (scoutDir == Direction.NORTHEAST && ) {
+
+        // }
+
         // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
         if (!haveMapDimensions()) {
             // if we have more corner points, send those out as well

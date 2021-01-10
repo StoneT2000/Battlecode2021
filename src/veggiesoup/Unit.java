@@ -9,6 +9,7 @@ public abstract class Unit extends RobotPlayer {
 
     static MapLocation homeEC = null;
     static int homeECID = -1;
+    static Direction lastDir = null;
 
     /**
      * define helper methods for units in general e.g. pathing, comms etc.
@@ -37,30 +38,35 @@ public abstract class Unit extends RobotPlayer {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
         Direction greedyDir = Direction.CENTER;
-        System.out.println("======= " + turnCount + " =======");
         double bestValue = tileMoveCost(rc.getLocation()) + rc.getLocation().distanceSquaredTo(targetLoc);
         int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
         for (Direction dir : DIRECTIONS) {
             MapLocation newloc = rc.getLocation().add(dir);
+            if (lastDir != null && dir == lastDir) {
+                continue;
+            }
             if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
 
                 int thisDist = newloc.distanceSquaredTo(targetLoc);
+                
                 double val = tileMoveCost(newloc) + thisDist;
                 if (thisDist > origDist) {
                     val += 200000;
+                } 
+                if (thisDist == 0) {
+                    val = 0;
                 }
-                System.out.println("Target: " + targetLoc + " - from " + rc.getLocation() + " check: " +  newloc + " - cost: " + val);
                 if (val < bestValue) {
                     bestValue = val;
                     greedyDir = dir;
                 }
             }
         }
-        System.out.println("Best " + greedyDir + " - " + bestValue);
         if (greedyDir == Direction.CENTER) {
             return Direction.CENTER;
         }
         if (rc.canMove(greedyDir)) {
+            lastDir = greedyDir;
             return greedyDir;
         }
         return Direction.CENTER;

@@ -57,11 +57,11 @@ public class EnlightmentCenter extends RobotPlayer {
         if (!wonInVotes()) {
             if (rc.getTeamVotes() > lastTeamVotes) {
                 // won, lower the bid
-                minBidAmount /= 1.25;
+                minBidAmount /= 1.01;
                 minBidAmount = Math.max(minBidAmount, 1);
             } else {
                 // lost, increase bid, and see what happens
-                minBidAmount *= 1.5;
+                minBidAmount *= 2;
             }
             lastTeamVotes = rc.getTeamVotes();
 
@@ -205,7 +205,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
                         if (bot == null) {
                             // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            setFlag(lastScoutBuildDirIndex + 1);
+                            // setFlag(lastScoutBuildDirIndex + 1);
                             rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
                             Stats.muckrakersBuilt += 1;
                             // add new id
@@ -259,6 +259,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
+                    
                     if (nearbyEnemyMuckraker) {
                         buildSlanderer = false;
                     }
@@ -267,8 +268,13 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.5) {
                         buildPoli = true;
                     }
+                    
                     if (nearbyEnemyMuckraker) {
                         buildPoli = true;
+                    }
+                    if (politicianIDs.size / (slandererIDs.size + 0.1) > 4 || turnCount <= 2) {
+                        buildSlanderer = true;
+                        buildPoli = false;
                     }
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
@@ -281,7 +287,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 politicianIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                setFlag(sig);
+                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += influenceWant;
                                 break;
@@ -294,7 +300,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 slandererIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                setFlag(sig);
+                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += want;
                                 break;
@@ -306,7 +312,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 muckrakerIDs.add(newbot.ID);
                                 int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                setFlag(sig);
+                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += influenceWant;
                                 break;
@@ -348,7 +354,7 @@ public class EnlightmentCenter extends RobotPlayer {
             System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
                     + " - Height: " + mapHeight);
             // TODO: this might be too long of a wait
-            if (!setFlagThisTurn && (turnCount - lastBuildTurn) >= 2) {
+            if (!setFlagThisTurn) {
                 if (turnCount % turnCountModulus == 0) {
                     int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
                     setFlag(sig);
