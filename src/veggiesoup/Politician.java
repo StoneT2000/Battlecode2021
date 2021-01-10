@@ -112,6 +112,20 @@ public class Politician extends Unit {
                 }
             }
         }
+        if (homeEC != null) {
+            if (rc.getLocation().distanceSquaredTo(homeEC) == 1) {
+                // if buff is high, suicide?
+                if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / 4 > rc.getConviction() * 2) {
+                    rc.empower(1);
+                }
+            } else if (rc.getLocation().distanceSquaredTo(homeEC) == 2) {
+                // if buff is high, suicide?
+                if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / 6 > rc.getConviction() * 2) {
+                    rc.empower(2);
+                }
+            }
+        }
+
         if (rc.getConviction() >= 100) {
             role = ATTACK_EC;
         }

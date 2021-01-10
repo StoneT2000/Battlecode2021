@@ -235,23 +235,20 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 // generate infinite influence
-                // else if (rc.getEmpowerFactor(myTeam, 0) > 1.5) {
-                //     // TODO: bug, some of this is wasted due to nearby friendly units
-                //     int minInfluence = (int) (GameConstants.EMPOWER_TAX / (rc.getEmpowerFactor(myTeam, 0) - 1.0));
-                //     if (rc.getInfluence() >= minInfluence) {
-                //         for (Direction dir : DIRECTIONS) {
-                //             MapLocation buildLoc = rc.getLocation().add(dir);
-                //             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
-                //                 rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
-                //                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                //                 politicianIDs.add(newbot.ID);
-                //                 setFlag(Comms.getPoliSacrificeSignal());
-                //                 lastBuildTurn = turnCount;
-                //                 break;
-                //             }
-                //         }
-                //     }
-                // } 
+                else if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2 && rc.getInfluence() < Integer.MAX_VALUE / 2) {
+                    // TODO: bug, some of this is wasted due to nearby friendly units
+                    for (Direction dir : DIRECTIONS) {
+                        MapLocation buildLoc = rc.getLocation().add(dir);
+                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
+                            rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
+                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                            politicianIDs.add(newbot.ID);
+                            // setFlag(Comms.getPoliSacrificeSignal());
+                            lastBuildTurn = turnCount;
+                            break;
+                        }
+                    }
+                } 
                 else {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers

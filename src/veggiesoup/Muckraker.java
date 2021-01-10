@@ -155,6 +155,7 @@ public class Muckraker extends Unit {
         switch (role) {
             case SCOUT_CORNERS:
                 scoutCorners();
+                targetSlanderers(locOfClosestSlanderer);
                 break;
             case RUSH:
                 targetLoc = rc.getLocation();
@@ -163,13 +164,7 @@ public class Muckraker extends Unit {
                 }
                 if (rc.isReady()) {
                     if (locOfClosestSlanderer != null) {
-                        if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
-                            rc.expose(locOfClosestSlanderer);
-                        } else {
-                            // not in range
-                            targetLoc = locOfClosestSlanderer;
-                            break;
-                        }
+                        targetSlanderers(locOfClosestSlanderer);
                     } else {
                         if (enemyECLocs.size > 0) {
                             Node<Integer> eclocnode = enemyECLocs.next();
@@ -198,13 +193,7 @@ public class Muckraker extends Unit {
                 }
                 if (rc.isReady()) {
                     if (locOfClosestSlanderer != null) {
-                        if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
-                            rc.expose(locOfClosestSlanderer);
-                        } else {
-                            // not in range
-                            targetLoc = locOfClosestSlanderer;
-                            break;
-                        }
+                        targetSlanderers(locOfClosestSlanderer);
                     } else {
                         // in lattice mode, we move into a lattice position, otherwise, we run in a direction and change if we hit wall?
                         if (closestLatticeLoc != null) {
@@ -225,7 +214,6 @@ public class Muckraker extends Unit {
 
                         // }
                     }
-
                 }
                 break;
         }
@@ -257,6 +245,17 @@ public class Muckraker extends Unit {
                         rc.move(wiggleDir);
                     }
                 }
+            }
+        }
+    }
+
+    private static void targetSlanderers(MapLocation locOfClosestSlanderer) throws GameActionException {
+        if (locOfClosestSlanderer != null) {
+            if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
+                rc.expose(locOfClosestSlanderer);
+            } else {
+                // not in range
+                targetLoc = locOfClosestSlanderer;
             }
         }
     }
