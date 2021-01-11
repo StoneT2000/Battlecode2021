@@ -235,7 +235,7 @@ public class Muckraker extends Unit {
 
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
-            if (dir != Direction.CENTER) {
+            if (dir != Direction.CENTER && rc.canMove(dir)) {
                 rc.move(dir);
             } else if (!rc.getLocation().equals(targetLoc)){
                 // wiggle out if perhaps stuck

@@ -22,7 +22,8 @@ public class Politician extends Unit {
     static Direction exploreDir = Direction.NORTH;;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
-    static int LATTICE_SIZE = 5;
+    static int LATTICE_SIZE = 3;
+    static MapLocation closestCorner = null;
 
     static MapLocation targetedEnemyLoc = null;
 
@@ -95,19 +96,49 @@ public class Politician extends Unit {
                 }
             }
         }
+        if (haveMapDimensions()) {
+            if (closestCorner == null) {
+                MapLocation[] corners = new MapLocation[]{
+                    new MapLocation(offsetx, offsety),
+                    new MapLocation(offsetx + mapWidth, offsety),
+                    new MapLocation(offsetx, offsety + mapHeight),
+                    new MapLocation(offsetx + mapWidth, offsety + mapHeight)
+                };
+                int closestDist = 999999999;
+                for (int i = -1; ++i < corners.length;) {
+                    int dist = corners[i].distanceSquaredTo(rc.getLocation());
+                    if (dist < closestDist) {
+                        closestCorner = corners[i];
+                        closestDist = dist;
+                    }
+                }
+            }
+        }
+
+        MapLocation protectLocation = homeEC;
+        if (closestCorner != null) {
+            protectLocation = closestCorner;
+        }
         MapLocation currLoc = rc.getLocation();
-        MapLocation closestLatticeLoc = null;
-        if (currLoc.x % LATTICE_SIZE == 2 && currLoc.y % LATTICE_SIZE == 2) {
-            closestLatticeLoc = currLoc;
+        MapLocation bestLatticeLoc = null;
+        int bestLatticeLocVal = Integer.MIN_VALUE;
+        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0) {
+            bestLatticeLoc = currLoc;
+            bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(protectLocation);
         }
         for (int i = 0; ++i < BFS25.length;) {
             int[] deltas = BFS25[i];
+
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
             if (rc.onTheMap(checkLoc)) {
-                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 2 && checkLoc.y % LATTICE_SIZE == 2) {
+                if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0) {
                     RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                     if (bot == null || bot.ID == rc.getID()) {
-                        closestLatticeLoc = checkLoc;
+                        int value = -checkLoc.distanceSquaredTo(protectLocation);
+                        if (value > bestLatticeLocVal) {
+                            bestLatticeLocVal = value;
+                            bestLatticeLoc = checkLoc;
+                        }
                     }
                 }
             }
@@ -152,7 +183,7 @@ public class Politician extends Unit {
                 }
                 else {
                     // if no lattice found, go in exploreDir
-                    if (closestLatticeLoc == null) {
+                    if (bestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         if (!rc.onTheMap(targetLoc)) {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
@@ -161,7 +192,7 @@ public class Politician extends Unit {
                         // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                     }
                     else {
-                        targetLoc = closestLatticeLoc;
+                        targetLoc = bestLatticeLoc;
                     }
                 }
 
@@ -201,7 +232,7 @@ public class Politician extends Unit {
                 }
                 else {
                     // if no lattice found, go in exploreDir
-                    if (closestLatticeLoc == null) {
+                    if (bestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         if (!rc.onTheMap(targetLoc)) {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
@@ -210,7 +241,7 @@ public class Politician extends Unit {
                         // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                     }
                     else {
-                        targetLoc = closestLatticeLoc;
+                        targetLoc = bestLatticeLoc;
                     }
                 }
             }

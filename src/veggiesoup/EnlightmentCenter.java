@@ -19,9 +19,9 @@ public class EnlightmentCenter extends RobotPlayer {
     static int highMapY = Integer.MIN_VALUE;
 
     static HashTable<Integer> ecIDs = new HashTable<>(10);
-    static HashTable<Integer> muckrakerIDs = new HashTable<>(50);
+    static HashTable<Integer> muckrakerIDs = new HashTable<>(120);
     static HashTable<Integer> slandererIDs = new HashTable<>(50);
-    static HashTable<Integer> politicianIDs = new HashTable<>(20);
+    static HashTable<Integer> politicianIDs = new HashTable<>(40);
     static int lastBuildTurn = -1;
 
     static double minBidAmount = 2;
@@ -93,6 +93,9 @@ public class EnlightmentCenter extends RobotPlayer {
         Node<Integer> currIDNode = muckrakerIDs.next();
         LinkedList<Integer> idsToRemove = new LinkedList<>();
         while (currIDNode != null) {
+            if (Clock.getBytecodesLeft() < 4000) {
+                break;
+            }
             try {
                 int flag = rc.getFlag(currIDNode.val);
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
@@ -194,6 +197,9 @@ public class EnlightmentCenter extends RobotPlayer {
                 nearbyEnemyMuckraker = true;
             }
         }
+        if (turnCount == 1) {
+            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
+        }
 
         switch (role) {
             case BUILD_SCOUTS:
@@ -262,7 +268,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     boolean buildPoli = false;
 
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.5) {
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.25) {
                         buildPoli = true;
                     }
                     if (nearbyEnemyMuckraker) {
@@ -360,5 +366,25 @@ public class EnlightmentCenter extends RobotPlayer {
 
         lastTurnInfluence = rc.getInfluence() - spentInfluence;//stuff we do
 
+    }
+
+    private static void tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
+        for (Direction dir : DIRECTIONS) {
+            MapLocation buildLoc = rc.getLocation().add(dir);
+            if (rc.canBuildRobot(type, dir, influence)) {
+                rc.buildRobot(type, dir, influence);
+                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                if (type == RobotType.POLITICIAN) {
+                    politicianIDs.add(newbot.ID);
+                } else if (type == RobotType.MUCKRAKER) {
+                    muckrakerIDs.add(newbot.ID);
+                } else if (type == RobotType.SLANDERER) {
+                    politicianIDs.add(newbot.ID);
+                }
+                // setFlag(Comms.getPoliSacrificeSignal());
+                lastBuildTurn = turnCount;
+                break;
+            }
+        }
     }
 }
