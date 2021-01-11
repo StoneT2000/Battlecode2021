@@ -57,11 +57,12 @@ public class EnlightmentCenter extends RobotPlayer {
         if (!wonInVotes()) {
             if (rc.getTeamVotes() > lastTeamVotes) {
                 // won, lower the bid
-                minBidAmount /= 1.25;
+                minBidAmount /= 1.1;
                 minBidAmount = Math.max(minBidAmount, 1);
             } else {
                 // lost, increase bid, and see what happens
-                minBidAmount *= 1.5;
+                minBidAmount *= 2;
+                minBidAmount = Math.max(minBidAmount, 1);
             }
             lastTeamVotes = rc.getTeamVotes();
 
