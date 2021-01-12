@@ -174,10 +174,6 @@ public class Politician extends Unit {
         }
 
         if (role == DEFEND_SLANDERER) {
-
-            
-
-
             if (locOfClosestEnemyMuck != null) {
 
                 // find an optimal empower distance that destroys as many muckrakers as possible

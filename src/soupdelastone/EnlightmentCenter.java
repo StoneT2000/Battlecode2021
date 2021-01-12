@@ -141,7 +141,6 @@ public class EnlightmentCenter extends RobotPlayer {
                             rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             politicianIDs.add(newbot.ID);
-                            // setFlag(Comms.getPoliSacrificeSignal());
                             lastBuildTurn = turnCount;
                             break;
                         }
@@ -175,8 +174,6 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 politicianIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += influenceWant;
                                 break;
@@ -188,8 +185,6 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 slandererIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += want;
                                 break;
@@ -200,8 +195,6 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                                 muckrakerIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += influenceWant;
                                 break;
