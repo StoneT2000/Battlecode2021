@@ -1,6 +1,7 @@
 package soupdelastone;
 
 import battlecode.common.*;
+import soupdelastone.utils.HashMap;
 import soupdelastone.utils.HashTable;
 import static soupdelastone.Constants.*;
 
@@ -12,17 +13,17 @@ public strictfp class RobotPlayer {
     static Team oppTeam;
     static boolean setFlagThisTurn = false;
 
-    static int offsetx = 0;
-    static int offsety = 0;
+    static int offsetx = Integer.MAX_VALUE;
+    static int offsety = Integer.MAX_VALUE;
     static int mapWidth = 0;
     static int mapHeight = 0;
 
     /** locations using short map hash  (encoding using map offsets) */
-    static HashTable<Integer> enemyECLocs = new HashTable<>(12);
+    static HashMap<Integer, ECDetails> enemyECLocs = new HashMap<>(12);
     /** locations using short map hash  (encoding using map offsets) */
-    static HashTable<Integer> friendlyECLocs = new HashTable<>(12);
+    static HashMap<Integer, ECDetails> friendlyECLocs = new HashMap<>(12);
     /** locations using short map hash  (encoding using map offsets) */
-    static HashTable<Integer> neutralECLocs = new HashTable<>(12);
+    static HashMap<Integer, ECDetails> neutralECLocs = new HashMap<>(12);
 
     /**
      * run() is the method that is called when a robot is instantiated in the
@@ -38,6 +39,7 @@ public strictfp class RobotPlayer {
         myTeam = rc.getTeam();
         oppTeam = rc.getTeam().opponent();
         turnCount = 0;
+
         switch (rc.getType()) {
             case ENLIGHTENMENT_CENTER:
                 // new instance like this takes ~7 bytecode
@@ -71,6 +73,7 @@ public strictfp class RobotPlayer {
                             setFlag(Comms.getUnitDetailsSignal(TYPE_POLITICIAN));
                             spawnType = rc.getType();
                             System.out.println("converted to poli from slander");
+                            rc.setFlag(0);
                         }
                         Politician.run();
                         break;
@@ -118,27 +121,28 @@ public strictfp class RobotPlayer {
             // TODO: store signal for later processing so we are a bit more efficient...
             return;
         }
-        MapLocation ECLoc = Comms.decodeMapLocation(data[1], offsetx, offsety);
+        int shorthHashKey = data[1];
+        
+        MapLocation ECLoc = Comms.decodeMapLocation(shorthHashKey, offsetx, offsety);
         if (teamval == TEAM_ENEMY) {
-            if (!enemyECLocs.contains(data[1])) {
-                System.out.println("Found EC at " + ECLoc);
-                enemyECLocs.add(data[1]);
+            if (!enemyECLocs.contains(shorthHashKey)) {
+                enemyECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
                 // remove this from other hashtables in case they converted to enemy now
-                neutralECLocs.remove(data[1]);
-                friendlyECLocs.remove(data[1]);
+                neutralECLocs.remove(shorthHashKey);
+                friendlyECLocs.remove(shorthHashKey);
             }
         } else if (teamval == TEAM_NEUTRAL) {
-            if (!neutralECLocs.contains(data[1])) {
-                neutralECLocs.add(data[1]);
-                friendlyECLocs.remove(data[1]);
-                enemyECLocs.remove(data[1]);
+            if (!neutralECLocs.contains(shorthHashKey)) {
+                neutralECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
+                friendlyECLocs.remove(shorthHashKey);
+                enemyECLocs.remove(shorthHashKey);
             }
         } else {
-            if (!friendlyECLocs.contains(data[1])) {
-                System.out.println("Found friend EC at " + ECLoc);
-                friendlyECLocs.add(data[1]);
+            if (!friendlyECLocs.contains(shorthHashKey)) {
+                // System.out.println("Found friend EC at " + ECLoc);
+                friendlyECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
                 neutralECLocs.remove(data[1]);
-                enemyECLocs.remove(data[1]);
+                enemyECLocs.remove(shorthHashKey);
             }
         }
     }

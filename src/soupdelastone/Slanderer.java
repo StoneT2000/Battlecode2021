@@ -135,7 +135,6 @@ public class Slanderer extends Unit {
                     }
                 }
             }
-            System.out.println("Best " + bestLatticeLoc);
             if (bestLatticeLoc == null) {
                 // find closest corner.
                 Direction awayDir = homeEC.directionTo(rc.getLocation());

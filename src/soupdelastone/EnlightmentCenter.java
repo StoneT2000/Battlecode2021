@@ -12,9 +12,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int NORMAL = 1;
     static int role = NORMAL;
 
-    // offsets are also "lowMapX/Y"
-    static int offsetx = Integer.MAX_VALUE;
-    static int offsety = Integer.MAX_VALUE;
+    
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
@@ -106,6 +104,12 @@ public class EnlightmentCenter extends RobotPlayer {
         if (turnCount == 1) {
             tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
         }
+
+        // strategy for taking ecs
+        if (neutralECLocs.size > 0) {
+
+        }
+        
 
         switch (role) {
             case BUILD_SCOUTS:
@@ -222,12 +226,13 @@ public class EnlightmentCenter extends RobotPlayer {
         // send locations of enemy ECs
         if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
 
-            Node<Integer> ecLocHashNode = enemyECLocs.next();
+            HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
             if (ecLocHashNode == null) {
                 enemyECLocs.resetIterator();
                 ecLocHashNode = enemyECLocs.next();
             }
-            MapLocation ECLoc = Comms.decodeMapLocation(ecLocHashNode.val, offsetx, offsety);
+            MapLocation ECLoc = ecLocHashNode.val.location;
+            System.out.println("Sending " + ECLoc);
             int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
             setFlag(signal);
         }

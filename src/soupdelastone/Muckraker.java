@@ -3,6 +3,7 @@ package soupdelastone;
 import battlecode.common.*;
 import soupdelastone.utils.LinkedList;
 import soupdelastone.utils.Node;
+import soupdelastone.utils.HashMapNodeVal;
 import soupdelastone.utils.HashTable;
 
 import static soupdelastone.Constants.*;
@@ -36,7 +37,10 @@ public class Muckraker extends Unit {
      * handles the unit movement to go there
      */
     static MapLocation targetLoc = null;
-    /** Hash table used to check if we're already planning to send this location or not */
+    /**
+     * Hash table used to check if we're already planning to send this location or
+     * not
+     */
     static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
     /** queue of hashes of EC locations to send */
     static LinkedList<Integer> ECLocHashesToSend = new LinkedList<>();
@@ -49,7 +53,7 @@ public class Muckraker extends Unit {
     }
 
     public static void handleFlag(int flag) {
-        
+
         switch (Comms.SIGNAL_TYPE_MASK & flag) {
             case Comms.CORNER_LOC_X:
                 int cx = Comms.readCornerLocSignalX(flag);
@@ -60,7 +64,7 @@ public class Muckraker extends Unit {
                 break;
             case Comms.CORNER_LOC_Y:
                 int cy = Comms.readCornerLocSignalX(flag);
-                if (!cornerYs.contains(cy)){
+                if (!cornerYs.contains(cy)) {
                     // a different corner found by another unit, spread the word!
                     cornerYs.add(cy);
                 }
@@ -104,7 +108,7 @@ public class Muckraker extends Unit {
             if (bot.team == oppTeam && bot.type == RobotType.SLANDERER) {
                 int dist = rc.getLocation().distanceSquaredTo(bot.location);
                 if (dist < distToSlosestSlanderer) {
-                    distToSlosestSlanderer =dist;
+                    distToSlosestSlanderer = dist;
                     locOfClosestSlanderer = bot.location;
                 }
             } else if (bot.team == myTeam && bot.type == RobotType.MUCKRAKER) {
@@ -161,13 +165,12 @@ public class Muckraker extends Unit {
                         targetSlanderers(locOfClosestSlanderer);
                     } else {
                         if (enemyECLocs.size > 0) {
-                            Node<Integer> eclocnode = enemyECLocs.next();
+                            HashMapNodeVal<Integer, ECDetails> eclocnode = enemyECLocs.next();
                             if (eclocnode == null) {
                                 enemyECLocs.resetIterator();
                                 eclocnode = enemyECLocs.next();
                             }
-                            // note, if we have these ec locs, then we already know offsets and can decode
-                            MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
+                            MapLocation ECLoc = eclocnode.val.location;
                             targetLoc = ECLoc;
                         }
                         else {
