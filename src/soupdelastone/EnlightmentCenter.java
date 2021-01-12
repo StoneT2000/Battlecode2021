@@ -56,6 +56,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 // lost, increase bid, and see what happens
                 minBidAmount *= 2;
                 minBidAmount = Math.max(minBidAmount, 1);
+                minBidAmount = Math.min(minBidAmount, Math.ceil(influenceGainedLastTurn * 0.25));
             }
             lastTeamVotes = rc.getTeamVotes();
 
@@ -73,7 +74,7 @@ public class EnlightmentCenter extends RobotPlayer {
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
                 + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
                 + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
-                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence");
+                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid " + minBidAmount);
 
         // global comms code independent of role
 
