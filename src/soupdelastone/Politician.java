@@ -1,6 +1,7 @@
 package soupdelastone;
 
 import battlecode.common.*;
+import soupdelastone.utils.LinkedList;
 import soupdelastone.utils.Node;
 
 import static soupdelastone.Constants.*;
@@ -33,8 +34,7 @@ public class Politician extends Unit {
         setHomeEC();
         if (homeEC == null) {
             // role = SACRIFICE;
-        }
-        else {
+        } else {
             exploreDir = homeEC.directionTo(rc.getLocation());
         }
         // first turn set flag to indiciate unit type
@@ -72,30 +72,52 @@ public class Politician extends Unit {
         int distToClosestFriendlyPoli = 999999999;
         MapLocation locOfClosestEnemyMuck = null;
         int distToClosestEnemyMuck = 9999999;
+
+        // array[n] = number of friendlies within n r^2 distance
+        int[] friendlyUnitsAtDistanceCount = new int[10];
+        int[] oppUnitsAtDistanceCount = new int[10];
+        int[] oppMuckUnitsAtDistanceCount = new int[10];
+
+        LinkedList<MapLocation> locsOfFriendSlands = new LinkedList<>();
+
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
-            if (bot.team == myTeam && bot.type == RobotType.POLITICIAN) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestFriendlyPoli) {
-                    distToClosestFriendlyPoli = dist;
-                    locOfClosestFriendlyPoli = bot.location;
+            int dist = rc.getLocation().distanceSquaredTo(bot.location);
+            boolean withinDist = dist <= 9;
+            if (bot.team == myTeam) {
+                if (withinDist) {
+                    friendlyUnitsAtDistanceCount[dist] += 1;
                 }
-            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestEnemyMuck) {
-                    distToClosestEnemyMuck = dist;
-                    locOfClosestEnemyMuck = bot.location;
+                if (rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
+                    // System.out.println("Found sland");
+                    locsOfFriendSlands.add(bot.location);
+                }
+                else if (bot.type == RobotType.POLITICIAN) {
+                    if (dist < distToClosestFriendlyPoli) {
+                        distToClosestFriendlyPoli = dist;
+                        locOfClosestFriendlyPoli = bot.location;
+                    }
+                }
+            } else if (bot.team == oppTeam) {
+                if (withinDist) {
+                    oppUnitsAtDistanceCount[dist] += 1;
+                }
+                if (bot.type == RobotType.MUCKRAKER) {
+                    if (withinDist) {
+                        oppMuckUnitsAtDistanceCount[dist] += 1;
+                    }
+                    if (dist < distToClosestEnemyMuck) {
+                        distToClosestEnemyMuck = dist;
+                        locOfClosestEnemyMuck = bot.location;
+                    }
                 }
             }
         }
         if (haveMapDimensions()) {
             if (closestCorner == null) {
-                MapLocation[] corners = new MapLocation[]{
-                    new MapLocation(offsetx, offsety),
-                    new MapLocation(offsetx + mapWidth, offsety),
-                    new MapLocation(offsetx, offsety + mapHeight),
-                    new MapLocation(offsetx + mapWidth, offsety + mapHeight)
-                };
+                MapLocation[] corners = new MapLocation[] { new MapLocation(offsetx, offsety),
+                        new MapLocation(offsetx + mapWidth, offsety), new MapLocation(offsetx, offsety + mapHeight),
+                        new MapLocation(offsetx + mapWidth, offsety + mapHeight) };
                 int closestDist = 999999999;
                 for (int i = -1; ++i < corners.length;) {
                     int dist = corners[i].distanceSquaredTo(rc.getLocation());
@@ -116,7 +138,7 @@ public class Politician extends Unit {
         int bestLatticeLocVal = Integer.MIN_VALUE;
         if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0) {
             bestLatticeLoc = currLoc;
-            bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(protectLocation);
+            bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
         }
         for (int i = 0; ++i < BFS25.length;) {
             int[] deltas = BFS25[i];
@@ -138,52 +160,94 @@ public class Politician extends Unit {
         if (homeEC != null) {
             if (rc.getLocation().distanceSquaredTo(homeEC) == 1) {
                 // if buff is high, suicide?
-                if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / 4 > rc.getConviction() * 2) {
+                if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                        / 4 > rc.getConviction() * 2) {
                     rc.empower(1);
                 }
             } else if (rc.getLocation().distanceSquaredTo(homeEC) == 2) {
                 // if buff is high, suicide?
-                if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / 6 > rc.getConviction() * 2) {
+                if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                        / 6 > rc.getConviction() * 2) {
                     rc.empower(2);
                 }
             }
         }
 
         if (role == DEFEND_SLANDERER) {
-            // to defend, stay near EC. FUTURE, move to cornern where we pack slanderers
+
+            
+
+
             if (locOfClosestEnemyMuck != null) {
-                targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
-                int distToClosestMuck = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuck);
-                if (rc.canEmpower(distToClosestMuck)) {
-                    rc.empower(distToClosestEnemyMuck);
+
+                // find an optimal empower distance that destroys as many muckrakers as possible
+                int mucksCountInRadius = 0;
+                int friendlyUnitsInRadius = 0;
+                int maxMucksDestroyed = 0;
+                int optimalEmpowerRadius = -1;
+                for (int i = 1; i <= 9; i++) {
+                    mucksCountInRadius += oppMuckUnitsAtDistanceCount[i];
+                    friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                    int n = (mucksCountInRadius + friendlyUnitsInRadius);
+                    if (mucksCountInRadius > 0) {
+                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / n;
+                        if (speechInfluencePerUnit >= 2) {
+                            if (mucksCountInRadius > maxMucksDestroyed) {
+                                maxMucksDestroyed = mucksCountInRadius;
+                                optimalEmpowerRadius = i;
+                            }
+                        }
+                    }
+                }
+
+                Node<MapLocation> currNode = locsOfFriendSlands.dequeue();
+                boolean slandererInDanger = false;
+                while (currNode != null) {
+                    if (currNode.val.distanceSquaredTo(locOfClosestEnemyMuck) <= MUCKRAKER_ACTION_RADIUS + 10) {
+                        slandererInDanger = true;
+                        break;
+                    }
+                    currNode = locsOfFriendSlands.dequeue();
+                }
+
+                
+                // we keep following mucks until we can at least destroy 2 in one empower or
+                // they are within distance of a slanderer
+                // this means not optimal to empower at all
+                System.out.println(optimalEmpowerRadius + " - " + slandererInDanger + " - " + maxMucksDestroyed);
+                if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
+                    // go towards closest muckraker in hope of more optimal empowering.
+                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
+                } else {
+                    if (rc.canEmpower(optimalEmpowerRadius)) {
+                        rc.empower(optimalEmpowerRadius);
+                    }
                 }
             } else {
                 // move away from EC...
                 if (homeEC != null && rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                }
-                else {
+                } else {
                     if (bestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         if (!rc.onTheMap(targetLoc)) {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
                             targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         }
-                    }
-                    else {
+                    } else {
                         targetLoc = bestLatticeLoc;
                     }
                 }
 
             }
         } else if (role == ATTACK_EC) {
-            
+
         }
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)){
+            } else if (!rc.getLocation().equals(targetLoc)) {
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
                     // MapLocation loc = rc.getLocation().add(wiggleDir);

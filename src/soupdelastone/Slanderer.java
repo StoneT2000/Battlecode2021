@@ -20,6 +20,7 @@ public class Slanderer extends Unit {
     }
 
     public static void run() throws GameActionException {
+        setFlag(Comms.IMASLANDERERR);
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
@@ -118,15 +119,7 @@ public class Slanderer extends Unit {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)){
-                // wiggle out if perhaps stuck
-                for (Direction wiggleDir : DIRECTIONS) {
-                    // MapLocation loc = rc.getLocation().add(wiggleDir);
-                    if (rc.canMove(wiggleDir)) {
-                        rc.move(wiggleDir);
-                    }
-                }
-            }
+            };
         }
     }
 

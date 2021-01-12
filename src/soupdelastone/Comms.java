@@ -22,7 +22,9 @@ public class Comms {
     public static final int POLI_SACRIFICE = 0x600000;
     // TODO: add scouting on EC influence each turn...
     public static final int FOUND_EC = 0x700000;
+    // shout details about self
     public static final int UNIT_DETAILS = 0x800000;
+    public static final int IMASLANDERERR = 0x900000;
 
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
