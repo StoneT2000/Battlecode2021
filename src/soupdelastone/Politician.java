@@ -16,12 +16,13 @@ public class Politician extends Unit {
             { -3, -3 }, { -4, -2 }, { -4, 2 }, { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 4, -3 }, { 3, -4 },
             { -3, -4 }, { -4, -3 }, { -4, 3 }, { -3, 4 }, { 3, 4 }, { 4, 3 } };
     static final int SACRIFICE = 0;
-    static final int EXPLORE = 1;
     static final int DEFEND_SLANDERER = 2;
     static final int ATTACK_EC = 3;
-    static Direction exploreDir = Direction.NORTH;;
+    static Direction exploreDir = Direction.NORTH;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
+    /** used for attack ec role, where to attack the ec */
+    static MapLocation attackLoc = null;
     static int LATTICE_SIZE = 3;
     static MapLocation closestCorner = null;
 
@@ -30,9 +31,6 @@ public class Politician extends Unit {
     public static void setup() throws GameActionException {
         // find ec spawned from
         setHomeEC();
-        // if null, we probably got a signal to do something instant like
-        // sacrifice/empower
-        // or we converted from slanderer
         if (homeEC == null) {
             // role = SACRIFICE;
         }
@@ -65,12 +63,6 @@ public class Politician extends Unit {
 
     public static void run() throws GameActionException {
 
-        // if (role == SACRIFICE) {
-        //     if (rc.isReady()) {
-        //         rc.empower(2);
-        //     }
-        //     return;
-        // }
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
@@ -157,18 +149,7 @@ public class Politician extends Unit {
             }
         }
 
-        if (rc.getConviction() >= 100) {
-            role = ATTACK_EC;
-        }
-
-        if (role == EXPLORE) {
-            if (locOfClosestFriendlyPoli != null) {
-                // head in scoutDir, direction of spawning, and find lattice points, rotate left
-                // if hit edge and no spots found
-                targetLoc = rc.getLocation().add(locOfClosestFriendlyPoli.directionTo(rc.getLocation()));
-
-            }
-        } else if (role == DEFEND_SLANDERER) {
+        if (role == DEFEND_SLANDERER) {
             // to defend, stay near EC. FUTURE, move to cornern where we pack slanderers
             if (locOfClosestEnemyMuck != null) {
                 targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
@@ -182,14 +163,12 @@ public class Politician extends Unit {
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                 }
                 else {
-                    // if no lattice found, go in exploreDir
                     if (bestLatticeLoc == null) {
                         targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         if (!rc.onTheMap(targetLoc)) {
                             exploreDir = exploreDir.rotateLeft().rotateLeft();
                             targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
                         }
-                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
                     }
                     else {
                         targetLoc = bestLatticeLoc;
@@ -198,53 +177,7 @@ public class Politician extends Unit {
 
             }
         } else if (role == ATTACK_EC) {
-            // move away from EC...
-            // repetitive code
             
-            if (enemyECLocs.size > 0) {
-                // check current target is still there
-                if (targetedEnemyLoc != null) {
-                    if (!enemyECLocs.contains(Comms.encodeMapLocation(targetedEnemyLoc, offsetx, offsety))) {
-                        targetedEnemyLoc = null;
-                    }
-                }
-                if (targetedEnemyLoc == null) {
-                    Node<Integer> eclocnode = enemyECLocs.next();
-                    if (eclocnode == null) {
-                        enemyECLocs.resetIterator();
-                        eclocnode = enemyECLocs.next();
-                    }
-                    MapLocation ECLoc = Comms.decodeMapLocation(eclocnode.val, offsetx, offsety);
-                    targetedEnemyLoc = ECLoc;
-                }
-                // this shouldnt happen, buut if still null dont break
-                if (targetedEnemyLoc != null)  {
-                    targetLoc = targetedEnemyLoc;
-                    System.out.println("at " +rc.getLocation() + " targeting " + targetedEnemyLoc);
-                    if (rc.getLocation().distanceSquaredTo(targetedEnemyLoc) <= 1) {
-                        rc.empower(1);
-                    }
-                }
-            } else {
-                // lattice instead
-                if (rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
-                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                }
-                else {
-                    // if no lattice found, go in exploreDir
-                    if (bestLatticeLoc == null) {
-                        targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
-                        if (!rc.onTheMap(targetLoc)) {
-                            exploreDir = exploreDir.rotateLeft().rotateLeft();
-                            targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
-                        }
-                        // targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
-                    }
-                    else {
-                        targetLoc = bestLatticeLoc;
-                    }
-                }
-            }
         }
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);

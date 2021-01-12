@@ -20,14 +20,15 @@ public class Muckraker extends Unit {
             { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
             { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
-    static final int SCOUT_CORNERS = 0;
+    // static final int SCOUT_CORNERS = 0;
     static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
-    static int role = SCOUT_CORNERS;
+    static int role = LATTICE_NETWORK;
     static final int LATTICE_SIZE = 5;
     static Direction scoutDir = null;
 
-    static MapLocation foundCorner = null;
+    static Direction lastMoveAwayFromMucksDir = null;
+
     static HashTable<Integer> cornerXs = new HashTable<>(4);
     static HashTable<Integer> cornerYs = new HashTable<>(4);
     /**
@@ -35,8 +36,11 @@ public class Muckraker extends Unit {
      * handles the unit movement to go there
      */
     static MapLocation targetLoc = null;
+    /** Hash table used to check if we're already planning to send this location or not */
     static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
+    /** queue of hashes of EC locations to send */
     static LinkedList<Integer> ECLocHashesToSend = new LinkedList<>();
+    /** parallel queue with ECLocHashs of teams of ECs to send */
     static LinkedList<Integer> ECLocHashesTeamToSend = new LinkedList<>();
 
     public static void setup() throws GameActionException {
@@ -86,11 +90,6 @@ public class Muckraker extends Unit {
             handleFlag(homeECFlag);
         }
 
-        // if values valid, we are done scouting, we have map dimensions
-        if (role == SCOUT_CORNERS && haveMapDimensions()) {
-            role = RUSH;
-        }
-
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         MapLocation locOfClosestSlanderer = null;
@@ -119,7 +118,6 @@ public class Muckraker extends Unit {
                 int hash = Comms.encodeMapLocationWithoutOffsets(bot.location);
                 if (!foundECLocHashes.contains(hash)) {
                     foundECLocHashes.add(hash);
-                    
                     ECLocHashesToSend.add(hash);
                     if (bot.team == oppTeam) {
                         ECLocHashesTeamToSend.add(TEAM_ENEMY);
@@ -153,10 +151,6 @@ public class Muckraker extends Unit {
         }
 
         switch (role) {
-            case SCOUT_CORNERS:
-                scoutCorners();
-                targetSlanderers(locOfClosestSlanderer);
-                break;
             case RUSH:
                 targetLoc = rc.getLocation();
                 if (!haveMapDimensions()) {
@@ -195,30 +189,23 @@ public class Muckraker extends Unit {
                     if (locOfClosestSlanderer != null) {
                         targetSlanderers(locOfClosestSlanderer);
                     } else {
-                        // in lattice mode, we move into a lattice position, otherwise, we run in a direction and change if we hit wall?
-                        if (closestLatticeLoc != null) {
-                            targetLoc = closestLatticeLoc;
-                        }
-                        else {
-                            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
-                            if (!rc.onTheMap(targetLoc)) {
-                                scoutDir = scoutDir.rotateLeft();
-                                targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
-                            }
-                        }
-                        // else if (locOfClosestFriendlyMuckraker != null) {
-                        //     // head in scoutDir, direction of spawning, and find lattice points, rotate left
-                        //     // if hit edge and no spots found
-                        //     targetLoc = rc.getLocation()
-                        //             .add(locOfClosestFriendlyMuckraker.directionTo(rc.getLocation()));
+                        if (locOfClosestFriendlyMuckraker != null) {
+                            // head in scoutDir, direction of spawning, and find lattice points, rotate left
+                            // if hit edge and no spots found
+                            Direction momentumDir = locOfClosestFriendlyMuckraker.directionTo(rc.getLocation());
+                            targetLoc = rc.getLocation()
+                                    .add(momentumDir);
+                            lastDir = momentumDir;
 
-                        // }
+                        } else if (lastMoveAwayFromMucksDir != null) {
+                            targetLoc = rc.getLocation().add(lastMoveAwayFromMucksDir);
+                        }
                     }
                 }
                 break;
         }
 
-        // comms work
+        /** COMMS */
         if (haveMapDimensions()) {
             // if we have map dimensions, send out scouting info
             if (ECLocHashesToSend.size > 0) {
@@ -240,7 +227,6 @@ public class Muckraker extends Unit {
             } else if (!rc.getLocation().equals(targetLoc)){
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
-                    // MapLocation loc = rc.getLocation().add(wiggleDir);
                     if (rc.canMove(wiggleDir)) {
                         rc.move(wiggleDir);
                     }
@@ -309,7 +295,6 @@ public class Muckraker extends Unit {
             cornerXs.add(eastEdge.x);
         }
         
-        targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
         if (!rc.onTheMap(targetLoc)) {
             scoutDir = scoutDir.rotateLeft();
         }

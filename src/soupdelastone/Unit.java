@@ -37,6 +37,9 @@ public abstract class Unit extends RobotPlayer {
     static Direction getNextDirOnPath(MapLocation targetLoc) throws GameActionException {
         // greedy method
         // Direction greedyDir = rc.getLocation().directionTo(targetLoc);
+        if (rc.getLocation().distanceSquaredTo(targetLoc) <= 2) {
+            return getGreedyDir(targetLoc);
+        }
         Direction greedyDir = Direction.CENTER;
         double bestValue = tileMoveCost(rc.getLocation()) + rc.getLocation().distanceSquaredTo(targetLoc);
         int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
@@ -71,6 +74,30 @@ public abstract class Unit extends RobotPlayer {
         }
         return Direction.CENTER;
     }
+
+    static Direction getGreedyDir(MapLocation targetLoc) throws GameActionException {
+        Direction greedyDir = Direction.CENTER;
+        int closestToTarget = rc.getLocation().distanceSquaredTo(targetLoc);
+        for (Direction dir : DIRECTIONS) {
+            MapLocation newloc = rc.getLocation().add(dir);
+            if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
+
+                int dist = newloc.distanceSquaredTo(targetLoc);
+                if (dist < closestToTarget) {
+                    closestToTarget = dist;
+                    greedyDir = dir;
+                }
+            }
+        }
+        if (greedyDir == Direction.CENTER) {
+            return Direction.CENTER;
+        }
+        if (rc.canMove(greedyDir)) {
+            return greedyDir;
+        }
+        return Direction.CENTER;
+    }
+
     private static int manhattanDist(MapLocation loc1, MapLocation loc2) {
         return Math.abs(loc1.x - loc2.x) + Math.abs(loc1.y - loc2.y);
     }

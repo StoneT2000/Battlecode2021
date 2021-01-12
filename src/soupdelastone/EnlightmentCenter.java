@@ -35,15 +35,8 @@ public class EnlightmentCenter extends RobotPlayer {
     }
 
     public static void setup() throws GameActionException {
-        // boolean firstEC = rc.getTeamVotes() == 0;
-        // if (firstEC) {
-        // do scout building
         role = BUILD_SCOUTS;
         lastScoutBuildDirIndex = -1;
-        // rc.setFlag(0);
-        // } else {
-        // rc.setFlag(rc.getID());
-        // }
         ecIDs.add(rc.getID());
     }
 
@@ -54,7 +47,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         int influenceGainedLastTurn = rc.getInfluence() - lastTurnInfluence;
         // determine if we won or lost/tied bid?
-        if (!wonInVotes()) {
+        if (!wonInVotes() && turnCount >= 100) {
             if (rc.getTeamVotes() > lastTeamVotes) {
                 // won, lower the bid
                 minBidAmount /= 1.1;
@@ -85,6 +78,203 @@ public class EnlightmentCenter extends RobotPlayer {
         // global comms code independent of role
 
         // iterate over all known units, remove if they arent there anymore
+        handleUnitChecks();
+
+        // strategy to take nearby neutral HQ asap
+        boolean buildEarlyPoliticianToTakeNeutralHQ = false;
+        // if enemy HQ is near
+        boolean nearbyEnemyHQ = false;
+        boolean nearbyEnemyMuckraker = false;
+
+        RobotInfo[] nearbyBots = rc.senseNearbyRobots();
+
+        for (int i = nearbyBots.length; --i >= 0;) {
+            RobotInfo bot = nearbyBots[i];
+            if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
+                // int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
+            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                if (bot.team == Team.NEUTRAL && bot.influence <= 130) {
+                    buildEarlyPoliticianToTakeNeutralHQ = true;
+                } else if (bot.team == oppTeam) {
+                    nearbyEnemyHQ = true;
+                }
+            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
+                nearbyEnemyMuckraker = true;
+            }
+        }
+        if (turnCount == 1) {
+            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
+        }
+
+        switch (role) {
+            case BUILD_SCOUTS:
+                // TODO: handle edge cases if diagonals are blocked
+                if (lastScoutBuildDirIndex < 3 && rc.isReady()) {
+                    lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
+                    Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
+                    MapLocation buildLoc = rc.getLocation().add(dir);
+                    if (rc.onTheMap(buildLoc)) {
+                        RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
+                        if (bot == null) {
+                            // flag of 0 is default no signal value flag of 1-4 represents build direction
+                            // setFlag(lastScoutBuildDirIndex + 1);
+                            rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
+                            Stats.muckrakersBuilt += 1;
+                            // add new id
+                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                            muckrakerIDs.add(newbot.ID);
+                        }
+                    }
+                }
+                if (lastScoutBuildDirIndex == 3) {
+                    role = NORMAL;
+                }
+                break;
+            case NORMAL:
+                // generate infinite influence
+                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2 && rc.getInfluence() < Integer.MAX_VALUE / 2) {
+                    // TODO: bug, some of this is wasted due to nearby friendly units
+                    for (Direction dir : DIRECTIONS) {
+                        MapLocation buildLoc = rc.getLocation().add(dir);
+                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
+                            rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
+                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                            politicianIDs.add(newbot.ID);
+                            // setFlag(Comms.getPoliSacrificeSignal());
+                            lastBuildTurn = turnCount;
+                            break;
+                        }
+                    }
+                } 
+                else {
+
+                    // otherwise spam muckrakers wherever possible and ocassionally build slanderers
+                    boolean buildSlanderer = false;
+                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
+                        buildSlanderer = true;
+                    }
+                    if (nearbyEnemyMuckraker) {
+                        buildSlanderer = false;
+                    }
+                    boolean buildPoli = false;
+
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.25) {
+                        buildPoli = true;
+                    }
+                    if (nearbyEnemyMuckraker) {
+                        buildPoli = true;
+                    }
+                    for (int i = 0; i < 8; i++) {
+                        lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
+                        Direction dir = DIRECTIONS[lastRushBuildIndex];
+                        MapLocation buildLoc = rc.getLocation().add(dir);
+                        if (buildPoli && rc.getInfluence() >= 20) {
+                            int influenceWant = 20;
+                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
+                                rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
+                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                                politicianIDs.add(newbot.ID);
+                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                                // setFlag(sig);
+                                lastBuildTurn = turnCount;
+                                spentInfluence += influenceWant;
+                                break;
+                            }
+                        }
+                        if (buildSlanderer && rc.getInfluence() >= 148) {
+                            int want = Math.min(rc.getInfluence(), 200);
+                            if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
+                                rc.buildRobot(RobotType.SLANDERER, dir, want);
+                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                                slandererIDs.add(newbot.ID);
+                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                                // setFlag(sig);
+                                lastBuildTurn = turnCount;
+                                spentInfluence += want;
+                                break;
+                            }
+                        } else {
+                            int influenceWant = 1;
+                            if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {
+                                rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
+                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                                muckrakerIDs.add(newbot.ID);
+                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
+                                // setFlag(sig);
+                                lastBuildTurn = turnCount;
+                                spentInfluence += influenceWant;
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        sendSignals();
+    
+        lastTurnInfluence = rc.getInfluence() - spentInfluence;//stuff we do
+
+    }
+
+    private static void sendSignals() throws GameActionException { 
+        // signal rotation length
+        int turnCountModulus = 2;
+        if (enemyECLocs.size > 0) {
+            turnCountModulus = 5;
+        }
+        System.out.println("turncountmod " + turnCountModulus);
+
+        // send locations of enemy ECs
+        if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
+
+            Node<Integer> ecLocHashNode = enemyECLocs.next();
+            if (ecLocHashNode == null) {
+                enemyECLocs.resetIterator();
+                ecLocHashNode = enemyECLocs.next();
+            }
+            MapLocation ECLoc = Comms.decodeMapLocation(ecLocHashNode.val, offsetx, offsety);
+            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
+            setFlag(signal);
+        }
+
+        // send map dimensions
+        if (mapHeight >= 32 && mapWidth >= 32) {
+            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
+                    + " - Height: " + mapHeight);
+            if (!setFlagThisTurn) {
+                if (turnCount % turnCountModulus == 0) {
+                    int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
+                    setFlag(sig);
+                } else if (turnCount % turnCountModulus == 1) {
+                    int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
+                    setFlag(sig);
+                }
+            }
+        }
+    }
+
+    private static void tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
+        for (Direction dir : DIRECTIONS) {
+            MapLocation buildLoc = rc.getLocation().add(dir);
+            if (rc.canBuildRobot(type, dir, influence)) {
+                rc.buildRobot(type, dir, influence);
+                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                if (type == RobotType.POLITICIAN) {
+                    politicianIDs.add(newbot.ID);
+                } else if (type == RobotType.MUCKRAKER) {
+                    muckrakerIDs.add(newbot.ID);
+                } else if (type == RobotType.SLANDERER) {
+                    politicianIDs.add(newbot.ID);
+                }
+                // setFlag(Comms.getPoliSacrificeSignal());
+                lastBuildTurn = turnCount;
+                break;
+            }
+        }
+    }
+
+    private static void handleUnitChecks() throws GameActionException {
         ecIDs.resetIterator();
         muckrakerIDs.resetIterator();
         slandererIDs.resetIterator();
@@ -171,219 +361,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             else {
                 politicianIDs.remove(node.val);
-            }
-        }
-
-        // strategy to take nearby neutral HQ asap
-        boolean buildEarlyPoliticianToTakeNeutralHQ = false;
-        // if enemy HQ is near
-        boolean nearbyEnemyHQ = false;
-        boolean nearbyEnemyMuckraker = false;
-        RobotInfo[] nearbyBots = rc.senseNearbyRobots();
-
-        int enemyPoliticianConvictionNearby = -1;
-        for (int i = nearbyBots.length; --i >= 0;) {
-            RobotInfo bot = nearbyBots[i];
-            if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
-                int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
-                enemyPoliticianConvictionNearby += c;
-            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                if (bot.team == Team.NEUTRAL && bot.influence <= 130) {
-                    buildEarlyPoliticianToTakeNeutralHQ = true;
-                } else if (bot.team == oppTeam) {
-                    nearbyEnemyHQ = true;
-                }
-            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                nearbyEnemyMuckraker = true;
-            }
-        }
-        if (turnCount == 1) {
-            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
-        }
-
-        switch (role) {
-            case BUILD_SCOUTS:
-                // TODO: handle edge cases if diagonals are blocked
-                if (lastScoutBuildDirIndex < 3 && rc.isReady()) {
-                    lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
-                    Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
-                    MapLocation buildLoc = rc.getLocation().add(dir);
-                    if (rc.onTheMap(buildLoc)) {
-                        RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
-                        if (bot == null) {
-                            // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            // setFlag(lastScoutBuildDirIndex + 1);
-                            rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-                            Stats.muckrakersBuilt += 1;
-                            // add new id
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            muckrakerIDs.add(newbot.ID);
-                        }
-                    }
-                }
-                if (lastScoutBuildDirIndex == 3) {
-                    role = NORMAL;
-                }
-                break;
-            case NORMAL:
-                // TODO Calculate this
-                int dilutingUnits = 2;
-                if (enemyPoliticianConvictionNearby / dilutingUnits > rc.getConviction()) {
-                    for (Direction dir : DIRECTIONS) {
-                        MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
-                            rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            politicianIDs.add(newbot.ID);
-                            lastBuildTurn = turnCount;
-                            spentInfluence += rc.getConviction();
-                            break;
-                        }
-                    }
-                }
-                // generate infinite influence
-                else if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2 && rc.getInfluence() < Integer.MAX_VALUE / 2) {
-                    // TODO: bug, some of this is wasted due to nearby friendly units
-                    for (Direction dir : DIRECTIONS) {
-                        MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
-                            rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            politicianIDs.add(newbot.ID);
-                            // setFlag(Comms.getPoliSacrificeSignal());
-                            lastBuildTurn = turnCount;
-                            break;
-                        }
-                    }
-                } 
-                else {
-
-                    // otherwise spam muckrakers wherever possible and ocassionally build slanderers
-                    boolean buildSlanderer = false;
-                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
-                        buildSlanderer = true;
-                    }
-                    if (nearbyEnemyMuckraker) {
-                        buildSlanderer = false;
-                    }
-                    boolean buildPoli = false;
-
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.25) {
-                        buildPoli = true;
-                    }
-                    if (nearbyEnemyMuckraker) {
-                        buildPoli = true;
-                    }
-                    for (int i = 0; i < 8; i++) {
-                        lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
-                        Direction dir = DIRECTIONS[lastRushBuildIndex];
-                        MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (buildPoli && rc.getInfluence() >= 20) {
-                            int influenceWant = 20;
-                            if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
-                                rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
-                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                                politicianIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
-                                lastBuildTurn = turnCount;
-                                spentInfluence += influenceWant;
-                                break;
-                            }
-                        }
-                        if (buildSlanderer && rc.getInfluence() >= 148) {
-                            int want = Math.min(rc.getInfluence(), 200);
-                            if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
-                                rc.buildRobot(RobotType.SLANDERER, dir, want);
-                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                                slandererIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
-                                lastBuildTurn = turnCount;
-                                spentInfluence += want;
-                                break;
-                            }
-                        } else {
-                            int influenceWant = 1;
-                            if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {
-                                rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
-                                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                                muckrakerIDs.add(newbot.ID);
-                                int sig = Comms.getBuiltUnitSignal(newbot.ID, newbot.type);
-                                // setFlag(sig);
-                                lastBuildTurn = turnCount;
-                                spentInfluence += influenceWant;
-                                break;
-                            }
-                        }
-                    }
-                }
-                break;
-        }
-
-        // signal stuff
-        /**
-         * turncount modulus: 0, 1 = map details 2, 3, 4 = ec locations
-         */
-
-        int turnCountModulus = 2;
-        if (enemyECLocs.size > 0) {
-            turnCountModulus = 5;
-        }
-        System.out.println("turncountmod " + turnCountModulus);
-        if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
-
-            Node<Integer> ecLocHashNode = enemyECLocs.next();
-            if (ecLocHashNode == null) {
-                enemyECLocs.resetIterator();
-                ecLocHashNode = enemyECLocs.next();
-            }
-            MapLocation ECLoc = Comms.decodeMapLocation(ecLocHashNode.val, offsetx, offsety);
-            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
-            setFlag(signal);
-        }
-
-        /**
-         * If mapheight and width resolved o some valid value [32, 64], then send out
-         * signals to everyone OPTIMIZATION: do this only when we build new units, or
-         * maybe if nearby unit requests this information
-         */
-        if (mapHeight >= 32 && mapWidth >= 32) {
-            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
-                    + " - Height: " + mapHeight);
-            // TODO: this might be too long of a wait
-            if (!setFlagThisTurn) {
-                if (turnCount % turnCountModulus == 0) {
-                    int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
-                    setFlag(sig);
-                } else if (turnCount % turnCountModulus == 1) {
-                    int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
-                    setFlag(sig);
-                }
-            }
-        }
-
-
-        lastTurnInfluence = rc.getInfluence() - spentInfluence;//stuff we do
-
-    }
-
-    private static void tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
-        for (Direction dir : DIRECTIONS) {
-            MapLocation buildLoc = rc.getLocation().add(dir);
-            if (rc.canBuildRobot(type, dir, influence)) {
-                rc.buildRobot(type, dir, influence);
-                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                if (type == RobotType.POLITICIAN) {
-                    politicianIDs.add(newbot.ID);
-                } else if (type == RobotType.MUCKRAKER) {
-                    muckrakerIDs.add(newbot.ID);
-                } else if (type == RobotType.SLANDERER) {
-                    politicianIDs.add(newbot.ID);
-                }
-                // setFlag(Comms.getPoliSacrificeSignal());
-                lastBuildTurn = turnCount;
-                break;
             }
         }
     }
