@@ -150,7 +150,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                     boolean buildSlanderer = false;
-                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 8 || turnCount <= 2) {
+                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 2 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
                     if (nearbyEnemyMuckraker) {

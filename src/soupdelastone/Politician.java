@@ -214,7 +214,6 @@ public class Politician extends Unit {
                 // we keep following mucks until we can at least destroy 2 in one empower or
                 // they are within distance of a slanderer
                 // this means not optimal to empower at all
-                System.out.println(optimalEmpowerRadius + " - " + slandererInDanger + " - " + maxMucksDestroyed);
                 if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
                     // go towards closest muckraker in hope of more optimal empowering.
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));

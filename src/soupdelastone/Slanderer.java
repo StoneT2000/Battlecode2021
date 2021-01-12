@@ -109,6 +109,40 @@ public class Slanderer extends Unit {
             } else {
                 targetLoc = bestLatticeLoc;
             }
+        } else if (homeEC != null) {
+            // search in sensor range for close stuff
+            MapLocation currLoc = rc.getLocation();
+            MapLocation bestLatticeLoc = null;
+            int bestLatticeLocVal = Integer.MIN_VALUE;
+            if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) >= 2) {
+                bestLatticeLoc = currLoc;
+                bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(homeEC);
+            }
+            for (int i = 0; ++i < BFS20.length;) {
+                int[] deltas = BFS20[i];
+
+                MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
+                if (rc.onTheMap(checkLoc)) {
+                    if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) >= 2) {
+                        RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                        if (bot == null || bot.ID == rc.getID()) {
+                            int value = -checkLoc.distanceSquaredTo(homeEC);
+                            if (value > bestLatticeLocVal) {
+                                bestLatticeLocVal = value;
+                                bestLatticeLoc = checkLoc;
+                            }
+                        }
+                    }
+                }
+            }
+            System.out.println("Best " + bestLatticeLoc);
+            if (bestLatticeLoc == null) {
+                // find closest corner.
+                Direction awayDir = homeEC.directionTo(rc.getLocation());
+                targetLoc = rc.getLocation().add(awayDir).add(awayDir).add(awayDir);
+            } else {
+                targetLoc = bestLatticeLoc;
+            }
         }
 
         if (locOfClosestEnemyMuckraker != null) {
