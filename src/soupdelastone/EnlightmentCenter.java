@@ -218,7 +218,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     boolean buildPoli = false;
 
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.5) {
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 1) {
                         buildPoli = true;
                     }
                     if (nearbyEnemyMuckraker) {
