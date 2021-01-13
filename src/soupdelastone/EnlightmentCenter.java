@@ -305,7 +305,6 @@ public class EnlightmentCenter extends RobotPlayer {
                         processFoundECFlag(flag);
                         break;
                     case Comms.FOUND_EC_LONG_HASH_RANGE:
-                        System.out.println("Procerssing " + flag);
                         processFoundECLongHashFlag(currIDNode.val, flag);
                         break;
 
@@ -323,6 +322,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             else {
                 muckrakerIDs.remove(node.val);
+                // clean out
+                multiPartMessagesByBotID.remove(node.val);
             }
         }
 
@@ -349,6 +350,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             else {
                 slandererIDs.remove(node.val);
+                multiPartMessagesByBotID.remove(node.val);
             }
         }
 
@@ -367,6 +369,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             else {
                 politicianIDs.remove(node.val);
+                multiPartMessagesByBotID.remove(node.val);
             }
         }
     }
