@@ -265,16 +265,13 @@ public class Muckraker extends Unit {
             } else {
                 if (stageOfMultipartMessage == 0) {
                     int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
-                    System.out.println("Sent x " + ECLoc);
                     setFlag(sig);
                 } else if (stageOfMultipartMessage == 1) {
-                    System.out.println("Sent y " + ECLoc);
                     int sig = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
                     setFlag(sig);
                 }
                 stageOfMultipartMessage++;
                 if (stageOfMultipartMessage == 2) {
-                    System.out.println("msg done");
                     stageOfMultipartMessage = 0;
                     doneWithHash = true;
                 }

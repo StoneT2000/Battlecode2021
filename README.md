@@ -60,6 +60,16 @@ Comm stuff
   - e.g. EC locations etc.
   - e.g. flag of friendly ec?
 
+How to do multi-part messages:
+
+have a multipartMessageStage counter (resets to 0 when done)
+
+hopefully make sure no other branch is trying to send a multipart signal as well...
+
+Send them in order as pleases
+
+To process, if the msg is a multipart one (e.g. process ecloc x and y in their original coords), first put all messages received in string into hash map that maps the id of the  bot sending that multipart msg to an aray containing every message. Upon rreceiving final message, process all of it.
+
 ## Important questions to answer ASAP
 
 Q: How many dudes can a center build per round? Is it limited by space around the center...  
