@@ -62,10 +62,19 @@ public class EnlightmentCenter extends RobotPlayer {
                 minBidAmount /= 1.1;
                 minBidAmount = Math.max(minBidAmount, 1);
             } else {
+                double factor = 0.25;
+                if (turnCount >= 300) {
+                    factor = 0.5;
+                } else if (turnCount >= 500) {
+                    factor = 0.75;
+                }
                 // lost, increase bid, and see what happens
                 minBidAmount *= 2;
                 minBidAmount = Math.max(minBidAmount, 1);
-                minBidAmount = Math.min(minBidAmount, Math.ceil(influenceGainedLastTurn * 0.25));
+                if (rc.getInfluence() < 1000) {
+                    minBidAmount = Math.min(minBidAmount, Math.ceil(influenceGainedLastTurn * factor));
+                }
+                
             }
             lastTeamVotes = rc.getTeamVotes();
 
@@ -209,7 +218,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     boolean buildPoli = false;
 
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.25) {
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.5) {
                         buildPoli = true;
                     }
                     if (nearbyEnemyMuckraker) {
