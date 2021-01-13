@@ -29,13 +29,16 @@ public class Comms {
     public static final int SMALL_SIGNAL = 0x900000;
     // small signals:
     public static final int IMASLANDERERR = 0x900001;
-    public static final int GO_SCOUT = 0x900001;
+    public static final int GO_SCOUT = 0x900002;
 
     // some long hash map locs in event we don't have map dims
     // this thing below is for checking if the signal shoudl be proccessed as a found ec signal
     public static final int FOUND_EC_LONG_HASH_RANGE = 0xa00000;
     public static final int FOUND_EC_X = 0xa00000;
     public static final int FOUND_EC_Y = 0xa80000;
+    public static final int ATTACK_EC_LONG_HASH_RANGE = 0xb00000;
+    public static final int ATTACK_EC_X = 0xb00000;
+    public static final int ATTACK_EC_Y = 0xb80000;
 
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
@@ -183,13 +186,28 @@ public class Comms {
      * @return [x, team]
      */
     public static int[] readFoundECXSignal(int signal) {
-        int x = signal & 0x07fff0;
+        int x = (signal & 0x07fff0) >> 4;
         int teamind = signal & 0x000003;
         return new int[]{x, teamind};
     }
     public static int[] readFoundECYSignal(int signal) {
-        int y = signal & 0x07fff0;
+        int y = (signal & 0x07fff0) >> 4;
         int teamind = signal & 0x000003;
         return new int[]{y, teamind};
+    }
+
+    public static int getAttackECXSignal(int x) {
+        return ATTACK_EC_X | (x << 4);
+    }
+    public static int getAttackECYSignal(int y) {
+        return ATTACK_EC_Y | (y << 4);
+    }
+    public static int readAttackECXSignal(int signal) {
+        int x = (signal & 0x07fff0) >> 4;
+        return x;
+    }
+    public static int readAttackECYSignal(int signal) {
+        int y = (signal & 0x07fff0) >> 4;
+        return y;
     }
 }

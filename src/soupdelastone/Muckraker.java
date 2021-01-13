@@ -50,7 +50,8 @@ public class Muckraker extends Unit {
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
 
-    static int stageOfMultipartMessage = 0;
+    static final int SKIP_FLAG = -1;
+    static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
     public static void setup() throws GameActionException {
         setHomeEC();
@@ -259,22 +260,15 @@ public class Muckraker extends Unit {
             boolean doneWithHash = false;
             if (haveMapDimensions()) {
                 int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val, offsetx, offsety);
-                setFlag(signal);
+                specialMessageQueue.add(signal);
                 // remove from table so we can search it again
                 doneWithHash = true;
             } else {
-                if (stageOfMultipartMessage == 0) {
-                    int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
-                    setFlag(sig);
-                } else if (stageOfMultipartMessage == 1) {
-                    int sig = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
-                    setFlag(sig);
-                }
-                stageOfMultipartMessage++;
-                if (stageOfMultipartMessage == 2) {
-                    stageOfMultipartMessage = 0;
-                    doneWithHash = true;
-                }
+                int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
+                int sig2 = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
+                specialMessageQueue.add(sig);
+                specialMessageQueue.add(sig2);
+                doneWithHash = true;
             }
 
             if (doneWithHash) {
@@ -283,6 +277,11 @@ public class Muckraker extends Unit {
                 ECLocHashesToSend.dequeue();
             }
             
+        }
+
+        // handle flags that arernt corner stuff
+        if (specialMessageQueue.size > 0) {
+            setFlag(specialMessageQueue.dequeue().val);
         }
 
         if (rc.isReady()) {

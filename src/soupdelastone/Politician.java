@@ -66,6 +66,24 @@ public class Politician extends Unit {
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
+            if ((homeECFlag & Comms.SIGNAL_TYPE_MASK) == Comms.ATTACK_EC_LONG_HASH_RANGE && turnCount < 10) {
+                switch (homeECFlag & Comms.SIGNAL_TYPE_5BIT_MASK) {
+                    case Comms.ATTACK_EC_X:
+                        multiPartMessagesByBotID.put(homeECID, new int[]{homeECFlag});
+                        break;
+                    case Comms.ATTACK_EC_Y:
+                        int[] flags = multiPartMessagesByBotID.get(homeECID);
+                        int x = Comms.readAttackECXSignal(flags[0]);
+                        int y = Comms.readAttackECYSignal(homeECFlag);
+                        role = ATTACK_EC;
+                        
+                        attackLoc = new MapLocation(x, y);
+                        break;
+                }
+            }
+        } else {
+            // clean out this
+            multiPartMessagesByBotID.remove(homeECID);
         }
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
         MapLocation locOfClosestFriendlyPoli = null;
@@ -77,6 +95,9 @@ public class Politician extends Unit {
         int[] friendlyUnitsAtDistanceCount = new int[10];
         int[] oppUnitsAtDistanceCount = new int[10];
         int[] oppMuckUnitsAtDistanceCount = new int[10];
+        // int[] oppSlandUnitsAtDistanceCount = new int[10];
+        // int[] oppECUnitsAtDistanceCount = new int[10];
+        // int[] oppPoliUnitsAtDistanceCount = new int[10];
 
         LinkedList<MapLocation> locsOfFriendSlands = new LinkedList<>();
 
@@ -88,7 +109,7 @@ public class Politician extends Unit {
                 if (withinDist) {
                     friendlyUnitsAtDistanceCount[dist] += 1;
                 }
-                if (rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
+                if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
                     // System.out.println("Found sland");
                     locsOfFriendSlands.add(bot.location);
                 }
@@ -180,12 +201,14 @@ public class Politician extends Unit {
                 // find an optimal empower distance that destroys as many muckrakers as possible
                 int mucksCountInRadius = 0;
                 int friendlyUnitsInRadius = 0;
+                int oppUnitsInRadius = 0;
                 int maxMucksDestroyed = 0;
                 int optimalEmpowerRadius = -1;
                 for (int i = 1; i <= 9; i++) {
                     mucksCountInRadius += oppMuckUnitsAtDistanceCount[i];
+                    oppUnitsInRadius += oppUnitsAtDistanceCount[i];
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                    int n = (mucksCountInRadius + friendlyUnitsInRadius);
+                    int n = (oppUnitsInRadius + friendlyUnitsInRadius);
                     if (mucksCountInRadius > 0) {
                         int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / n;
                         if (speechInfluencePerUnit >= 2) {
@@ -199,6 +222,7 @@ public class Politician extends Unit {
 
                 Node<MapLocation> currNode = locsOfFriendSlands.dequeue();
                 boolean slandererInDanger = false;
+                // TODO: optimize to kill more mucks if not in danger and we see more than 2 relatively close
                 while (currNode != null) {
                     if (currNode.val.distanceSquaredTo(locOfClosestEnemyMuck) <= MUCKRAKER_ACTION_RADIUS + 10) {
                         slandererInDanger = true;
@@ -235,7 +259,28 @@ public class Politician extends Unit {
 
             }
         } else if (role == ATTACK_EC) {
-
+            targetLoc = attackLoc;
+            int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
+            if (distToEC <= 1) {
+                // TOOD: shout neighbors to run if they arer therre
+                rc.empower(1);
+            } else if (distToEC <= POLI_ACTION_RADIUS) {
+                // measure if worth
+                int friendlyUnitsInRadius = 0;
+                int oppUnitsInRadius = 0;
+                for (int i = 1; i <= 9; i++) {
+                    oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                    friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                    int n = (oppUnitsInRadius + friendlyUnitsInRadius);
+                    if (distToEC <= i) {
+                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / n;
+                        if (speechInfluencePerUnit >= rc.getInfluence()) {
+                            rc.empower(i);
+                            break;
+                        }
+                    }
+                }
+            }
         }
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);

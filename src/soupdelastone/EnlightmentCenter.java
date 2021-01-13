@@ -12,7 +12,6 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int NORMAL = 1;
     static int role = NORMAL;
 
-    
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
@@ -22,9 +21,20 @@ public class EnlightmentCenter extends RobotPlayer {
     static HashTable<Integer> politicianIDs = new HashTable<>(40);
     static int lastBuildTurn = -1;
 
+    static final int MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC = 550;
+
     static double minBidAmount = 2;
     static int lastTeamVotes = 0;
     static int lastTurnInfluence = GameConstants.INITIAL_ENLIGHTENMENT_CENTER_INFLUENCE;
+
+    static int stageOfMultipartMessage = 0;
+
+    static HashTable<Integer> attackingPolis = new HashTable<>(10);
+    static int turnBuiltNeutralAttackingPoli = 0;
+
+    static int multiPartMessageType = 0;
+    static final int SKIP_FLAG = -1;
+    static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
     static class Stats {
         static int muckrakersBuilt = 0;
@@ -39,6 +49,7 @@ public class EnlightmentCenter extends RobotPlayer {
     }
 
     public static void run() throws GameActionException {
+
         setFlagThisTurn = false;
         // how much influence is spent on building
         int spentInfluence = 0;
@@ -72,7 +83,8 @@ public class EnlightmentCenter extends RobotPlayer {
         System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
                 + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
                 + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
-                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid " + minBidAmount);
+                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
+                + minBidAmount);
 
         // global comms code independent of role
 
@@ -101,15 +113,34 @@ public class EnlightmentCenter extends RobotPlayer {
                 nearbyEnemyMuckraker = true;
             }
         }
-        if (turnCount == 1) {
+        if (turnCount == 1 && nearbyEnemyMuckraker == false) {
             tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
         }
 
         // strategy for taking ecs
-        if (neutralECLocs.size > 0) {
-
+        boolean stockInfluence = false;
+        /** closest neutral ec loc */
+        MapLocation neutralECLocToTake = null;
+        int closestDist = 99999999;
+        neutralECLocs.resetIterator();
+        System.out.println("There aer " + neutralECLocs.size + " neutal ECs");
+        HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
+        while (neutralHashNode != null) {
+            MapLocation loc = neutralHashNode.val.location;
+            int dist = loc.distanceSquaredTo(rc.getLocation());
+            if (dist < closestDist) {
+                closestDist = dist;
+                neutralECLocToTake = loc;
+            }
+            neutralHashNode = neutralECLocs.next();
         }
-        
+        if (neutralECLocToTake != null) {
+            if (rc.getInfluence() >= MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC) {
+
+            } else {
+                stockInfluence = true;
+            }
+        }
 
         switch (role) {
             case BUILD_SCOUTS:
@@ -138,7 +169,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             case NORMAL:
                 // generate infinite influence
-                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2 && rc.getInfluence() < Integer.MAX_VALUE / 2) {
+                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2
+                        && rc.getInfluence() < Integer.MAX_VALUE / 2) {
                     // TODO: bug, some of this is wasted due to nearby friendly units
                     for (Direction dir : DIRECTIONS) {
                         MapLocation buildLoc = rc.getLocation().add(dir);
@@ -150,7 +182,21 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                } 
+                } else if (neutralECLocToTake != null && rc.getInfluence() >= MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC) {
+                    // TODO: dont do this if enemy is near and can capture easily
+                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC,
+                            rc.getLocation().directionTo(neutralECLocToTake));
+                    if (newbot != null) {
+                        attackingPolis.add(newbot.ID);
+                        turnBuiltNeutralAttackingPoli = turnCount;
+                        int sig1 = Comms.getAttackECXSignal(neutralECLocToTake.x);
+                        int sig2 = Comms.getAttackECYSignal(neutralECLocToTake.y);
+                        specialMessageQueue.add(SKIP_FLAG);
+                        specialMessageQueue.add(sig1);
+                        specialMessageQueue.add(sig2);
+                    }
+                }
+                // proceed with generic building
                 else {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers
@@ -210,13 +256,49 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
         }
 
-        sendSignals();
-    
-        lastTurnInfluence = rc.getInfluence() - spentInfluence;//stuff we do
+        // code to send messages to polis attacking neutal ECs
+        attackingPolis.resetIterator();
+        Node<Integer> attackPoliNode = attackingPolis.next();
+        LinkedList<Integer> idsToRemove = new LinkedList<>();
+        while (attackPoliNode != null) {
+            if (!rc.canGetFlag(attackPoliNode.val)) {
+                idsToRemove.add(attackPoliNode.val);
+            }
+            attackPoliNode = attackingPolis.next();
+        }
 
+        while (idsToRemove.size > 0) {
+            Node<Integer> currIdToRemoveNode = idsToRemove.dequeue();
+            attackingPolis.remove(currIdToRemoveNode.val);
+        }
+
+        // System.out.println(stageOfMultipartMessage + " - " + neutralECLocToTake + " -
+        // " + neutralAttackingPolis.size);
+
+        if (specialMessageQueue.size > 0) {
+            int flag = specialMessageQueue.dequeue().val;
+            if (flag != SKIP_FLAG) {
+                setFlag(flag);
+            }
+            ;
+            // if flag is -1, thenits a skip message meaning we can signal smth else
+
+        }
+
+        sendConstSignals();
+
+        lastTurnInfluence = rc.getInfluence() - spentInfluence;// stuff we do
+
+        if (!setFlagThisTurn) {
+            rc.setFlag(0);
+        }
     }
 
-    private static void sendSignals() throws GameActionException { 
+    private static boolean canStartNewMessageChain() {
+        return stageOfMultipartMessage == 0;
+    }
+
+    private static void sendConstSignals() throws GameActionException {
         // signal rotation length
         int turnCountModulus = 2;
         if (enemyECLocs.size > 0) {
@@ -227,15 +309,17 @@ public class EnlightmentCenter extends RobotPlayer {
         // send locations of enemy ECs
         if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
 
-            HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
-            if (ecLocHashNode == null) {
-                enemyECLocs.resetIterator();
-                ecLocHashNode = enemyECLocs.next();
+            if (haveMapDimensions()) {
+                HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
+                if (ecLocHashNode == null) {
+                    enemyECLocs.resetIterator();
+                    ecLocHashNode = enemyECLocs.next();
+                }
+                MapLocation ECLoc = ecLocHashNode.val.location;
+                System.out.println("Sending " + ECLoc);
+                int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
+                setFlag(signal);
             }
-            MapLocation ECLoc = ecLocHashNode.val.location;
-            System.out.println("Sending " + ECLoc);
-            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
-            setFlag(signal);
         }
 
         // send map dimensions
@@ -274,6 +358,33 @@ public class EnlightmentCenter extends RobotPlayer {
         }
     }
 
+    private static RobotInfo tryToBuildAnywhere(RobotType type, int influence, Direction preferredDir)
+            throws GameActionException {
+        // TODO: optimize, can hardcode this based on preferred dir
+        Direction[] dirs = new Direction[] { preferredDir, preferredDir.rotateLeft(), preferredDir.rotateRight(),
+                preferredDir.rotateLeft().rotateLeft(), preferredDir.rotateRight().rotateRight(),
+                preferredDir.rotateLeft().rotateLeft().rotateLeft(),
+                preferredDir.rotateRight().rotateRight().rotateRight(), preferredDir.opposite() };
+        for (Direction dir : dirs) {
+            MapLocation buildLoc = rc.getLocation().add(dir);
+            if (rc.canBuildRobot(type, dir, influence)) {
+                rc.buildRobot(type, dir, influence);
+                RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                if (type == RobotType.POLITICIAN) {
+                    politicianIDs.add(newbot.ID);
+                } else if (type == RobotType.MUCKRAKER) {
+                    muckrakerIDs.add(newbot.ID);
+                } else if (type == RobotType.SLANDERER) {
+                    politicianIDs.add(newbot.ID);
+                }
+                // setFlag(Comms.getPoliSacrificeSignal());
+                lastBuildTurn = turnCount;
+                return newbot;
+            }
+        }
+        return null;
+    }
+
     private static void handleUnitChecks() throws GameActionException {
         ecIDs.resetIterator();
         muckrakerIDs.resetIterator();
@@ -283,7 +394,7 @@ public class EnlightmentCenter extends RobotPlayer {
         Node<Integer> currIDNode = muckrakerIDs.next();
         LinkedList<Integer> idsToRemove = new LinkedList<>();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 4000) {
+            if (Clock.getBytecodesLeft() < 8000) {
                 break;
             }
             try {
@@ -329,7 +440,11 @@ public class EnlightmentCenter extends RobotPlayer {
 
         currIDNode = slandererIDs.next();
         while (currIDNode != null) {
+            if (Clock.getBytecodesLeft() < 6000) {
+                break;
+            }
             try {
+
                 int flag = rc.getFlag(currIDNode.val);
                 if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.UNIT_DETAILS) {
                     // check if switched to politican, and remove/add appropriately
@@ -356,6 +471,9 @@ public class EnlightmentCenter extends RobotPlayer {
 
         currIDNode = politicianIDs.next();
         while (currIDNode != null) {
+            if (Clock.getBytecodesLeft() < 4000) {
+                break;
+            }
             try {
                 int flag = rc.getFlag(currIDNode.val);
             } catch (GameActionException error) {

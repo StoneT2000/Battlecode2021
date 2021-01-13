@@ -243,7 +243,6 @@ public class Politician extends Unit {
                 // this shouldnt happen, buut if still null dont break
                 if (targetedEnemyLoc != null) {
                     targetLoc = targetedEnemyLoc;
-                    System.out.println("at " + rc.getLocation() + " targeting " + targetedEnemyLoc);
                     if (rc.getLocation().distanceSquaredTo(targetedEnemyLoc) <= 1) {
                         rc.empower(1);
                     }

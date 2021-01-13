@@ -4,6 +4,8 @@ import battlecode.common.*;
 import soupdelastone.Comms;
 import soupdelastone.utils.HashMap;
 import soupdelastone.utils.HashTable;
+import soupdelastone.utils.Node;
+
 import static soupdelastone.Constants.*;
 
 public strictfp class RobotPlayer {
@@ -54,12 +56,15 @@ public strictfp class RobotPlayer {
                 break;
             case POLITICIAN:
                 Politician.setup();
+                multiPartMessagesByBotID = new HashMap<>(10);
                 break;
             case SLANDERER:
                 Slanderer.setup();
+                multiPartMessagesByBotID = new HashMap<>(10);
                 break;
             case MUCKRAKER:
                 Muckraker.setup();
+                multiPartMessagesByBotID = new HashMap<>(10);
                 break;
         }
         RobotType spawnType = rc.getType();
@@ -131,6 +136,10 @@ public strictfp class RobotPlayer {
             case Comms.FOUND_EC_Y:
                 int[] data = multiPartMessagesByBotID.get(botID);
                 multiPartMessagesByBotID.remove(botID);
+                if (data == null) {
+                    System.out.println("missing eclonghash data from " + botID);
+                    return;
+                }
                 int xflag = data[0];
                 int[] datax = Comms.readFoundECXSignal(xflag);
                 int[] datay = Comms.readFoundECYSignal(flag);
