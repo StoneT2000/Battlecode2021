@@ -1,6 +1,7 @@
 package soupdelastone;
 
 import battlecode.common.*;
+import soupdelastone.Comms;
 import soupdelastone.utils.HashMap;
 import soupdelastone.utils.HashTable;
 import static soupdelastone.Constants.*;
@@ -18,12 +19,17 @@ public strictfp class RobotPlayer {
     static int mapWidth = 0;
     static int mapHeight = 0;
 
-    /** locations using short map hash  (encoding using map offsets) */
+    /** locations using long map hash  (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> enemyECLocs = new HashMap<>(12);
-    /** locations using short map hash  (encoding using map offsets) */
+    /** locations using long map hash  (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> friendlyECLocs = new HashMap<>(12);
-    /** locations using short map hash  (encoding using map offsets) */
+    /** locations using long map hash  (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> neutralECLocs = new HashMap<>(12);
+
+    /** maps robot id to message parts they sent if message is multi-part */
+
+    // maybe only used by EC atm
+    static HashMap<Integer, int[]> multiPartMessagesByBotID;
 
     /**
      * run() is the method that is called when a robot is instantiated in the
@@ -44,6 +50,7 @@ public strictfp class RobotPlayer {
             case ENLIGHTENMENT_CENTER:
                 // new instance like this takes ~7 bytecode
                 EnlightmentCenter.setup();
+                multiPartMessagesByBotID = new HashMap<>(50);
                 break;
             case POLITICIAN:
                 Politician.setup();
@@ -114,6 +121,27 @@ public strictfp class RobotPlayer {
         return mapHeight >= 32 && mapWidth >= 32;
     }
     
+    public static void processFoundECLongHashFlag(int botID, int flag) {
+        switch (flag & Comms.SIGNAL_TYPE_5BIT_MASK) {
+            case Comms.FOUND_EC_X:
+                // int[] data = Comms.readFoundECXSignal(flag);
+                // int x = data[0];
+                multiPartMessagesByBotID.put(botID, new int[]{flag});
+                break;
+            case Comms.FOUND_EC_Y:
+                int[] data = multiPartMessagesByBotID.get(botID);
+                multiPartMessagesByBotID.remove(botID);
+                int xflag = data[0];
+                int[] datax = Comms.readFoundECXSignal(xflag);
+                int[] datay = Comms.readFoundECYSignal(flag);
+                
+                MapLocation ecloc = new MapLocation(datax[0], datay[0]);
+                int teamval = datax[1];
+                storeAndProcessECLocAndTeam(ecloc, teamval);
+                break;
+        }
+
+    }
     public static void processFoundECFlag(int flag) {
         int[] data = Comms.readFoundECSignal(flag);
         int teamval = data[0];
@@ -124,25 +152,33 @@ public strictfp class RobotPlayer {
         int shorthHashKey = data[1];
         
         MapLocation ECLoc = Comms.decodeMapLocation(shorthHashKey, offsetx, offsety);
+        storeAndProcessECLocAndTeam(ECLoc, teamval);
+        
+    }
+    /**
+     * stores EC Loc data and removes old data if necessary
+     */
+    private static void storeAndProcessECLocAndTeam(MapLocation loc, int teamval) {
+        int longHashKey = Comms.encodeMapLocationWithoutOffsets(loc);
         if (teamval == TEAM_ENEMY) {
-            if (!enemyECLocs.contains(shorthHashKey)) {
-                enemyECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
+            if (!enemyECLocs.contains(longHashKey)) {
+                enemyECLocs.put(longHashKey, new ECDetails(loc, -1));
                 // remove this from other hashtables in case they converted to enemy now
-                neutralECLocs.remove(shorthHashKey);
-                friendlyECLocs.remove(shorthHashKey);
+                neutralECLocs.remove(longHashKey);
+                friendlyECLocs.remove(longHashKey);
             }
         } else if (teamval == TEAM_NEUTRAL) {
-            if (!neutralECLocs.contains(shorthHashKey)) {
-                neutralECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
-                friendlyECLocs.remove(shorthHashKey);
-                enemyECLocs.remove(shorthHashKey);
+            if (!neutralECLocs.contains(longHashKey)) {
+                neutralECLocs.put(longHashKey, new ECDetails(loc, -1));
+                friendlyECLocs.remove(longHashKey);
+                enemyECLocs.remove(longHashKey);
             }
         } else {
-            if (!friendlyECLocs.contains(shorthHashKey)) {
+            if (!friendlyECLocs.contains(longHashKey)) {
                 // System.out.println("Found friend EC at " + ECLoc);
-                friendlyECLocs.put(shorthHashKey, new ECDetails(ECLoc, -1));
-                neutralECLocs.remove(data[1]);
-                enemyECLocs.remove(shorthHashKey);
+                friendlyECLocs.put(longHashKey, new ECDetails(loc, -1));
+                neutralECLocs.remove(longHashKey);
+                enemyECLocs.remove(longHashKey);
             }
         }
     }

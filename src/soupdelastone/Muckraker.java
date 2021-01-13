@@ -21,7 +21,7 @@ public class Muckraker extends Unit {
             { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
             { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
-    // static final int SCOUT_CORNERS = 0;
+    static final int SCOUT_CORNERS = 0;
     static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
     static int role = LATTICE_NETWORK;
@@ -47,9 +47,30 @@ public class Muckraker extends Unit {
     /** parallel queue with ECLocHashs of teams of ECs to send */
     static LinkedList<Integer> ECLocHashesTeamToSend = new LinkedList<>();
 
+    // whether to always rotate left or rotate right
+    static boolean rotateLeftScoutDir = false;
+
+    static int stageOfMultipartMessage = 0;
+
     public static void setup() throws GameActionException {
         setHomeEC();
         scoutDir = rc.getLocation().directionTo(homeEC).opposite();
+        switch (scoutDir) {
+            case NORTH:
+            case SOUTH:
+            case NORTHWEST:
+            case SOUTHEAST:
+                rotateLeftScoutDir = true;
+                break;
+            // case WEST:
+            // case EAST:
+            // case NORTHEAST:
+            // case SOUTHWEST:
+            // scoutDir = scoutDir.rotateRight();
+            // break;
+            default:
+                break;
+        }
     }
 
     public static void handleFlag(int flag) {
@@ -81,10 +102,14 @@ public class Muckraker extends Unit {
                 break;
             case Comms.FOUND_EC:
                 processFoundECFlag(flag);
+                break;
+            case Comms.SMALL_SIGNAL:
+                break;
         }
     }
 
     public static void run() throws GameActionException {
+        rc.setFlag(0);
         // global comms code independent of role
 
         // sense ec flags
@@ -92,6 +117,12 @@ public class Muckraker extends Unit {
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
+            if (homeECFlag == Comms.GO_SCOUT) {
+                role = SCOUT_CORNERS;
+            }
+        }
+        if (role == SCOUT_CORNERS && haveMapDimensions()) {
+            role = LATTICE_NETWORK;
         }
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
@@ -155,6 +186,18 @@ public class Muckraker extends Unit {
         }
 
         switch (role) {
+            case SCOUT_CORNERS:
+                scoutCorners();
+                targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                while (!rc.onTheMap(targetLoc)) {
+                    if (rotateLeftScoutDir) {
+                        scoutDir = scoutDir.rotateLeft();
+                    } else {
+                        scoutDir = scoutDir.rotateRight();
+                    }
+                    targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                }
+                // targetSlanderers(locOfClosestSlanderer);
             case RUSH:
                 targetLoc = rc.getLocation();
                 if (!haveMapDimensions()) {
@@ -172,8 +215,7 @@ public class Muckraker extends Unit {
                             }
                             MapLocation ECLoc = eclocnode.val.location;
                             targetLoc = ECLoc;
-                        }
-                        else {
+                        } else {
                             targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                             if (!rc.onTheMap(targetLoc)) {
                                 scoutDir = scoutDir.rotateLeft();
@@ -196,8 +238,7 @@ public class Muckraker extends Unit {
                             // head in scoutDir, direction of spawning, and find lattice points, rotate left
                             // if hit edge and no spots found
                             Direction momentumDir = locOfClosestFriendlyMuckraker.directionTo(rc.getLocation());
-                            targetLoc = rc.getLocation()
-                                    .add(momentumDir);
+                            targetLoc = rc.getLocation().add(momentumDir);
                             lastDir = momentumDir;
 
                         } else if (lastMoveAwayFromMucksDir != null) {
@@ -209,25 +250,49 @@ public class Muckraker extends Unit {
         }
 
         /** COMMS */
-        if (haveMapDimensions()) {
-            // if we have map dimensions, send out scouting info
-            if (ECLocHashesToSend.size > 0) {
-                Node<Integer> hashnode = ECLocHashesToSend.dequeue();
-                Node<Integer> hashnodeteam = ECLocHashesTeamToSend.dequeue();
-                MapLocation ECLoc = Comms.decodeMapLocationWithoutOffsets(hashnode.val);
+
+        // if we have map dimensions, send out scouting info
+        if (ECLocHashesToSend.size > 0) {
+            Node<Integer> hashnode = ECLocHashesToSend.head;
+            Node<Integer> hashnodeteam = ECLocHashesTeamToSend.head;
+            MapLocation ECLoc = Comms.decodeMapLocationWithoutOffsets(hashnode.val);
+            boolean doneWithHash = false;
+            if (haveMapDimensions()) {
                 int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val, offsetx, offsety);
                 setFlag(signal);
                 // remove from table so we can search it again
-                foundECLocHashes.remove(hashnode.val);
+                doneWithHash = true;
+            } else {
+                if (stageOfMultipartMessage == 0) {
+                    int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
+                    System.out.println("Sent x " + ECLoc);
+                    setFlag(sig);
+                } else if (stageOfMultipartMessage == 1) {
+                    System.out.println("Sent y " + ECLoc);
+                    int sig = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
+                    setFlag(sig);
+                }
+                stageOfMultipartMessage++;
+                if (stageOfMultipartMessage == 2) {
+                    System.out.println("msg done");
+                    stageOfMultipartMessage = 0;
+                    doneWithHash = true;
+                }
             }
-        }
 
+            if (doneWithHash) {
+                foundECLocHashes.remove(hashnode.val);
+                ECLocHashesTeamToSend.dequeue();
+                ECLocHashesToSend.dequeue();
+            }
+            
+        }
 
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER && rc.canMove(dir)) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)){
+            } else if (!rc.getLocation().equals(targetLoc)) {
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
                     if (rc.canMove(wiggleDir)) {
@@ -275,6 +340,7 @@ public class Muckraker extends Unit {
         }
         return null;
     }
+
     public static void scoutCorners() throws GameActionException {
         // scouts by finding intersection of line of scout dir with edge
         MapLocation currLoc = rc.getLocation();
@@ -297,10 +363,7 @@ public class Muckraker extends Unit {
         if (eastEdge != null) {
             cornerXs.add(eastEdge.x);
         }
-        
-        if (!rc.onTheMap(targetLoc)) {
-            scoutDir = scoutDir.rotateLeft();
-        }
+
         // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
         if (!haveMapDimensions()) {
             // if we have more corner points, send those out as well

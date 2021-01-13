@@ -45,14 +45,15 @@ public abstract class Unit extends RobotPlayer {
         int origDist = rc.getLocation().distanceSquaredTo(targetLoc);
         for (Direction dir : DIRECTIONS) {
             MapLocation newloc = rc.getLocation().add(dir);
-            if (lastDir != null && dir == lastDir) {
-                continue;
-            }
+            // if (lastDir != null && dir == lastDir) {
+            //     continue;
+            // }
             if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
 
                 int thisDist = newloc.distanceSquaredTo(targetLoc);
                 
                 double val = tileMoveCost(newloc) + thisDist;
+                
                 if (thisDist > origDist) {
                     val += 200000;
                 } 

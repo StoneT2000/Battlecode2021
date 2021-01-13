@@ -11,6 +11,7 @@ public class Comms {
      * mask to retrieve the signal type
      */
     public static final int SIGNAL_TYPE_MASK = 0xf00000;
+    public static final int SIGNAL_TYPE_5BIT_MASK = 0xf80000;
     /** mask used to get all of the content of a signal/flag */
     public static final int SIGNAL_MASK = 0x0fffff;
     public static final int CORNER_LOC_X = 0x100000;
@@ -24,7 +25,17 @@ public class Comms {
     public static final int FOUND_EC = 0x700000;
     // shout details about self
     public static final int UNIT_DETAILS = 0x800000;
-    public static final int IMASLANDERERR = 0x900000;
+    // cram more single message signals that don't require much space
+    public static final int SMALL_SIGNAL = 0x900000;
+    // small signals:
+    public static final int IMASLANDERERR = 0x900001;
+    public static final int GO_SCOUT = 0x900001;
+
+    // some long hash map locs in event we don't have map dims
+    // this thing below is for checking if the signal shoudl be proccessed as a found ec signal
+    public static final int FOUND_EC_LONG_HASH_RANGE = 0xa00000;
+    public static final int FOUND_EC_X = 0xa00000;
+    public static final int FOUND_EC_Y = 0xa80000;
 
     // takes 12 bits of space
     public static int encodeMapLocation(MapLocation loc, int offsetx, int offsety) {
@@ -156,5 +167,29 @@ public class Comms {
     public static int[] readUnitDetails(int signal) {
         int type = (SIGNAL_MASK & signal) >> 18;
         return new int[]{type};
+    }
+
+    // teamindex occupies first 2 bits
+    // x,y coord occupies bits 5-19, 20-24 are for signal type
+    public static int getFoundECXSignal(int x, int teamind) {
+        return FOUND_EC_X | (x << 4) | teamind;
+    }
+    public static int getFoundECYSignal(int y, int teamind) {
+        return FOUND_EC_Y | (y << 4) | teamind;
+    }
+    /**
+     * 
+     * @param signal
+     * @return [x, team]
+     */
+    public static int[] readFoundECXSignal(int signal) {
+        int x = signal & 0x07fff0;
+        int teamind = signal & 0x000003;
+        return new int[]{x, teamind};
+    }
+    public static int[] readFoundECYSignal(int signal) {
+        int y = signal & 0x07fff0;
+        int teamind = signal & 0x000003;
+        return new int[]{y, teamind};
     }
 }

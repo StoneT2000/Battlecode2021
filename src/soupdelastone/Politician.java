@@ -129,6 +129,7 @@ public class Politician extends Unit {
             }
         }
 
+        // TODO: Buf sometimes homeEC is nul
         MapLocation protectLocation = homeEC;
         if (closestCorner != null) {
             protectLocation = closestCorner;

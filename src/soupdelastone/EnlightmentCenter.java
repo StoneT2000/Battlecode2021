@@ -122,7 +122,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
                         if (bot == null) {
                             // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            // setFlag(lastScoutBuildDirIndex + 1);
+                            setFlag(Comms.GO_SCOUT);
                             rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
                             Stats.muckrakersBuilt += 1;
                             // add new id
@@ -133,6 +133,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 if (lastScoutBuildDirIndex == 3) {
                     role = NORMAL;
+                    rc.setFlag(0);
                 }
                 break;
             case NORMAL:
@@ -302,6 +303,12 @@ public class EnlightmentCenter extends RobotPlayer {
                         break;
                     case Comms.FOUND_EC:
                         processFoundECFlag(flag);
+                        break;
+                    case Comms.FOUND_EC_LONG_HASH_RANGE:
+                        System.out.println("Procerssing " + flag);
+                        processFoundECLongHashFlag(currIDNode.val, flag);
+                        break;
+
                 }
             } catch (GameActionException error) {
                 // lost this muck
