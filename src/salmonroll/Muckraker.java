@@ -122,9 +122,6 @@ public class Muckraker extends Unit {
                 role = SCOUT_CORNERS;
             }
         }
-        if (role == SCOUT_CORNERS && haveMapDimensions()) {
-            role = LATTICE_NETWORK;
-        }
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
@@ -169,7 +166,7 @@ public class Muckraker extends Unit {
         // search in sensor range for close stuff
         MapLocation currLoc = rc.getLocation();
         MapLocation closestLatticeLoc = null;
-        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0) {
+        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 4) {
             closestLatticeLoc = currLoc;
         }
         for (int i = 0; ++i < BFS30.length;) {
@@ -177,13 +174,17 @@ public class Muckraker extends Unit {
 
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
             if (rc.onTheMap(checkLoc)) {
-                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0) {
+                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0 && checkLoc.distanceSquaredTo(homeEC) > 4) {
                     RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                     if (bot == null || bot.ID == rc.getID()) {
                         closestLatticeLoc = checkLoc;
                     }
                 }
             }
+        }
+        // scout corners / scout map if no good lattice position found
+        if (closestLatticeLoc == null) {
+            role = SCOUT_CORNERS;
         }
 
         switch (role) {
@@ -199,6 +200,7 @@ public class Muckraker extends Unit {
                     targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                 }
                 // targetSlanderers(locOfClosestSlanderer);
+                break;
             case RUSH:
                 targetLoc = rc.getLocation();
                 if (!haveMapDimensions()) {
@@ -216,12 +218,6 @@ public class Muckraker extends Unit {
                             }
                             MapLocation ECLoc = eclocnode.val.location;
                             targetLoc = ECLoc;
-                        } else {
-                            targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
-                            if (!rc.onTheMap(targetLoc)) {
-                                scoutDir = scoutDir.rotateLeft();
-                                targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
-                            }
                         }
                     }
                 }

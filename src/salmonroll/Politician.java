@@ -59,8 +59,11 @@ public class Politician extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                role = ATTACK_EC;
-                attackLoc = Comms.readAttackECSignal(flag, rc);
+                if (turnCount < 6) {
+                    role = ATTACK_EC;
+                    attackLoc = Comms.readAttackECSignal(flag, rc);
+                }
+                break;
 
         }
     }
@@ -101,8 +104,7 @@ public class Politician extends Unit {
                 if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
                     // System.out.println("Found sland");
                     locsOfFriendSlands.add(bot.location);
-                }
-                else if (bot.type == RobotType.POLITICIAN) {
+                } else if (bot.type == RobotType.POLITICIAN) {
                     if (dist < distToClosestFriendlyPoli) {
                         distToClosestFriendlyPoli = dist;
                         locOfClosestFriendlyPoli = bot.location;
@@ -147,7 +149,7 @@ public class Politician extends Unit {
         MapLocation currLoc = rc.getLocation();
         MapLocation bestLatticeLoc = null;
         int bestLatticeLocVal = Integer.MIN_VALUE;
-        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0) {
+        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 2) {
             bestLatticeLoc = currLoc;
             bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
         }
@@ -156,7 +158,8 @@ public class Politician extends Unit {
 
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
             if (rc.onTheMap(checkLoc)) {
-                if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0) {
+                if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
+                        && checkLoc.distanceSquaredTo(homeEC) > 2) {
                     RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                     if (bot == null || bot.ID == rc.getID()) {
                         int value = -checkLoc.distanceSquaredTo(protectLocation);
@@ -199,7 +202,8 @@ public class Politician extends Unit {
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
                     int n = (oppUnitsInRadius + friendlyUnitsInRadius);
                     if (mucksCountInRadius > 0) {
-                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / n;
+                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                                / n;
                         if (speechInfluencePerUnit >= 2) {
                             if (mucksCountInRadius > maxMucksDestroyed) {
                                 maxMucksDestroyed = mucksCountInRadius;
@@ -211,7 +215,8 @@ public class Politician extends Unit {
 
                 Node<MapLocation> currNode = locsOfFriendSlands.dequeue();
                 boolean slandererInDanger = false;
-                // TODO: optimize to kill more mucks if not in danger and we see more than 2 relatively close
+                // TODO: optimize to kill more mucks if not in danger and we see more than 2
+                // relatively close
                 while (currNode != null) {
                     if (currNode.val.distanceSquaredTo(locOfClosestEnemyMuck) <= MUCKRAKER_ACTION_RADIUS + 10) {
                         slandererInDanger = true;
@@ -220,8 +225,8 @@ public class Politician extends Unit {
                     currNode = locsOfFriendSlands.dequeue();
                 }
 
-                
-                // we keep following mucks if we cant optimally empower muckrakers or no slanderers in danger and we can't do a 2 birds one stone. 
+                // we keep following mucks if we cant optimally empower muckrakers or no
+                // slanderers in danger and we can't do a 2 birds one stone.
                 if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
                     // go towards closest muckraker in hope of more optimal empowering.
                     targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
@@ -262,7 +267,8 @@ public class Politician extends Unit {
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
                     int n = (oppUnitsInRadius + friendlyUnitsInRadius);
                     if (distToEC <= i) {
-                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0) / n;
+                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                                / n;
                         if (speechInfluencePerUnit >= rc.getInfluence()) {
                             rc.empower(i);
                             break;

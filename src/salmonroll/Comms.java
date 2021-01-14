@@ -5,10 +5,11 @@ import static salmonroll.Constants.*;
 
 public class Comms {
     // reserve first few bits for signal type, here we reserve first 4
-    // Optimization: use less bits and use of type of bot bearing that flag as a signal discriminator as well
+    // Optimization: use less bits and use of type of bot bearing that flag as a
+    // signal discriminator as well
     /**
-     * reserved 4 bits for differentiating signal type
-     * mask to retrieve the signal type
+     * reserved 4 bits for differentiating signal type mask to retrieve the signal
+     * type
      */
     public static final int SIGNAL_TYPE_MASK = 0xf00000;
     public static final int SIGNAL_TYPE_5BIT_MASK = 0xf80000;
@@ -31,56 +32,63 @@ public class Comms {
     public static final int IMASLANDERERR = 0x900001;
     public static final int GO_SCOUT = 0x900002;
 
-
     public static final int ATTACK_EC = 0xa00000;
 
     // some long hash map locs in event we don't have map dims
-    // this thing below is for checking if the signal shoudl be proccessed as a found ec signal
+    // this thing below is for checking if the signal shoudl be proccessed as a
+    // found ec signal
 
     // takes 14 bits of space
     public static int encodeMapLocation(MapLocation loc) {
         return (loc.x % 128) * 128 + loc.y % 128;
     }
+
     public static MapLocation decodeMapLocation(int hash, RobotController rc) {
         int y = hash % 128;
         int x = (hash / 128) % 128;
         // figure out which is correct
         MapLocation curr = rc.getLocation();
         int offsetX128 = curr.x / 128;
-        int offsetY128 = curr.y / 128;;
+        int offsetY128 = curr.y / 128;
 
-        MapLocation actual = new MapLocation(offsetX128 * 128 + x, offsetY128 * 128 + y);
-        MapLocation alt = actual.translate(-128, 0);
-        if (curr.distanceSquaredTo(alt) <= actual.distanceSquaredTo(actual)) {
-            actual = alt;
+        MapLocation original = new MapLocation(offsetX128 * 128 + x, offsetY128 * 128 + y);
+        MapLocation proposed = original;
+        MapLocation alt = original.translate(-128, 0);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
         }
-        alt = actual.translate(128, 0);
-        if (curr.distanceSquaredTo(alt) <= actual.distanceSquaredTo(actual)) {
-            actual = alt;
+        alt = original.translate(128, 0);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
         }
-        alt = actual.translate(0, -128);
-        if (curr.distanceSquaredTo(alt) <= actual.distanceSquaredTo(actual)) {
-            actual = alt;
+        alt = original.translate(0, -128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
         }
-        alt = actual.translate(0, 128);
-        if (curr.distanceSquaredTo(alt) <= actual.distanceSquaredTo(actual)) {
-            actual = alt;
+        alt = original.translate(0, 128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
         }
-        return actual;
+        return proposed;
     }
-    
-    // raw x and y range 10k to 30k, taking up minimum 29 bits to encode, even if offsetting by 10k
-    // just one takes 15 bits. 4 reserved for signal type, so shift left 5 bits as 4+5+15 = 20
+
+    // raw x and y range 10k to 30k, taking up minimum 29 bits to encode, even if
+    // offsetting by 10k
+    // just one takes 15 bits. 4 reserved for signal type, so shift left 5 bits as
+    // 4+5+15 = 20
     public static int getCornerLocSignalX(int x) {
         // bits 0-3 type, 4-18 x
         return CORNER_LOC_X | (x << 5);
     }
+
     public static int readCornerLocSignalX(int signal) {
         return (SIGNAL_MASK & signal) >> 5;
     }
+
     public static int getCornerLocSignalY(int y) {
         return CORNER_LOC_Y | (y << 5);
     }
+
     public static int readCornerLocSignalY(int signal) {
         return (SIGNAL_MASK & signal) >> 5;
     }
@@ -88,6 +96,7 @@ public class Comms {
     public static int getMapOffsetSignalXWidth(int offsetx, int mapWidth) {
         return (MAP_OFFSET_X_AND_WIDTH | (offsetx << 5)) | (mapWidth - 32);
     }
+
     /**
      * 
      * @param signal
@@ -98,12 +107,14 @@ public class Comms {
         int offsetx = (SIGNAL_MASK & signal) >> 5;
         // take rightmost 5 bits
         int width = 32 + (signal & 0x1f);
-        return new int[]{offsetx, width};
+        return new int[] { offsetx, width };
     }
+
     public static int getMapOffsetSignalYHeight(int offsety, int mapHeight) {
         // 32 offset so we can pack offsety and height in one signal
         return (MAP_OFFSET_Y_AND_HEIGHT | (offsety << 5)) | (mapHeight - 32);
     }
+
     /**
      * 
      * @param signal
@@ -113,7 +124,7 @@ public class Comms {
         int offsety = (SIGNAL_MASK & signal) >> 5;
         // take rightmost 5 bits
         int height = 32 + (signal & 0x1f);
-        return new int[]{offsety, height};
+        return new int[] { offsety, height };
     }
 
     // unit id range is 10000 to 32000
@@ -130,10 +141,11 @@ public class Comms {
                 break;
             default:
                 typeind = TYPE_MUCKRAKER;
-				break;
-        }   
+                break;
+        }
         return BUILT_UNIT | (typeind << 18) | unitID;
     }
+
     /**
      * 
      * @param signal
@@ -142,7 +154,7 @@ public class Comms {
     public static int[] readBuiltUnitSignal(int signal) {
         int typeind = (SIGNAL_MASK & signal) >> 18;
         int id = (SIGNAL_MASK & signal) & 0x00ffff;
-        return new int[]{id, typeind};
+        return new int[] { id, typeind };
     }
 
     public static int getPoliSacrificeSignal() {
@@ -164,12 +176,13 @@ public class Comms {
     public static int[] readFoundECSignal(int signal) {
         int team = (SIGNAL_MASK & signal) >> 18;
         int lochash = signal & 0x03ffff;
-        return new int[]{team, lochash};
+        return new int[] { team, lochash };
     }
 
     public static int getUnitDetailsSignal(int unittype) {
         return UNIT_DETAILS | (unittype << 18);
     }
+
     /**
      * 
      * @param signal
@@ -177,15 +190,16 @@ public class Comms {
      */
     public static int[] readUnitDetails(int signal) {
         int type = (SIGNAL_MASK & signal) >> 18;
-        return new int[]{type};
+        return new int[] { type };
     }
 
     public static int getAttackECSignal(MapLocation ECLoc) {
         return ATTACK_EC | encodeMapLocation(ECLoc);
     }
+
     public static MapLocation readAttackECSignal(int signal, RobotController rc) {
         int lochash = SIGNAL_MASK & signal;
+        System.out.println("reading attack EC sig hash:" + lochash);
         return decodeMapLocation(lochash, rc);
     }
 }
-

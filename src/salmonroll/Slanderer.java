@@ -15,6 +15,11 @@ public class Slanderer extends Unit {
             { 3, 2 }, { 4, 1 }, { 4, -2 }, { 3, -3 }, { 2, -4 }, { -2, -4 }, { -3, -3 }, { -4, -2 }, { -4, 2 },
             { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 } };
     static MapLocation closestCorner = null;
+
+    // location used to rally slanderrers into a lattice
+    static MapLocation originPoint = null;
+    static boolean setOriginToClosestCorner = false;
+
     public static void setup() throws GameActionException {
         setHomeEC();
     }
@@ -78,63 +83,53 @@ public class Slanderer extends Unit {
                 }
             }
 
-            // search in sensor range for close stuff
-            MapLocation currLoc = rc.getLocation();
-            MapLocation bestLatticeLoc = null;
-            int bestLatticeLocVal = Integer.MIN_VALUE;
-            if (locOnLattice(currLoc)) {
-                bestLatticeLoc = currLoc;
-                bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(closestCorner);
-            }
-            for (int i = 0; ++i < BFS20.length;) {
-                int[] deltas = BFS20[i];
+            
+        } 
+        
+        // search in sensor range for close stuff
+        MapLocation currLoc = rc.getLocation();
+        MapLocation bestLatticeLoc = null;
+        
+        if (originPoint == null) {
+            originPoint = homeEC;
+        }
+        // System.out.println("Home " + homeEC);
+        if (setOriginToClosestCorner == false && closestCorner != null){
+            originPoint = closestCorner;
+            setOriginToClosestCorner = true;
+        }
 
-                MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
-                if (rc.onTheMap(checkLoc)) {
-                    if (locOnLattice(checkLoc)) {
-                        RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-                        if (bot == null || bot.ID == rc.getID()) {
-                            int value = -checkLoc.distanceSquaredTo(closestCorner);
-                            if (value > bestLatticeLocVal) {
-                                bestLatticeLocVal = value;
-                                bestLatticeLoc = checkLoc;
-                            }
+        int bestLatticeLocVal = Integer.MIN_VALUE;
+        if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) > 2) {
+            bestLatticeLoc = currLoc;
+            bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(originPoint);
+        }
+        for (int i = 0; ++i < BFS20.length;) {
+            int[] deltas = BFS20[i];
+
+            MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
+            if (rc.onTheMap(checkLoc)) {
+                if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) > 2) {
+                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                    if (bot == null || bot.ID == rc.getID()) {
+                        int value = -checkLoc.distanceSquaredTo(originPoint);
+                        if (value > bestLatticeLocVal) {
+                            bestLatticeLocVal = value;
+                            bestLatticeLoc = checkLoc;
                         }
                     }
                 }
             }
+        }
+        if (closestCorner != null ) {
             if (bestLatticeLoc == null) {
                 // find closest corner.
                 targetLoc = closestCorner;
             } else {
                 targetLoc = bestLatticeLoc;
             }
-        } else if (homeEC != null) {
-            // search in sensor range for close stuff
-            MapLocation currLoc = rc.getLocation();
-            MapLocation bestLatticeLoc = null;
-            int bestLatticeLocVal = Integer.MIN_VALUE;
-            if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) >= 2) {
-                bestLatticeLoc = currLoc;
-                bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(homeEC);
-            }
-            for (int i = 0; ++i < BFS20.length;) {
-                int[] deltas = BFS20[i];
-
-                MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
-                if (rc.onTheMap(checkLoc)) {
-                    if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) >= 2) {
-                        RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-                        if (bot == null || bot.ID == rc.getID()) {
-                            int value = -checkLoc.distanceSquaredTo(homeEC);
-                            if (value > bestLatticeLocVal) {
-                                bestLatticeLocVal = value;
-                                bestLatticeLoc = checkLoc;
-                            }
-                        }
-                    }
-                }
-            }
+        }
+        else if (homeEC != null) {
             if (bestLatticeLoc == null) {
                 // find closest corner.
                 Direction awayDir = homeEC.directionTo(rc.getLocation());
@@ -145,7 +140,9 @@ public class Slanderer extends Unit {
         }
 
         if (locOfClosestEnemyMuckraker != null) {
-            targetLoc = rc.getLocation().add(findDirAwayFromLocations(new MapLocation[]{locOfClosestEnemyMuckraker}));
+            Direction awayDir = findDirAwayFromLocations(new MapLocation[]{locOfClosestEnemyMuckraker});
+            targetLoc = rc.getLocation().add(awayDir);
+            originPoint = originPoint.add(awayDir);
         }
         
         if (rc.isReady()) {

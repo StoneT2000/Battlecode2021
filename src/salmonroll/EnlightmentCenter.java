@@ -208,7 +208,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
                     // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                     boolean buildSlanderer = false;
-                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 2 || turnCount <= 2) {
+                    if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 0.5 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
                     if (nearbyEnemyMuckraker) {
@@ -237,8 +237,8 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && rc.getInfluence() >= 148) {
-                            int want = Math.min(rc.getInfluence(), 200);
+                        if (buildSlanderer && rc.getInfluence() >= 40) {
+                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 40, 200);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
@@ -287,7 +287,6 @@ public class EnlightmentCenter extends RobotPlayer {
             if (flag != SKIP_FLAG) {
                 setFlag(flag);
             }
-            ;
             // if flag is -1, thenits a skip message meaning we can signal smth else
 
         }
@@ -316,17 +315,15 @@ public class EnlightmentCenter extends RobotPlayer {
         // send locations of enemy ECs
         if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
 
-            if (haveMapDimensions()) {
-                HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
-                if (ecLocHashNode == null) {
-                    enemyECLocs.resetIterator();
-                    ecLocHashNode = enemyECLocs.next();
-                }
-                MapLocation ECLoc = ecLocHashNode.val.location;
-                System.out.println("Sending " + ECLoc);
-                int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY);
-                setFlag(signal);
+            HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
+            if (ecLocHashNode == null) {
+                enemyECLocs.resetIterator();
+                ecLocHashNode = enemyECLocs.next();
             }
+            MapLocation ECLoc = ecLocHashNode.val.location;
+            System.out.println("Sending " + ECLoc);
+            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY);
+            setFlag(signal);
         }
 
         // send map dimensions

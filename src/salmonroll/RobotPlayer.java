@@ -84,7 +84,6 @@ public strictfp class RobotPlayer {
                         if (spawnType != rc.getType()) {
                             setFlag(Comms.getUnitDetailsSignal(TYPE_POLITICIAN));
                             spawnType = rc.getType();
-                            System.out.println("converted to poli from slander");
                             rc.setFlag(0);
                         }
                         Politician.run();
@@ -155,7 +154,6 @@ public strictfp class RobotPlayer {
             }
         } else {
             if (!friendlyECLocs.contains(hash)) {
-                // System.out.println("Found friend EC at " + ECLoc);
                 friendlyECLocs.put(hash, new ECDetails(loc, -1));
                 neutralECLocs.remove(hash);
                 enemyECLocs.remove(hash);
