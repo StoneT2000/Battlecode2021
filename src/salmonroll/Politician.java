@@ -58,6 +58,10 @@ public class Politician extends Unit {
             case Comms.FOUND_EC:
                 processFoundECFlag(flag);
                 break;
+            case Comms.ATTACK_EC:
+                role = ATTACK_EC;
+                attackLoc = Comms.readAttackECSignal(flag, rc);
+
         }
     }
 
@@ -66,21 +70,6 @@ public class Politician extends Unit {
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
-            if ((homeECFlag & Comms.SIGNAL_TYPE_MASK) == Comms.ATTACK_EC_LONG_HASH_RANGE && turnCount < 10) {
-                switch (homeECFlag & Comms.SIGNAL_TYPE_5BIT_MASK) {
-                    case Comms.ATTACK_EC_X:
-                        multiPartMessagesByBotID.put(homeECID, new int[]{homeECFlag});
-                        break;
-                    case Comms.ATTACK_EC_Y:
-                        int[] flags = multiPartMessagesByBotID.get(homeECID);
-                        int x = Comms.readAttackECXSignal(flags[0]);
-                        int y = Comms.readAttackECYSignal(homeECFlag);
-                        role = ATTACK_EC;
-                        
-                        attackLoc = new MapLocation(x, y);
-                        break;
-                }
-            }
         } else {
             // clean out this
             multiPartMessagesByBotID.remove(homeECID);

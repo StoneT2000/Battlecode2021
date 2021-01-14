@@ -198,11 +198,9 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (newbot != null) {
                         attackingPolis.add(newbot.ID);
                         turnBuiltNeutralAttackingPoli = turnCount;
-                        int sig1 = Comms.getAttackECXSignal(neutralECLocToTake.x);
-                        int sig2 = Comms.getAttackECYSignal(neutralECLocToTake.y);
+                        int sig1 = Comms.getAttackECSignal(neutralECLocToTake);
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(sig1);
-                        specialMessageQueue.add(sig2);
                     }
                 }
                 // proceed with generic building
@@ -326,7 +324,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 MapLocation ECLoc = ecLocHashNode.val.location;
                 System.out.println("Sending " + ECLoc);
-                int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, offsetx, offsety);
+                int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY);
                 setFlag(signal);
             }
         }
@@ -423,9 +421,6 @@ public class EnlightmentCenter extends RobotPlayer {
                         break;
                     case Comms.FOUND_EC:
                         processFoundECFlag(flag);
-                        break;
-                    case Comms.FOUND_EC_LONG_HASH_RANGE:
-                        processFoundECLongHashFlag(currIDNode.val, flag);
                         break;
 
                 }

@@ -125,42 +125,13 @@ public strictfp class RobotPlayer {
     public static boolean haveMapDimensions() {
         return mapHeight >= 32 && mapWidth >= 32;
     }
-    
-    public static void processFoundECLongHashFlag(int botID, int flag) {
-        switch (flag & Comms.SIGNAL_TYPE_5BIT_MASK) {
-            case Comms.FOUND_EC_X:
-                // int[] data = Comms.readFoundECXSignal(flag);
-                // int x = data[0];
-                multiPartMessagesByBotID.put(botID, new int[]{flag});
-                break;
-            case Comms.FOUND_EC_Y:
-                int[] data = multiPartMessagesByBotID.get(botID);
-                multiPartMessagesByBotID.remove(botID);
-                if (data == null) {
-                    System.out.println("missing eclonghash data from " + botID);
-                    return;
-                }
-                int xflag = data[0];
-                int[] datax = Comms.readFoundECXSignal(xflag);
-                int[] datay = Comms.readFoundECYSignal(flag);
-                
-                MapLocation ecloc = new MapLocation(datax[0], datay[0]);
-                int teamval = datax[1];
-                storeAndProcessECLocAndTeam(ecloc, teamval);
-                break;
-        }
 
-    }
     public static void processFoundECFlag(int flag) {
         int[] data = Comms.readFoundECSignal(flag);
         int teamval = data[0];
-        if (!haveMapDimensions()) {
-            // TODO: store signal for later processing so we are a bit more efficient...
-            return;
-        }
-        int shorthHashKey = data[1];
+        int hash = data[1];
         
-        MapLocation ECLoc = Comms.decodeMapLocation(shorthHashKey, offsetx, offsety);
+        MapLocation ECLoc = Comms.decodeMapLocation(hash, rc);
         storeAndProcessECLocAndTeam(ECLoc, teamval);
         
     }
@@ -168,26 +139,26 @@ public strictfp class RobotPlayer {
      * stores EC Loc data and removes old data if necessary
      */
     private static void storeAndProcessECLocAndTeam(MapLocation loc, int teamval) {
-        int longHashKey = Comms.encodeMapLocationWithoutOffsets(loc);
+        int hash = Comms.encodeMapLocation(loc);
         if (teamval == TEAM_ENEMY) {
-            if (!enemyECLocs.contains(longHashKey)) {
-                enemyECLocs.put(longHashKey, new ECDetails(loc, -1));
+            if (!enemyECLocs.contains(hash)) {
+                enemyECLocs.put(hash, new ECDetails(loc, -1));
                 // remove this from other hashtables in case they converted to enemy now
-                neutralECLocs.remove(longHashKey);
-                friendlyECLocs.remove(longHashKey);
+                neutralECLocs.remove(hash);
+                friendlyECLocs.remove(hash);
             }
         } else if (teamval == TEAM_NEUTRAL) {
-            if (!neutralECLocs.contains(longHashKey)) {
-                neutralECLocs.put(longHashKey, new ECDetails(loc, -1));
-                friendlyECLocs.remove(longHashKey);
-                enemyECLocs.remove(longHashKey);
+            if (!neutralECLocs.contains(hash)) {
+                neutralECLocs.put(hash, new ECDetails(loc, -1));
+                friendlyECLocs.remove(hash);
+                enemyECLocs.remove(hash);
             }
         } else {
-            if (!friendlyECLocs.contains(longHashKey)) {
+            if (!friendlyECLocs.contains(hash)) {
                 // System.out.println("Found friend EC at " + ECLoc);
-                friendlyECLocs.put(longHashKey, new ECDetails(loc, -1));
-                neutralECLocs.remove(longHashKey);
-                enemyECLocs.remove(longHashKey);
+                friendlyECLocs.put(hash, new ECDetails(loc, -1));
+                neutralECLocs.remove(hash);
+                enemyECLocs.remove(hash);
             }
         }
     }
@@ -199,3 +170,4 @@ public strictfp class RobotPlayer {
         return false;
     }
 }
+

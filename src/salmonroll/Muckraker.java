@@ -151,7 +151,7 @@ public class Muckraker extends Unit {
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 // we always send these signals out in the event the EC changes team
-                int hash = Comms.encodeMapLocationWithoutOffsets(bot.location);
+                int hash = Comms.encodeMapLocation(bot.location);
                 if (!foundECLocHashes.contains(hash)) {
                     foundECLocHashes.add(hash);
                     ECLocHashesToSend.add(hash);
@@ -256,26 +256,28 @@ public class Muckraker extends Unit {
         if (ECLocHashesToSend.size > 0) {
             Node<Integer> hashnode = ECLocHashesToSend.head;
             Node<Integer> hashnodeteam = ECLocHashesTeamToSend.head;
-            MapLocation ECLoc = Comms.decodeMapLocationWithoutOffsets(hashnode.val);
+            MapLocation ECLoc = Comms.decodeMapLocation(hashnode.val, rc);
             boolean doneWithHash = false;
-            if (haveMapDimensions()) {
-                int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val, offsetx, offsety);
-                specialMessageQueue.add(signal);
-                // remove from table so we can search it again
-                doneWithHash = true;
-            } else {
-                int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
-                int sig2 = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
-                specialMessageQueue.add(sig);
-                specialMessageQueue.add(sig2);
-                doneWithHash = true;
-            }
+            int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val);
+            specialMessageQueue.add(signal);
+            // if (haveMapDimensions()) {
+            //     int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val);
+            //     specialMessageQueue.add(signal);
+            //     // remove from table so we can search it again
+            //     doneWithHash = true;
+            // } else {
+            //     int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
+            //     int sig2 = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
+            //     specialMessageQueue.add(sig);
+            //     specialMessageQueue.add(sig2);
+            //     doneWithHash = true;
+            // }
 
-            if (doneWithHash) {
+            // if (doneWithHash) {
                 foundECLocHashes.remove(hashnode.val);
                 ECLocHashesTeamToSend.dequeue();
                 ECLocHashesToSend.dequeue();
-            }
+            // }
             
         }
 
