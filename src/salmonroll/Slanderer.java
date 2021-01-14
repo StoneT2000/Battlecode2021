@@ -46,6 +46,8 @@ public class Slanderer extends Unit {
 
         MapLocation locOfClosestEnemyMuckraker = null;
         int distToClosestEnemyMuckraker = 999999999;
+        MapLocation locOfClosestFriendEC = null;
+        int distToClosestFriendEC = 99999999;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
@@ -53,6 +55,12 @@ public class Slanderer extends Unit {
                 if (dist < distToClosestEnemyMuckraker) {
                     distToClosestEnemyMuckraker = dist;
                     locOfClosestEnemyMuckraker = bot.location;
+                }
+            } else if (bot.team == myTeam && bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                if (dist < distToClosestFriendEC) {
+                    distToClosestFriendEC = dist;
+                    locOfClosestFriendEC = bot.location;
                 }
             }
         }
@@ -97,6 +105,11 @@ public class Slanderer extends Unit {
         if (setOriginToClosestCorner == false && closestCorner != null){
             originPoint = closestCorner;
             setOriginToClosestCorner = true;
+        }
+
+        // if the chosen corner is too close to an existing EC, reset origin to ec
+        if (locOfClosestFriendEC != null && closestCorner != null && locOfClosestFriendEC.distanceSquaredTo(closestCorner) <= 25) {
+            originPoint = homeEC;
         }
 
         int bestLatticeLocVal = Integer.MIN_VALUE;

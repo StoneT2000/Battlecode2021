@@ -128,23 +128,25 @@ public abstract class Unit extends RobotPlayer {
         MapLocation selfLoc = rc.getLocation();
         for (int i = DIRECTIONS.length; --i >= 0;) {
             MapLocation checkLoc = selfLoc.add(DIRECTIONS[i]);
-            RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-            if (bot != null && bot.type == RobotType.ENLIGHTENMENT_CENTER && bot.team == myTeam) {
-                int flag = rc.getFlag(bot.ID);
-                int parsed = (flag & Comms.SIGNAL_TYPE_MASK);
-                System.out.println(flag);
-                if (parsed == Comms.BUILT_UNIT) {
-                    int[] data = Comms.readBuiltUnitSignal(flag);
-                    int id = data[0];
-                    if (id == rc.getID()) {
+            if (rc.onTheMap(checkLoc)) {
+                RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                if (bot != null && bot.type == RobotType.ENLIGHTENMENT_CENTER && bot.team == myTeam) {
+                    int flag = rc.getFlag(bot.ID);
+                    int parsed = (flag & Comms.SIGNAL_TYPE_MASK);
+                    System.out.println(flag);
+                    if (parsed == Comms.BUILT_UNIT) {
+                        int[] data = Comms.readBuiltUnitSignal(flag);
+                        int id = data[0];
+                        if (id == rc.getID()) {
+                            homeEC = bot.location;
+                            homeECID = bot.ID;
+                            break;
+                        }
+                    }
+                    if (homeEC == null) {
                         homeEC = bot.location;
                         homeECID = bot.ID;
-                        break;
                     }
-                }
-                if (homeEC == null) {
-                    homeEC = bot.location;
-                    homeECID = bot.ID;
                 }
             }
         }

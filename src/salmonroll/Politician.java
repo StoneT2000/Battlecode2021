@@ -34,6 +34,8 @@ public class Politician extends Unit {
         setHomeEC();
         if (homeEC == null) {
             // role = SACRIFICE;
+            // this means we were captured probably
+            exploreDir = randomDirection();
         } else {
             exploreDir = homeEC.directionTo(rc.getLocation());
         }
@@ -110,6 +112,10 @@ public class Politician extends Unit {
                         distToClosestFriendlyPoli = dist;
                         locOfClosestFriendlyPoli = bot.location;
                     }
+                } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                    if (homeEC == null) {
+                        homeEC = bot.location;
+                    }
                 }
             } else if (bot.team == oppTeam) {
                 if (withinDist) {
@@ -155,23 +161,28 @@ public class Politician extends Unit {
         MapLocation currLoc = rc.getLocation();
         MapLocation bestLatticeLoc = null;
         int bestLatticeLocVal = Integer.MIN_VALUE;
-        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 2) {
-            bestLatticeLoc = currLoc;
-            bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
-        }
-        for (int i = 0; ++i < BFS25.length;) {
-            int[] deltas = BFS25[i];
-
-            MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
-            if (rc.onTheMap(checkLoc)) {
-                if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
-                        && checkLoc.distanceSquaredTo(homeEC) > 2) {
-                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-                    if (bot == null || bot.ID == rc.getID()) {
-                        int value = -checkLoc.distanceSquaredTo(protectLocation);
-                        if (value > bestLatticeLocVal) {
-                            bestLatticeLocVal = value;
-                            bestLatticeLoc = checkLoc;
+        findbestLatticeLoc: {
+            if (homeEC == null) {
+                break findbestLatticeLoc;
+            }
+            if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 2) {
+                bestLatticeLoc = currLoc;
+                bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
+            }
+            for (int i = 0; ++i < BFS25.length;) {
+                int[] deltas = BFS25[i];
+    
+                MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
+                if (rc.onTheMap(checkLoc)) {
+                    if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
+                            && checkLoc.distanceSquaredTo(homeEC) > 2) {
+                        RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                        if (bot == null || bot.ID == rc.getID()) {
+                            int value = -checkLoc.distanceSquaredTo(protectLocation);
+                            if (value > bestLatticeLocVal) {
+                                bestLatticeLocVal = value;
+                                bestLatticeLoc = checkLoc;
+                            }
                         }
                     }
                 }
