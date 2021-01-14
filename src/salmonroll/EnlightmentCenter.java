@@ -129,7 +129,7 @@ public class EnlightmentCenter extends RobotPlayer {
         // strategy for taking ecs
         boolean stockInfluence = false;
         /** closest neutral ec loc */
-        MapLocation neutralECLocToTake = null;
+        ECDetails neutralECLocToTake = null;
         int closestDist = 99999999;
         neutralECLocs.resetIterator();
         System.out.println("There aer " + neutralECLocs.size + " neutal ECs");
@@ -139,7 +139,7 @@ public class EnlightmentCenter extends RobotPlayer {
             int dist = loc.distanceSquaredTo(rc.getLocation());
             if (dist < closestDist) {
                 closestDist = dist;
-                neutralECLocToTake = loc;
+                neutralECLocToTake = neutralHashNode.val;
             }
             neutralHashNode = neutralECLocs.next();
         }
@@ -191,14 +191,15 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                } else if (neutralECLocToTake != null && rc.getInfluence() >= MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC) {
+                } else if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 20) {
                     // TODO: dont do this if enemy is near and can capture easily
-                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC,
-                            rc.getLocation().directionTo(neutralECLocToTake));
+                    int want = neutralECLocToTake.lastKnownConviction + 20;
+                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
+                            rc.getLocation().directionTo(neutralECLocToTake.location));
                     if (newbot != null) {
                         attackingPolis.add(newbot.ID);
                         turnBuiltNeutralAttackingPoli = turnCount;
-                        int sig1 = Comms.getAttackECSignal(neutralECLocToTake);
+                        int sig1 = Comms.getAttackECSignal(neutralECLocToTake.location);
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(sig1);
                     }
@@ -237,7 +238,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && rc.getInfluence() >= 40) {
+                        if (buildSlanderer && rc.getInfluence() >= 120) {
                             int want = Math.min(rc.getInfluence() - rc.getInfluence() % 40, 200);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
@@ -322,7 +323,7 @@ public class EnlightmentCenter extends RobotPlayer {
             }
             MapLocation ECLoc = ecLocHashNode.val.location;
             System.out.println("Sending " + ECLoc);
-            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY);
+            int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, ecLocHashNode.val.lastKnownConviction);
             setFlag(signal);
         }
 

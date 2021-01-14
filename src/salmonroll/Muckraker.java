@@ -42,10 +42,8 @@ public class Muckraker extends Unit {
      * not
      */
     static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
-    /** queue of hashes of EC locations to send */
-    static LinkedList<Integer> ECLocHashesToSend = new LinkedList<>();
-    /** parallel queue with ECLocHashs of teams of ECs to send */
-    static LinkedList<Integer> ECLocHashesTeamToSend = new LinkedList<>();
+    /** queue of EC Details to send */
+    static LinkedList<ECDetails> ECDetailsToSend = new LinkedList<>();
 
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
@@ -151,14 +149,15 @@ public class Muckraker extends Unit {
                 int hash = Comms.encodeMapLocation(bot.location);
                 if (!foundECLocHashes.contains(hash)) {
                     foundECLocHashes.add(hash);
-                    ECLocHashesToSend.add(hash);
+                    int teamInd = TEAM_ENEMY;
                     if (bot.team == oppTeam) {
-                        ECLocHashesTeamToSend.add(TEAM_ENEMY);
+                        teamInd = TEAM_ENEMY;
                     } else if (bot.team == myTeam) {
-                        ECLocHashesTeamToSend.add(TEAM_FRIEND);
+                        teamInd = TEAM_FRIEND;
                     } else {
-                        ECLocHashesTeamToSend.add(TEAM_NEUTRAL);
+                        teamInd = TEAM_NEUTRAL;
                     }
+                    ECDetailsToSend.add(new ECDetails(bot.location, bot.conviction, teamInd));
                 }
             }
         }
@@ -249,31 +248,11 @@ public class Muckraker extends Unit {
         /** COMMS */
 
         // if we have map dimensions, send out scouting info
-        if (ECLocHashesToSend.size > 0) {
-            Node<Integer> hashnode = ECLocHashesToSend.head;
-            Node<Integer> hashnodeteam = ECLocHashesTeamToSend.head;
-            MapLocation ECLoc = Comms.decodeMapLocation(hashnode.val, rc);
-            boolean doneWithHash = false;
-            int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val);
+        if (ECDetailsToSend.size > 0) {
+            Node<ECDetails> ecDetailsNode = ECDetailsToSend.dequeue();
+            int signal = Comms.getFoundECSignal(ecDetailsNode.val.location, ecDetailsNode.val.teamind, ecDetailsNode.val.lastKnownConviction);
             specialMessageQueue.add(signal);
-            // if (haveMapDimensions()) {
-            //     int signal = Comms.getFoundECSignal(ECLoc, hashnodeteam.val);
-            //     specialMessageQueue.add(signal);
-            //     // remove from table so we can search it again
-            //     doneWithHash = true;
-            // } else {
-            //     int sig = Comms.getFoundECXSignal(ECLoc.x, hashnodeteam.val);
-            //     int sig2 = Comms.getFoundECYSignal(ECLoc.y, hashnodeteam.val);
-            //     specialMessageQueue.add(sig);
-            //     specialMessageQueue.add(sig2);
-            //     doneWithHash = true;
-            // }
-
-            // if (doneWithHash) {
-                foundECLocHashes.remove(hashnode.val);
-                ECLocHashesTeamToSend.dequeue();
-                ECLocHashesToSend.dequeue();
-            // }
+            foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
             
         }
 

@@ -87,6 +87,7 @@ public class Politician extends Unit {
         int[] friendlyUnitsAtDistanceCount = new int[10];
         int[] oppUnitsAtDistanceCount = new int[10];
         int[] oppMuckUnitsAtDistanceCount = new int[10];
+        int[] neutralUnitsAtDistanceCount = new int[10];
         // int[] oppSlandUnitsAtDistanceCount = new int[10];
         // int[] oppECUnitsAtDistanceCount = new int[10];
         // int[] oppPoliUnitsAtDistanceCount = new int[10];
@@ -122,6 +123,11 @@ public class Politician extends Unit {
                         distToClosestEnemyMuck = dist;
                         locOfClosestEnemyMuck = bot.location;
                     }
+                }
+            } else {
+                // neutral team
+                if (withinDist) {
+                    neutralUnitsAtDistanceCount[dist] += 1;
                 }
             }
         }
@@ -194,13 +200,15 @@ public class Politician extends Unit {
                 int mucksCountInRadius = 0;
                 int friendlyUnitsInRadius = 0;
                 int oppUnitsInRadius = 0;
+                int neutralsInRadius = 0;
                 int maxMucksDestroyed = 0;
                 int optimalEmpowerRadius = -1;
                 for (int i = 1; i <= 9; i++) {
                     mucksCountInRadius += oppMuckUnitsAtDistanceCount[i];
                     oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                    neutralsInRadius += neutralUnitsAtDistanceCount[i];
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                    int n = (oppUnitsInRadius + friendlyUnitsInRadius);
+                    int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                     if (mucksCountInRadius > 0) {
                         int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
                                 / n;
@@ -262,10 +270,12 @@ public class Politician extends Unit {
                 // measure if worth
                 int friendlyUnitsInRadius = 0;
                 int oppUnitsInRadius = 0;
+                int neutralsInRadius = 0;
                 for (int i = 1; i <= 9; i++) {
                     oppUnitsInRadius += oppUnitsAtDistanceCount[i];
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                    int n = (oppUnitsInRadius + friendlyUnitsInRadius);
+                    neutralsInRadius += neutralUnitsAtDistanceCount[i];
+                    int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                     if (distToEC <= i) {
                         int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
                                 / n;

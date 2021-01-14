@@ -129,32 +129,33 @@ public strictfp class RobotPlayer {
         int[] data = Comms.readFoundECSignal(flag);
         int teamval = data[0];
         int hash = data[1];
+        int influence = data[2];
         
         MapLocation ECLoc = Comms.decodeMapLocation(hash, rc);
-        storeAndProcessECLocAndTeam(ECLoc, teamval);
+        storeAndProcessECLocAndTeam(ECLoc, teamval, influence);
         
     }
     /**
      * stores EC Loc data and removes old data if necessary
      */
-    private static void storeAndProcessECLocAndTeam(MapLocation loc, int teamval) {
+    private static void storeAndProcessECLocAndTeam(MapLocation loc, int teamval, int influence) {
         int hash = Comms.encodeMapLocation(loc);
         if (teamval == TEAM_ENEMY) {
             if (!enemyECLocs.contains(hash)) {
-                enemyECLocs.put(hash, new ECDetails(loc, -1));
+                enemyECLocs.put(hash, new ECDetails(loc, influence, TEAM_ENEMY));
                 // remove this from other hashtables in case they converted to enemy now
                 neutralECLocs.remove(hash);
                 friendlyECLocs.remove(hash);
             }
         } else if (teamval == TEAM_NEUTRAL) {
             if (!neutralECLocs.contains(hash)) {
-                neutralECLocs.put(hash, new ECDetails(loc, -1));
+                neutralECLocs.put(hash, new ECDetails(loc, influence, TEAM_NEUTRAL));
                 friendlyECLocs.remove(hash);
                 enemyECLocs.remove(hash);
             }
         } else {
             if (!friendlyECLocs.contains(hash)) {
-                friendlyECLocs.put(hash, new ECDetails(loc, -1));
+                friendlyECLocs.put(hash, new ECDetails(loc, influence, TEAM_FRIEND));
                 neutralECLocs.remove(hash);
                 enemyECLocs.remove(hash);
             }

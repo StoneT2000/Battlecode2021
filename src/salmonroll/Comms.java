@@ -4,6 +4,8 @@ import battlecode.common.*;
 import static salmonroll.Constants.*;
 
 public class Comms {
+
+    public static final int LARGE_INFLUENCE = -10;
     // reserve first few bits for signal type, here we reserve first 4
     // Optimization: use less bits and use of type of bot bearing that flag as a
     // signal discriminator as well
@@ -161,22 +163,32 @@ public class Comms {
         return POLI_SACRIFICE;
     }
 
-    public static int getFoundECSignal(MapLocation ECLoc, int teamind) {
+    public static int getFoundECSignal(MapLocation ECLoc, int teamind, int ecInfluence) {
         // we send the type, friend, enemy, or neutral 2 bits (0, 1, 2)
         // location: 14 bits, team ind is 2 bits, 4 bits for ec inf
 
-        return FOUND_EC | (teamind << 18) | encodeMapLocation(ECLoc);
+        int sendInf = (int) Math.ceil((double)ecInfluence / 40.0);
+        if (ecInfluence > 630) {
+            sendInf = 15; // 15 indicates the ec inf is over 630
+        }
+        return FOUND_EC | (teamind << 18) | (encodeMapLocation(ECLoc) << 4) | sendInf;
     }
+
 
     /**
      * 
      * @param signal
-     * @return [team, location hash]
+     * @return [team, location hash, influence]
+     * // if influence is 600, then expect its in rrange [600, max]
      */
     public static int[] readFoundECSignal(int signal) {
         int team = (SIGNAL_MASK & signal) >> 18;
-        int lochash = signal & 0x03ffff;
-        return new int[] { team, lochash };
+        int lochash = (signal & 0x03ffff) >> 4;
+        int ecInf = 40 * (signal & 0x00000f);
+        if (ecInf >= 600) {
+            ecInf = LARGE_INFLUENCE;
+        }
+        return new int[] { team, lochash, ecInf };
     }
 
     public static int getUnitDetailsSignal(int unittype) {
