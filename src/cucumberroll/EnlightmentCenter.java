@@ -36,6 +36,8 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int SKIP_FLAG = -1;
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
+    static HashTable<Integer> locHashesOfAttackedNeutralECs = new HashTable<>(10);
+
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;

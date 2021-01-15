@@ -274,25 +274,27 @@ public class Politician extends Unit {
         } else if (role == ATTACK_EC) {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
-            if (distToEC <= 1) {
-                // TOOD: shout neighbors to run if they arer therre
-                rc.empower(1);
-            } else if (distToEC <= POLI_ACTION_RADIUS) {
-                // measure if worth
-                int friendlyUnitsInRadius = 0;
-                int oppUnitsInRadius = 0;
-                int neutralsInRadius = 0;
-                for (int i = 1; i <= 9; i++) {
-                    oppUnitsInRadius += oppUnitsAtDistanceCount[i];
-                    friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                    neutralsInRadius += neutralUnitsAtDistanceCount[i];
-                    int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
-                    if (distToEC <= i) {
-                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-                                / n;
-                        if (speechInfluencePerUnit >= rc.getInfluence()) {
-                            rc.empower(i);
-                            break;
+            if (rc.canEmpower(1)) {
+                if (distToEC <= 1) {
+                    // TOOD: shout neighbors to run if they arer therre
+                    rc.empower(1);
+                } else if (distToEC <= POLI_ACTION_RADIUS) {
+                    // measure if worth
+                    int friendlyUnitsInRadius = 0;
+                    int oppUnitsInRadius = 0;
+                    int neutralsInRadius = 0;
+                    for (int i = 1; i <= 9; i++) {
+                        oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                        friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                        neutralsInRadius += neutralUnitsAtDistanceCount[i];
+                        int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
+                        if (distToEC <= i) {
+                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                                    / n;
+                            if (speechInfluencePerUnit >= rc.getInfluence()) {
+                                rc.empower(i);
+                                break;
+                            }
                         }
                     }
                 }

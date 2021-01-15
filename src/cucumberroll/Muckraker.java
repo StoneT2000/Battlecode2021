@@ -278,7 +278,7 @@ public class Muckraker extends Unit {
 
     private static void targetSlanderers(MapLocation locOfClosestSlanderer) throws GameActionException {
         if (locOfClosestSlanderer != null) {
-            if (locOfClosestSlanderer.distanceSquaredTo(rc.getLocation()) <= Constants.MUCKRAKER_ACTION_RADIUS) {
+            if (rc.canExpose(locOfClosestSlanderer)) {
                 rc.expose(locOfClosestSlanderer);
             } else {
                 // not in range

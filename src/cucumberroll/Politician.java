@@ -29,6 +29,9 @@ public class Politician extends Unit {
 
     static MapLocation targetedEnemyLoc = null;
 
+    static MapLocation protectLocation = null;
+    static int minDistAwayFromProtectLoc = 3;
+
     public static void setup() throws GameActionException {
         // find ec spawned from
         setHomeEC();
@@ -79,6 +82,15 @@ public class Politician extends Unit {
             // clean out this
             multiPartMessagesByBotID.remove(homeECID);
         }
+
+        // determine location to try and protect
+        if (homeEC != null) {
+            protectLocation = homeEC;
+        }
+        if (closestCorner != null) {
+            protectLocation = closestCorner;
+        }
+
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
         MapLocation locOfClosestFriendlyPoli = null;
         int distToClosestFriendlyPoli = 999999999;
@@ -107,6 +119,13 @@ public class Politician extends Unit {
                 if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
                     // System.out.println("Found sland");
                     locsOfFriendSlands.add(bot.location);
+                    if (homeEC != null) {
+                        int distToEC = bot.location.distanceSquaredTo(protectLocation);
+                        // consider cmparing with slands ec?
+                        if (distToEC > minDistAwayFromProtectLoc) {
+                            minDistAwayFromProtectLoc = (int) Math.pow(Math.sqrt(distToEC) + 2, 2);
+                        }
+                    }
                 } else if (bot.type == RobotType.POLITICIAN) {
                     if (dist < distToClosestFriendlyPoli) {
                         distToClosestFriendlyPoli = dist;
@@ -153,11 +172,6 @@ public class Politician extends Unit {
             }
         }
 
-        // TODO: Buf sometimes homeEC is nul
-        MapLocation protectLocation = homeEC;
-        if (closestCorner != null) {
-            protectLocation = closestCorner;
-        }
         MapLocation currLoc = rc.getLocation();
         MapLocation bestLatticeLoc = null;
         int bestLatticeLocVal = Integer.MIN_VALUE;
@@ -165,7 +179,7 @@ public class Politician extends Unit {
             if (homeEC == null) {
                 break findbestLatticeLoc;
             }
-            if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 2) {
+            if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(protectLocation) > minDistAwayFromProtectLoc) {
                 bestLatticeLoc = currLoc;
                 bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
             }
@@ -175,7 +189,7 @@ public class Politician extends Unit {
                 MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
                 if (rc.onTheMap(checkLoc)) {
                     if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
-                            && checkLoc.distanceSquaredTo(homeEC) > 2) {
+                            && checkLoc.distanceSquaredTo(protectLocation) > minDistAwayFromProtectLoc) {
                         RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                         if (bot == null || bot.ID == rc.getID()) {
                             int value = -checkLoc.distanceSquaredTo(protectLocation);
@@ -274,25 +288,27 @@ public class Politician extends Unit {
         } else if (role == ATTACK_EC) {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
-            if (distToEC <= 1) {
-                // TOOD: shout neighbors to run if they arer therre
-                rc.empower(1);
-            } else if (distToEC <= POLI_ACTION_RADIUS) {
-                // measure if worth
-                int friendlyUnitsInRadius = 0;
-                int oppUnitsInRadius = 0;
-                int neutralsInRadius = 0;
-                for (int i = 1; i <= 9; i++) {
-                    oppUnitsInRadius += oppUnitsAtDistanceCount[i];
-                    friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                    neutralsInRadius += neutralUnitsAtDistanceCount[i];
-                    int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
-                    if (distToEC <= i) {
-                        int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-                                / n;
-                        if (speechInfluencePerUnit >= rc.getInfluence()) {
-                            rc.empower(i);
-                            break;
+            if (rc.canEmpower(1)) {
+                if (distToEC <= 1) {
+                    // TOOD: shout neighbors to run if they arer therre
+                    rc.empower(1);
+                } else if (distToEC <= POLI_ACTION_RADIUS) {
+                    // measure if worth
+                    int friendlyUnitsInRadius = 0;
+                    int oppUnitsInRadius = 0;
+                    int neutralsInRadius = 0;
+                    for (int i = 1; i <= 9; i++) {
+                        oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                        friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                        neutralsInRadius += neutralUnitsAtDistanceCount[i];
+                        int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
+                        if (distToEC <= i) {
+                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+                                    / n;
+                            if (speechInfluencePerUnit >= rc.getInfluence()) {
+                                rc.empower(i);
+                                break;
+                            }
                         }
                     }
                 }
