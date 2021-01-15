@@ -2,6 +2,7 @@ package cucumberroll;
 
 import battlecode.common.*;
 import cucumberroll.utils.HashTable;
+import cucumberroll.utils.LinkedList;
 
 import static cucumberroll.Constants.*;
 
@@ -10,6 +11,17 @@ public abstract class Unit extends RobotPlayer {
     static MapLocation homeEC = null;
     static int homeECID = -1;
     static Direction lastDir = null;
+
+    /**
+     * Hash table used to check if we're already planning to send this location or
+     * not
+     */
+    static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
+    /** queue of EC Details to send */
+    static LinkedList<ECDetails> ECDetailsToSend = new LinkedList<>();
+
+    static final int SKIP_FLAG = -1;
+    static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
     /**
      * define helper methods for units in general e.g. pathing, comms etc.
@@ -156,5 +168,21 @@ public abstract class Unit extends RobotPlayer {
     // TODO: optimize this using the array of locs sorted by distance or smth to self
     static Direction findDirAwayFromLocations(MapLocation[] locs) {
         return locs[0].directionTo(rc.getLocation());
+    }
+
+    public static void handleFoundEC(RobotInfo bot) {
+        int hash = Comms.encodeMapLocation(bot.location);
+        if (!foundECLocHashes.contains(hash)) {
+            foundECLocHashes.add(hash);
+            int teamInd = TEAM_ENEMY;
+            if (bot.team == oppTeam) {
+                teamInd = TEAM_ENEMY;
+            } else if (bot.team == myTeam) {
+                teamInd = TEAM_FRIEND;
+            } else {
+                teamInd = TEAM_NEUTRAL;
+            }
+            ECDetailsToSend.add(new ECDetails(bot.location, bot.conviction, teamInd));
+        }
     }
 }

@@ -37,19 +37,12 @@ public class Muckraker extends Unit {
      * handles the unit movement to go there
      */
     static MapLocation targetLoc = null;
-    /**
-     * Hash table used to check if we're already planning to send this location or
-     * not
-     */
-    static HashTable<Integer> foundECLocHashes = new HashTable<>(12);
-    /** queue of EC Details to send */
-    static LinkedList<ECDetails> ECDetailsToSend = new LinkedList<>();
+    
 
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
 
-    static final int SKIP_FLAG = -1;
-    static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
+    
 
     public static void setup() throws GameActionException {
         setHomeEC();
@@ -146,19 +139,7 @@ public class Muckraker extends Unit {
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 // we always send these signals out in the event the EC changes team
-                int hash = Comms.encodeMapLocation(bot.location);
-                if (!foundECLocHashes.contains(hash)) {
-                    foundECLocHashes.add(hash);
-                    int teamInd = TEAM_ENEMY;
-                    if (bot.team == oppTeam) {
-                        teamInd = TEAM_ENEMY;
-                    } else if (bot.team == myTeam) {
-                        teamInd = TEAM_FRIEND;
-                    } else {
-                        teamInd = TEAM_NEUTRAL;
-                    }
-                    ECDetailsToSend.add(new ECDetails(bot.location, bot.conviction, teamInd));
-                }
+                handleFoundEC(bot);
             }
         }
 
@@ -253,7 +234,6 @@ public class Muckraker extends Unit {
             int signal = Comms.getFoundECSignal(ecDetailsNode.val.location, ecDetailsNode.val.teamind, ecDetailsNode.val.lastKnownConviction);
             specialMessageQueue.add(signal);
             foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
-            
         }
 
         // handle flags that arernt corner stuff

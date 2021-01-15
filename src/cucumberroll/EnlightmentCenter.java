@@ -36,7 +36,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int SKIP_FLAG = -1;
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
-    static HashTable<Integer> locHashesOfAttackedNeutralECs = new HashTable<>(10);
+    static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
 
     static class Stats {
         static int muckrakersBuilt = 0;
@@ -124,8 +124,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 nearbyEnemyMuckraker = true;
             }
         }
-        if (turnCount == 1 && nearbyEnemyMuckraker == false) {
-            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence());
+        if (turnCount == 1 && nearbyEnemyMuckraker == false && rc.getInfluence() >= 150) {
+            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence() - rc.getInfluence() % 40 + 1);
         }
 
         // strategy for taking ecs
@@ -138,10 +138,14 @@ public class EnlightmentCenter extends RobotPlayer {
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
         while (neutralHashNode != null) {
             MapLocation loc = neutralHashNode.val.location;
-            int dist = loc.distanceSquaredTo(rc.getLocation());
-            if (dist < closestDist) {
-                closestDist = dist;
-                neutralECLocToTake = neutralHashNode.val;
+            int hash = Comms.encodeMapLocation(loc);
+            if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
+                    
+                int dist = loc.distanceSquaredTo(rc.getLocation());
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    neutralECLocToTake = neutralHashNode.val;
+                }
             }
             neutralHashNode = neutralECLocs.next();
         }
@@ -194,16 +198,20 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                     }
                 } else if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 20) {
-                    // TODO: dont do this if enemy is near and can capture easily
-                    int want = neutralECLocToTake.lastKnownConviction + 20;
-                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
-                            rc.getLocation().directionTo(neutralECLocToTake.location));
-                    if (newbot != null) {
-                        attackingPolis.add(newbot.ID);
-                        turnBuiltNeutralAttackingPoli = turnCount;
-                        int sig1 = Comms.getAttackECSignal(neutralECLocToTake.location);
-                        specialMessageQueue.add(SKIP_FLAG);
-                        specialMessageQueue.add(sig1);
+                    int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
+                    if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
+                        // TODO: dont do this if enemy is near and can capture easily
+                        int want = neutralECLocToTake.lastKnownConviction + 20;
+                        RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
+                                rc.getLocation().directionTo(neutralECLocToTake.location));
+                        if (newbot != null) {
+                            attackingPolis.add(newbot.ID);
+                            turnBuiltNeutralAttackingPoli = turnCount;
+                            int sig1 = Comms.getAttackECSignal(neutralECLocToTake.location);
+                            specialMessageQueue.add(SKIP_FLAG);
+                            specialMessageQueue.add(sig1);
+                            locHashesOfCurrentlyAttackedNeutralECs.add(hash);
+                        }
                     }
                 }
                 // proceed with generic building
@@ -240,8 +248,8 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && rc.getInfluence() >= 120) {
-                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 40, 200);
+                        if (buildSlanderer && rc.getInfluence() >= 41) {
+                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 40 + 1, 151);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
@@ -273,6 +281,9 @@ public class EnlightmentCenter extends RobotPlayer {
         while (attackPoliNode != null) {
             if (!rc.canGetFlag(attackPoliNode.val)) {
                 idsToRemove.add(attackPoliNode.val);
+            } else {
+                int flag = rc.getFlag(attackPoliNode.val);
+                
             }
             attackPoliNode = attackingPolis.next();
         }

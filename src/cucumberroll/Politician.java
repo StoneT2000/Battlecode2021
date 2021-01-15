@@ -155,6 +155,9 @@ public class Politician extends Unit {
                     neutralUnitsAtDistanceCount[dist] += 1;
                 }
             }
+            if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                handleFoundEC(bot);
+            }
         }
         if (haveMapDimensions()) {
             if (closestCorner == null) {
@@ -179,13 +182,14 @@ public class Politician extends Unit {
             if (homeEC == null) {
                 break findbestLatticeLoc;
             }
-            if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(protectLocation) > minDistAwayFromProtectLoc) {
+            if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0
+                    && currLoc.distanceSquaredTo(protectLocation) > minDistAwayFromProtectLoc) {
                 bestLatticeLoc = currLoc;
                 bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
             }
             for (int i = 0; ++i < BFS25.length;) {
                 int[] deltas = BFS25[i];
-    
+
                 MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
                 if (rc.onTheMap(checkLoc)) {
                     if (checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
@@ -217,6 +221,8 @@ public class Politician extends Unit {
                 }
             }
         }
+
+        boolean succesfullyCapturedEC = false;
 
         if (role == DEFEND_SLANDERER) {
             if (locOfClosestEnemyMuck != null) {
@@ -289,10 +295,7 @@ public class Politician extends Unit {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
             if (rc.canEmpower(1)) {
-                if (distToEC <= 1) {
-                    // TOOD: shout neighbors to run if they arer therre
-                    rc.empower(1);
-                } else if (distToEC <= POLI_ACTION_RADIUS) {
+                if (distToEC <= POLI_ACTION_RADIUS) {
                     // measure if worth
                     int friendlyUnitsInRadius = 0;
                     int oppUnitsInRadius = 0;
@@ -303,9 +306,9 @@ public class Politician extends Unit {
                         neutralsInRadius += neutralUnitsAtDistanceCount[i];
                         int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                         if (distToEC <= i) {
-                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-                                    / n;
-                            if (speechInfluencePerUnit >= rc.getInfluence()) {
+                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
+                                    rc.getConviction(), 0) / n;
+                            if (speechInfluencePerUnit >= rc.getInfluence() - GameConstants.EMPOWER_TAX) {
                                 rc.empower(i);
                                 break;
                             }
@@ -314,6 +317,21 @@ public class Politician extends Unit {
                 }
             }
         }
+
+        // if we have map dimensions, send out scouting info
+        if (ECDetailsToSend.size > 0) {
+            Node<ECDetails> ecDetailsNode = ECDetailsToSend.dequeue();
+            int signal = Comms.getFoundECSignal(ecDetailsNode.val.location, ecDetailsNode.val.teamind,
+                    ecDetailsNode.val.lastKnownConviction);
+            specialMessageQueue.add(signal);
+            foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
+        }
+
+        // handle flags that arernt corner stuff
+        if (specialMessageQueue.size > 0) {
+            setFlag(specialMessageQueue.dequeue().val);
+        }
+
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
