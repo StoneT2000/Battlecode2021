@@ -198,7 +198,7 @@ public class Muckraker extends Unit {
                     }
                     targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                 }
-                // targetSlanderers(locOfClosestSlanderer);
+                targetSlanderers(locOfClosestSlanderer);
                 break;
             case RUSH:
                 targetLoc = rc.getLocation();
