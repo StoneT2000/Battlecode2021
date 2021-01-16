@@ -197,7 +197,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         // flag of 0 is default no signal value flag of 1-4 represents build direction
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(Comms.GO_SCOUT);
-                        rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
+                        rc.buildRobot(RobotType.MUCKRAKER, checkDir, 1);
                         Stats.muckrakersBuilt += 1;
                         
                         // add new id
@@ -213,7 +213,7 @@ public class EnlightmentCenter extends RobotPlayer {
             case NORMAL:
                 // generate infinite influence
                 if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2
-                        && rc.getInfluence() < Integer.MAX_VALUE / 2) {
+                        && rc.getInfluence() < MAX_INF_PER_ROBOT * 0.9) {
                     // TODO: bug, some of this is wasted due to nearby friendly units
                     for (Direction dir : DIRECTIONS) {
                         MapLocation buildLoc = rc.getLocation().add(dir);
@@ -265,8 +265,10 @@ public class EnlightmentCenter extends RobotPlayer {
                     
                     boolean considerAttackingEnemy = false;
                     if ((rc.getInfluence() >= 300 && influenceGainedLastTurn * 10 >= rc.getInfluence()) || rc.getInfluence() >= 900) {
+                        // if our inf is at 80% of maximum, we're winning anyway
                         considerAttackingEnemy = true;
                     }
+                    
 
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
@@ -297,6 +299,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
                         else if (enemyECLocToTake != null && considerAttackingEnemy) {
                             int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
+                            want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
                             RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
                                 rc.getLocation().directionTo(enemyECLocToTake.location));
                             if (newbot != null) {

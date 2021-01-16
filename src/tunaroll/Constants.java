@@ -21,6 +21,7 @@ public class Constants {
     public static final int TYPE_SLANDERER = 1;
     public static final int TYPE_MUCKRAKER = 2;
     public static final int TYPE_ENLIGHTMENT_CENTER = 3;
+    public static final int MAX_INF_PER_ROBOT = 100000000;
     /** deltas from 0,0 ordered by manhattan distance within r^2 20 */
 
 //     public static final int[][] BFS20 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
