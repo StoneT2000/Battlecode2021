@@ -491,6 +491,24 @@ public class EnlightmentCenter extends RobotPlayer {
             }
             try {
                 int flag = rc.getFlag(currIDNode.val);
+                switch (Comms.SIGNAL_TYPE_MASK & flag) {
+                    case Comms.CORNER_LOC_X:
+                        int cx = Comms.readCornerLocSignalX(flag);
+                        highMapX = Math.max(highMapX, cx);
+                        offsetx = Math.min(offsetx, cx);
+                        mapWidth = highMapX - offsetx + 1;
+                        break;
+                    case Comms.CORNER_LOC_Y:
+                        int cy = Comms.readCornerLocSignalY(flag);
+                        highMapY = Math.max(highMapY, cy);
+                        offsety = Math.min(offsety, cy);
+                        mapHeight = highMapY - offsety + 1;
+                        break;
+                    case Comms.FOUND_EC:
+                        processFoundECFlag(flag);
+                        break;
+
+                }
             } catch (GameActionException error) {
                 idsToRemove.add(currIDNode.val);
             }

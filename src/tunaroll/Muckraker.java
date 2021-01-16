@@ -21,7 +21,7 @@ public class Muckraker extends Unit {
             { 2, -5 }, { -2, -5 }, { -3, -4 }, { -4, -3 }, { -5, -2 }, { -5, 2 }, { -4, 3 }, { -3, 4 }, { -2, 5 },
             { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
-    static final int SCOUT_CORNERS = 0;
+    static final int SCOUT = 0;
     static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
     static int role = LATTICE_NETWORK;
@@ -107,7 +107,7 @@ public class Muckraker extends Unit {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
             if (homeECFlag == Comms.GO_SCOUT) {
-                role = SCOUT_CORNERS;
+                role = SCOUT;
             }
         }
 
@@ -163,11 +163,14 @@ public class Muckraker extends Unit {
         }
         // scout corners / scout map if no good lattice position found
         if (closestLatticeLoc == null) {
-            role = SCOUT_CORNERS;
+            role = SCOUT;
+        }
+        if (enemyECLocs.size > 0) {
+            // role = RUSH
         }
 
         switch (role) {
-            case SCOUT_CORNERS:
+            case SCOUT:
                 scoutCorners();
                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                 Direction[] dirs = new Direction[] { scoutDir.rotateLeft(), scoutDir.rotateRight(),
@@ -176,11 +179,6 @@ public class Muckraker extends Unit {
                         scoutDir.rotateRight().rotateRight().rotateRight(), scoutDir.opposite() };
                 int i = -1;
                 while (!rc.onTheMap(targetLoc)) {
-                    // if (rotateLeftScoutDir) {
-                    // scoutDir = scoutDir.rotateLeft();
-                    // } else {
-                    // scoutDir = scoutDir.rotateRight();
-                    // }
                     i++;
                     targetLoc = rc.getLocation().add(dirs[i]).add(dirs[i]).add(dirs[i]);
                     
