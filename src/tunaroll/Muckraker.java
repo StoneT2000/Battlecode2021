@@ -140,7 +140,6 @@ public class Muckraker extends Unit {
                 handleFoundEC(bot);
             }
         }
-        System.out.println("Role - " + role);
 
         // search in sensor range for close stuff
         MapLocation currLoc = rc.getLocation();

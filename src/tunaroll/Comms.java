@@ -215,7 +215,7 @@ public class Comms {
 
     public static MapLocation readAttackECSignal(int signal, RobotController rc) {
         int lochash = SIGNAL_MASK & signal;
-        System.out.println("reading attack EC sig hash:" + lochash);
+        // System.out.println("reading attack EC sig hash:" + lochash);
         return decodeMapLocation(lochash, rc);
     }
 

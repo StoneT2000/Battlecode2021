@@ -136,7 +136,7 @@ public class EnlightmentCenter extends RobotPlayer {
         ECDetails neutralECLocToTake = null;
         int closestDist = 99999999;
         neutralECLocs.resetIterator();
-        System.out.println("There aer " + neutralECLocs.size + " neutal ECs");
+        System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
         while (neutralHashNode != null) {
             MapLocation loc = neutralHashNode.val.location;
@@ -346,9 +346,6 @@ public class EnlightmentCenter extends RobotPlayer {
             Node<Integer> currIdToRemoveNode = idsToRemove.dequeue();
             attackingPolis.remove(currIdToRemoveNode.val);
         }
-
-        // System.out.println(stageOfMultipartMessage + " - " + neutralECLocToTake + " -
-        // " + neutralAttackingPolis.size);
 
         if (specialMessageQueue.size > 0) {
             int flag = specialMessageQueue.dequeue().val;

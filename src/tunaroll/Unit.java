@@ -145,7 +145,6 @@ public abstract class Unit extends RobotPlayer {
                 if (bot != null && bot.type == RobotType.ENLIGHTENMENT_CENTER && bot.team == myTeam) {
                     int flag = rc.getFlag(bot.ID);
                     int parsed = (flag & Comms.SIGNAL_TYPE_MASK);
-                    System.out.println(flag);
                     if (parsed == Comms.BUILT_UNIT) {
                         int[] data = Comms.readBuiltUnitSignal(flag);
                         int id = data[0];

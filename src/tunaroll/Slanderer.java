@@ -102,7 +102,7 @@ public class Slanderer extends Unit {
         if (originPoint == null) {
             originPoint = homeEC;
         }
-        // System.out.println("Home " + homeEC);
+
         if (setOriginToClosestCorner == false && closestCorner != null){
             originPoint = closestCorner;
             setOriginToClosestCorner = true;

@@ -386,7 +386,7 @@ public class Politician extends Unit {
         }
 
         if (!setFlagThisTurn) {
-            System.out.println("targeting " + targetedEnemyMuck);
+            // System.out.println("targeting " + targetedEnemyMuck);
             if (role == DEFEND_SLANDERER && targetedEnemyMuck != null) {
                 setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID));
             } else if (role == ATTACK_EC) {
