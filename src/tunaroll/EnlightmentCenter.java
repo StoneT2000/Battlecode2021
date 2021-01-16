@@ -233,6 +233,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (nearbyEnemyMuckraker) {
                         buildPoli = true;
                     }
+
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
@@ -249,7 +250,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             }
                         }
                         if (buildSlanderer && rc.getInfluence() >= 41) {
-                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 40 + 1, 151);
+                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 20 + 1, 141);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
@@ -258,7 +259,8 @@ public class EnlightmentCenter extends RobotPlayer {
                                 spentInfluence += want;
                                 break;
                             }
-                        } else {
+                        } 
+                        else {
                             int influenceWant = 1;
                             if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {
                                 rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
