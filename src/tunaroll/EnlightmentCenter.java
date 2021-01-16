@@ -270,7 +270,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         // if our inf is at 80% of maximum, we're winning anyway
                         considerAttackingEnemy = true;
                     }
-                    System.out.println("Take " + enemyECLocToTake.location + " - " + considerAttackingEnemy);
+                    
                     // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
                     if (enemyECLocToTake != null && considerAttackingEnemy) {
                         int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
