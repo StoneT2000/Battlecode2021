@@ -160,7 +160,7 @@ public class EnlightmentCenter extends RobotPlayer {
         switch (role) {
             case BUILD_SCOUTS:
                 // TODO: handle edge cases if diagonals are blocked
-                if (lastScoutBuildDirIndex < 3 && rc.isReady()) {
+                if (lastScoutBuildDirIndex <= 2 && rc.isReady()) {
                     lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
                     Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
                     MapLocation buildLoc = rc.getLocation().add(dir);
@@ -168,7 +168,8 @@ public class EnlightmentCenter extends RobotPlayer {
                         RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
                         if (bot == null) {
                             // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            setFlag(Comms.GO_SCOUT);
+                            specialMessageQueue.add(SKIP_FLAG);
+                            specialMessageQueue.add(Comms.GO_SCOUT);
                             rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
                             Stats.muckrakersBuilt += 1;
                             // add new id

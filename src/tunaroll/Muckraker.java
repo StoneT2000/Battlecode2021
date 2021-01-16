@@ -37,12 +37,9 @@ public class Muckraker extends Unit {
      * handles the unit movement to go there
      */
     static MapLocation targetLoc = null;
-    
 
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
-
-    
 
     public static void setup() throws GameActionException {
         setHomeEC();
@@ -142,6 +139,7 @@ public class Muckraker extends Unit {
                 handleFoundEC(bot);
             }
         }
+        System.out.println("Role - " + role);
 
         // search in sensor range for close stuff
         MapLocation currLoc = rc.getLocation();
@@ -154,7 +152,8 @@ public class Muckraker extends Unit {
 
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
             if (rc.onTheMap(checkLoc)) {
-                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0 && checkLoc.distanceSquaredTo(homeEC) > 4) {
+                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
+                        && checkLoc.distanceSquaredTo(homeEC) > 4) {
                     RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                     if (bot == null || bot.ID == rc.getID()) {
                         closestLatticeLoc = checkLoc;
@@ -171,13 +170,23 @@ public class Muckraker extends Unit {
             case SCOUT_CORNERS:
                 scoutCorners();
                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                Direction[] dirs = new Direction[] { scoutDir.rotateLeft(), scoutDir.rotateRight(),
+                        scoutDir.rotateLeft().rotateLeft(), scoutDir.rotateRight().rotateRight(),
+                        scoutDir.rotateLeft().rotateLeft().rotateLeft(),
+                        scoutDir.rotateRight().rotateRight().rotateRight(), scoutDir.opposite() };
+                int i = -1;
                 while (!rc.onTheMap(targetLoc)) {
-                    if (rotateLeftScoutDir) {
-                        scoutDir = scoutDir.rotateLeft();
-                    } else {
-                        scoutDir = scoutDir.rotateRight();
-                    }
-                    targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
+                    // if (rotateLeftScoutDir) {
+                    // scoutDir = scoutDir.rotateLeft();
+                    // } else {
+                    // scoutDir = scoutDir.rotateRight();
+                    // }
+                    i++;
+                    targetLoc = rc.getLocation().add(dirs[i]).add(dirs[i]).add(dirs[i]);
+                    
+                }
+                if (i != -1) {
+                    scoutDir = dirs[i];
                 }
                 targetSlanderers(locOfClosestSlanderer);
                 break;
@@ -231,7 +240,8 @@ public class Muckraker extends Unit {
         // if we have map dimensions, send out scouting info
         if (ECDetailsToSend.size > 0) {
             Node<ECDetails> ecDetailsNode = ECDetailsToSend.dequeue();
-            int signal = Comms.getFoundECSignal(ecDetailsNode.val.location, ecDetailsNode.val.teamind, ecDetailsNode.val.lastKnownConviction);
+            int signal = Comms.getFoundECSignal(ecDetailsNode.val.location, ecDetailsNode.val.teamind,
+                    ecDetailsNode.val.lastKnownConviction);
             specialMessageQueue.add(signal);
             foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
         }
