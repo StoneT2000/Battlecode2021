@@ -27,7 +27,6 @@ public class EnlightmentCenter extends RobotPlayer {
     static int lastTeamVotes = 0;
     static int lastTurnInfluence = GameConstants.INITIAL_ENLIGHTENMENT_CENTER_INFLUENCE;
 
-    static int stageOfMultipartMessage = 0;
 
     static HashTable<Integer> attackingPolis = new HashTable<>(10);
     static int turnBuiltNeutralAttackingPoli = 0;
@@ -330,10 +329,6 @@ public class EnlightmentCenter extends RobotPlayer {
         if (!setFlagThisTurn) {
             rc.setFlag(0);
         }
-    }
-
-    private static boolean canStartNewMessageChain() {
-        return stageOfMultipartMessage == 0;
     }
 
     private static void sendConstSignals() throws GameActionException {
