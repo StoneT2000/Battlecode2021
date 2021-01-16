@@ -27,7 +27,6 @@ public class Politician extends Unit {
     /** used for attack ec role, where to attack the ec */
     static MapLocation attackLoc = null;
     static int LATTICE_SIZE = 3;
-    static MapLocation closestCorner = null;
 
     static MapLocation targetedEnemyLoc = null;
 
@@ -89,9 +88,6 @@ public class Politician extends Unit {
         if (homeEC != null) {
             protectLocation = homeEC;
         }
-        if (closestCorner != null) {
-            protectLocation = closestCorner;
-        }
 
         RobotInfo[] nearbyEnemyBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, oppTeam);
         RobotInfo[] nearbyFriendBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, myTeam);
@@ -119,6 +115,8 @@ public class Politician extends Unit {
 
         // amount of influence nearby from other polis attacking the same EC
         int nearbyFirePower = 0;
+        int nearbyEnemyFirePower = 0;
+        int nearbyEnemyPolis = 0;
 
         for (int i = nearbyFriendBots.length; --i >= 0;) {
             RobotInfo bot = nearbyFriendBots[i];
@@ -194,6 +192,9 @@ public class Politician extends Unit {
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
+            } else if (bot.type == RobotType.POLITICIAN && dist <= 9) {
+                nearbyEnemyFirePower += bot.influence;
+                nearbyEnemyPolis += 1;
             }
 
         }
@@ -208,22 +209,6 @@ public class Politician extends Unit {
             }
             if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
-            }
-        }
-
-        if (haveMapDimensions()) {
-            if (closestCorner == null) {
-                MapLocation[] corners = new MapLocation[] { new MapLocation(offsetx, offsety),
-                        new MapLocation(offsetx + mapWidth, offsety), new MapLocation(offsetx, offsety + mapHeight),
-                        new MapLocation(offsetx + mapWidth, offsety + mapHeight) };
-                int closestDist = 999999999;
-                for (int i = -1; ++i < corners.length;) {
-                    int dist = corners[i].distanceSquaredTo(rc.getLocation());
-                    if (dist < closestDist) {
-                        closestCorner = corners[i];
-                        closestDist = dist;
-                    }
-                }
             }
         }
 
@@ -361,7 +346,10 @@ public class Politician extends Unit {
                         if (distToEC <= i) {
                             int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
                                     rc.getConviction() + nearbyFirePower / 2, 0) / n;
-                            if (speechInfluencePerUnit >= enemyEC.conviction) {
+
+
+                            double discountFactor = 0.5;
+                            if (speechInfluencePerUnit >= enemyEC.conviction + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis) * discountFactor) {
                                 rc.empower(i);
                                 break;
                             }

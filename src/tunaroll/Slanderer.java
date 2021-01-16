@@ -14,11 +14,9 @@ public class Slanderer extends Unit {
             { -2, -3 }, { -3, -2 }, { -4, -1 }, { -4, 1 }, { -3, 2 }, { -2, 3 }, { -1, 4 }, { 1, 4 }, { 2, 3 },
             { 3, 2 }, { 4, 1 }, { 4, -2 }, { 3, -3 }, { 2, -4 }, { -2, -4 }, { -3, -3 }, { -4, -2 }, { -4, 2 },
             { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 } };
-    static MapLocation closestCorner = null;
 
     // location used to rally slanderrers into a lattice
     static MapLocation originPoint = null;
-    static boolean setOriginToClosestCorner = false;
 
     public static void setup() throws GameActionException {
         setHomeEC();
@@ -72,44 +70,12 @@ public class Slanderer extends Unit {
         if (rc.getLocation().distanceSquaredTo(homeEC) <= 2 ) {
             targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
         }
-
-        // lattice in bottom corner
-        if (haveMapDimensions()) {
-            if (closestCorner == null) {
-                MapLocation[] corners = new MapLocation[]{
-                    new MapLocation(offsetx, offsety),
-                    new MapLocation(offsetx + mapWidth, offsety),
-                    new MapLocation(offsetx, offsety + mapHeight),
-                    new MapLocation(offsetx + mapWidth, offsety + mapHeight)
-                };
-                int closestDist = 999999999;
-                for (int i = -1; ++i < corners.length;) {
-                    int dist = corners[i].distanceSquaredTo(rc.getLocation());
-                    if (dist < closestDist) {
-                        closestCorner = corners[i];
-                        closestDist = dist;
-                    }
-                }
-            }
-
-            
-        } 
         
         // search in sensor range for close stuff
         MapLocation currLoc = rc.getLocation();
         MapLocation bestLatticeLoc = null;
         
         if (originPoint == null) {
-            originPoint = homeEC;
-        }
-
-        if (setOriginToClosestCorner == false && closestCorner != null){
-            originPoint = closestCorner;
-            setOriginToClosestCorner = true;
-        }
-
-        // if the chosen corner is too close to an existing EC, reset origin to ec
-        if (locOfClosestFriendEC != null && closestCorner != null && locOfClosestFriendEC.distanceSquaredTo(closestCorner) <= 25) {
             originPoint = homeEC;
         }
 
@@ -135,15 +101,7 @@ public class Slanderer extends Unit {
                 }
             }
         }
-        if (closestCorner != null ) {
-            if (bestLatticeLoc == null) {
-                // find closest corner.
-                targetLoc = closestCorner;
-            } else {
-                targetLoc = bestLatticeLoc;
-            }
-        }
-        else if (homeEC != null) {
+        if (homeEC != null) {
             if (bestLatticeLoc == null) {
                 // find closest corner.
                 Direction awayDir = homeEC.directionTo(rc.getLocation());

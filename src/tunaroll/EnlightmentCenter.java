@@ -126,7 +126,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 nearbyPolis += 1;
             }
         }
-        if (turnCount == 1 && enemyMuckrakersSeen > 0 && rc.getInfluence() >= 150) {
+        if (turnCount == 1 && enemyMuckrakersSeen == 0 && rc.getInfluence() >= 150) {
             tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence() - rc.getInfluence() % 40 + 1);
         }
 
