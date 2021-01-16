@@ -159,6 +159,23 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
+        ECDetails enemyECLocToTake = null;
+        closestDist = 99999999;
+        HashMapNodeVal<Integer, ECDetails> enemyHashNode = enemyECLocs.next();
+        while (enemyHashNode != null) {
+            MapLocation loc = enemyHashNode.val.location;
+            int hash = Comms.encodeMapLocation(loc);
+            // if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
+                    
+                int dist = loc.distanceSquaredTo(rc.getLocation());
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    enemyECLocToTake = enemyHashNode.val;
+                }
+            // }
+            enemyHashNode = enemyECLocs.next();
+        }
+
         switch (role) {
             case BUILD_SCOUTS:
                 // TODO: handle edge cases if diagonals are blocked
@@ -217,6 +234,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.getLocation().directionTo(neutralECLocToTake.location));
                         if (newbot != null) {
                             attackingPolis.add(newbot.ID);
+                            politicianIDs.add(newbot.ID);
                             turnBuiltNeutralAttackingPoli = turnCount;
                             int sig1 = Comms.getAttackECSignal(neutralECLocToTake.location);
                             specialMessageQueue.add(SKIP_FLAG);
@@ -243,6 +261,11 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     if (enemyMuckrakersSeen > nearbyPolis) {
                         buildPoli = true;
+                    }
+                    
+                    boolean considerAttackingEnemy = false;
+                    if ((rc.getInfluence() >= 300 && influenceGainedLastTurn * 10 >= rc.getInfluence()) || rc.getInfluence() >= 900) {
+                        considerAttackingEnemy = true;
                     }
 
                     for (int i = 0; i < 8; i++) {
@@ -271,6 +294,20 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         } 
+                        // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
+                        else if (enemyECLocToTake != null && considerAttackingEnemy) {
+                            int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
+                            RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
+                                rc.getLocation().directionTo(enemyECLocToTake.location));
+                            if (newbot != null) {
+                                attackingPolis.add(newbot.ID);
+                                politicianIDs.add(newbot.ID);
+                                turnBuiltNeutralAttackingPoli = turnCount;
+                                int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
+                                specialMessageQueue.add(SKIP_FLAG);
+                                specialMessageQueue.add(sig1);
+                            }
+                        }
                         else {
                             int influenceWant = 1;
                             if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {

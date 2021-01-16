@@ -117,6 +117,9 @@ public class Politician extends Unit {
         /** maps id to # of polis it is targeted by */
         HashMap<Integer, Integer> numberOfPolisTargetingMucks = new HashMap<>(30);
 
+        // amount of influence nearby from other polis attacking the same EC
+        int nearbyFirePower = 0;
+
         for (int i = nearbyFriendBots.length; --i >= 0;) {
             RobotInfo bot = nearbyFriendBots[i];
             int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -139,18 +142,25 @@ public class Politician extends Unit {
                     locOfClosestFriendlyPoli = bot.location;
                 }
                 int flag = rc.getFlag(bot.ID);
-                if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.TARGETED_MUCK) {
-                    int id = Comms.readTargetedMuckSignal(flag);
-                    if (numberOfPolisTargetingMucks.contains(id)) {
-                        // TODO: this can be optimized by moving the function out
-                        int a = numberOfPolisTargetingMucks.get(id);
-                        numberOfPolisTargetingMucks.setAlreadyContainedValue(id, a + 1);
-                    }
-                    else {
-                        numberOfPolisTargetingMucks.put(id, 1);
-                    }
+                switch (Comms.SIGNAL_TYPE_MASK & flag) {
+                    case Comms.TARGETED_MUCK:
+                        int id = Comms.readTargetedMuckSignal(flag);
+                        if (numberOfPolisTargetingMucks.contains(id)) {
+                            // TODO: this can be optimized by moving the function out
+                            int a = numberOfPolisTargetingMucks.get(id);
+                            numberOfPolisTargetingMucks.setAlreadyContainedValue(id, a + 1);
+                        } else {
+                            numberOfPolisTargetingMucks.put(id, 1);
+                        }
+                        break;
+                    case Comms.TARGETED_EC:
+                        MapLocation targetedECLoc = Comms.readTargetedECSignal(flag, rc);
+                        if (targetedECLoc.equals(attackLoc)) {
+                            // same enemy, combine firepower
+                            nearbyFirePower += bot.influence;
+                        }
+                        break;
                 }
-
 
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 if (homeEC == null) {
@@ -159,7 +169,7 @@ public class Politician extends Unit {
                 // handleFoundEC(bot);
             }
         }
-        
+
         for (int i = nearbyEnemyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyEnemyBots[i];
             int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -185,7 +195,7 @@ public class Politician extends Unit {
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
             }
-        
+
         }
 
         for (int i = nearbyNeutralBots.length; --i >= 0;) {
@@ -200,8 +210,6 @@ public class Politician extends Unit {
                 handleFoundEC(bot);
             }
         }
-
-
 
         if (haveMapDimensions()) {
             if (closestCorner == null) {
@@ -340,6 +348,7 @@ public class Politician extends Unit {
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
+                    RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
                     // measure if worth
                     int friendlyUnitsInRadius = 0;
                     int oppUnitsInRadius = 0;
@@ -351,8 +360,8 @@ public class Politician extends Unit {
                         int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                         if (distToEC <= i) {
                             int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
-                                    rc.getConviction(), 0) / n;
-                            if (speechInfluencePerUnit >= rc.getInfluence() - GameConstants.EMPOWER_TAX) {
+                                    rc.getConviction() + nearbyFirePower / 2, 0) / n;
+                            if (speechInfluencePerUnit >= enemyEC.conviction) {
                                 rc.empower(i);
                                 break;
                             }
@@ -380,17 +389,24 @@ public class Politician extends Unit {
             System.out.println("targeting " + targetedEnemyMuck);
             if (role == DEFEND_SLANDERER && targetedEnemyMuck != null) {
                 setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID));
+            } else if (role == ATTACK_EC) {
+                int sig = Comms.getTargetedECSignal(attackLoc);
+                setFlag(sig);
             }
         }
         if (!setFlagThisTurn) {
             rc.setFlag(0);
         }
 
+        boolean canWiggle = true;
+        if (role == ATTACK_EC && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
+            canWiggle = false;
+        }
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)) {
+            } else if (!rc.getLocation().equals(targetLoc) && canWiggle) {
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
                     // MapLocation loc = rc.getLocation().add(wiggleDir);

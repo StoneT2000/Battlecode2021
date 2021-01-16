@@ -35,7 +35,10 @@ public class Comms {
     public static final int GO_SCOUT = 0x900002;
 
     public static final int ATTACK_EC = 0xa00000;
+    
+    // bottom 2 can be combined
     public static final int TARGETED_MUCK = 0xb00000;
+    public static final int TARGETED_EC = 0xc00000;
 
     // some long hash map locs in event we don't have map dims
     // this thing below is for checking if the signal shoudl be proccessed as a
@@ -222,5 +225,13 @@ public class Comms {
     /** returns the hash of the id of targeted muck */
     public static int readTargetedMuckSignal(int signal) {
         return SIGNAL_MASK & signal;
+    }
+    public static int getTargetedECSignal(MapLocation ecloc) {
+        return TARGETED_EC | encodeMapLocation(ecloc);
+    }
+    /** returns the hash of the id of targeted muck */
+    public static MapLocation readTargetedECSignal(int signal, RobotController rc) {
+        int lochash = SIGNAL_MASK & signal;
+        return decodeMapLocation(lochash, rc);
     }
 }
