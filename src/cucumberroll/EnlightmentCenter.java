@@ -179,7 +179,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 if (lastScoutBuildDirIndex == 3) {
                     role = NORMAL;
-                    rc.setFlag(0);
                 }
                 break;
             case NORMAL:
