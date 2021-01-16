@@ -268,12 +268,30 @@ public class EnlightmentCenter extends RobotPlayer {
                         // if our inf is at 80% of maximum, we're winning anyway
                         considerAttackingEnemy = true;
                     }
+                    // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
+                    if (enemyECLocToTake != null && considerAttackingEnemy) {
+                        int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
+                        want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
+                        RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
+                            rc.getLocation().directionTo(enemyECLocToTake.location));
+                        if (newbot != null) {
+                            attackingPolis.add(newbot.ID);
+                            politicianIDs.add(newbot.ID);
+                            turnBuiltNeutralAttackingPoli = turnCount;
+                            int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
+                            specialMessageQueue.add(SKIP_FLAG);
+                            specialMessageQueue.add(sig1);
+                            break;
+                        }
+                    }
                     
 
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
+                        
+                        
                         if (buildPoli && rc.getInfluence() >= 20) {
                             int influenceWant = 20;
                             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
@@ -294,21 +312,6 @@ public class EnlightmentCenter extends RobotPlayer {
                                 lastBuildTurn = turnCount;
                                 spentInfluence += want;
                                 break;
-                            }
-                        } 
-                        // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
-                        else if (enemyECLocToTake != null && considerAttackingEnemy) {
-                            int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
-                            want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
-                            RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
-                                rc.getLocation().directionTo(enemyECLocToTake.location));
-                            if (newbot != null) {
-                                attackingPolis.add(newbot.ID);
-                                politicianIDs.add(newbot.ID);
-                                turnBuiltNeutralAttackingPoli = turnCount;
-                                int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
-                                specialMessageQueue.add(SKIP_FLAG);
-                                specialMessageQueue.add(sig1);
                             }
                         }
                         else {
