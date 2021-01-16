@@ -161,6 +161,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         ECDetails enemyECLocToTake = null;
         closestDist = 99999999;
+        enemyECLocs.resetIterator();
         HashMapNodeVal<Integer, ECDetails> enemyHashNode = enemyECLocs.next();
         while (enemyHashNode != null) {
             MapLocation loc = enemyHashNode.val.location;
@@ -168,6 +169,7 @@ public class EnlightmentCenter extends RobotPlayer {
             // if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                     
                 int dist = loc.distanceSquaredTo(rc.getLocation());
+                // System.out.println("Enemy ec " + enemyHashNode.val.location);
                 if (dist < closestDist) {
                     closestDist = dist;
                     enemyECLocToTake = enemyHashNode.val;
@@ -268,6 +270,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         // if our inf is at 80% of maximum, we're winning anyway
                         considerAttackingEnemy = true;
                     }
+                    System.out.println("Take " + enemyECLocToTake.location + " - " + considerAttackingEnemy);
                     // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
                     if (enemyECLocToTake != null && considerAttackingEnemy) {
                         int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
