@@ -64,7 +64,7 @@ public class Politician extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if (turnCount < 6) {
+                if (turnCount < 2) {
                     role = ATTACK_EC;
                     attackLoc = Comms.readAttackECSignal(flag, rc);
                 }
