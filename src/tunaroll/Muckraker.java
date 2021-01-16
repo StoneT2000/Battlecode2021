@@ -99,6 +99,7 @@ public class Muckraker extends Unit {
 
     public static void run() throws GameActionException {
         rc.setFlag(0);
+        setFlagThisTurn = false;
         // global comms code independent of role
 
         // sense ec flags

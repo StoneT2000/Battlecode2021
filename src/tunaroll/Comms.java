@@ -216,10 +216,10 @@ public class Comms {
         return decodeMapLocation(lochash, rc);
     }
 
-    public static int getTargetedMuckSignal(MapLocation muckLoc) {
-        return TARGETED_MUCK | encodeMapLocation(muckLoc);
+    public static int getTargetedMuckSignal(int id) {
+        return TARGETED_MUCK | id;
     }
-    /** returns the hash of the location of targeted muck */
+    /** returns the hash of the id of targeted muck */
     public static int readTargetedMuckSignal(int signal) {
         return SIGNAL_MASK & signal;
     }

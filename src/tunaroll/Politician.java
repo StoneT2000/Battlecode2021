@@ -1,6 +1,8 @@
 package tunaroll;
 
 import battlecode.common.*;
+import tunaroll.utils.HashMap;
+import tunaroll.utils.HashTable;
 import tunaroll.utils.LinkedList;
 import tunaroll.utils.Node;
 
@@ -74,7 +76,7 @@ public class Politician extends Unit {
     }
 
     public static void run() throws GameActionException {
-
+        setFlagThisTurn = false;
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
@@ -96,8 +98,10 @@ public class Politician extends Unit {
         RobotInfo[] nearbyNeutralBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, Team.NEUTRAL);
         MapLocation locOfClosestFriendlyPoli = null;
         int distToClosestFriendlyPoli = 999999999;
-        MapLocation locOfClosestEnemyMuck = null;
-        int distToClosestEnemyMuck = 9999999;
+        RobotInfo targetedEnemyMuck = null;
+        RobotInfo closestEnemyMuck = null;
+        int distToTargetedEnemyMuck = 9999999;
+        int distToClosestEnemyMuck = 999999;
 
         // array[n] = number of friendlies within n r^2 distance
         int[] friendlyUnitsAtDistanceCount = new int[10];
@@ -110,6 +114,9 @@ public class Politician extends Unit {
 
         LinkedList<MapLocation> locsOfFriendSlands = new LinkedList<>();
 
+        /** maps id to # of polis it is targeted by */
+        HashMap<Integer, Integer> numberOfPolisTargetingMucks = new HashMap<>(30);
+
         for (int i = nearbyFriendBots.length; --i >= 0;) {
             RobotInfo bot = nearbyFriendBots[i];
             int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -118,7 +125,6 @@ public class Politician extends Unit {
                 friendlyUnitsAtDistanceCount[dist] += 1;
             }
             if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
-                // System.out.println("Found sland");
                 locsOfFriendSlands.add(bot.location);
                 if (homeEC != null) {
                     int distToEC = bot.location.distanceSquaredTo(protectLocation);
@@ -132,11 +138,25 @@ public class Politician extends Unit {
                     distToClosestFriendlyPoli = dist;
                     locOfClosestFriendlyPoli = bot.location;
                 }
+                int flag = rc.getFlag(bot.ID);
+                if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.TARGETED_MUCK) {
+                    int id = Comms.readTargetedMuckSignal(flag);
+                    if (numberOfPolisTargetingMucks.contains(id)) {
+                        // TODO: this can be optimized by moving the function out
+                        int a = numberOfPolisTargetingMucks.get(id);
+                        numberOfPolisTargetingMucks.setAlreadyContainedValue(id, a + 1);
+                    }
+                    else {
+                        numberOfPolisTargetingMucks.put(id, 1);
+                    }
+                }
+
+
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 if (homeEC == null) {
                     homeEC = bot.location;
                 }
-                handleFoundEC(bot);
+                // handleFoundEC(bot);
             }
         }
         
@@ -151,10 +171,16 @@ public class Politician extends Unit {
                 if (withinDist) {
                     oppMuckUnitsAtDistanceCount[dist] += 1;
                 }
+                if (dist < distToTargetedEnemyMuck) {
+                    Integer num = numberOfPolisTargetingMucks.get(bot.ID);
+                    if (num == null || num < 1) {
+                        distToTargetedEnemyMuck = dist;
+                        targetedEnemyMuck = bot;
+                    }
+                }
                 if (dist < distToClosestEnemyMuck) {
                     distToClosestEnemyMuck = dist;
-                    // tood check its not already targeted by nearby polis
-                    locOfClosestEnemyMuck = bot.location;
+                    closestEnemyMuck = bot;
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
@@ -243,7 +269,7 @@ public class Politician extends Unit {
         boolean succesfullyCapturedEC = false;
 
         if (role == DEFEND_SLANDERER) {
-            if (locOfClosestEnemyMuck != null) {
+            if (targetedEnemyMuck != null) {
 
                 // find an optimal empower distance that destroys as many muckrakers as possible
                 int mucksCountInRadius = 0;
@@ -275,7 +301,7 @@ public class Politician extends Unit {
                 // TODO: optimize to kill more mucks if not in danger and we see more than 2
                 // relatively close
                 while (currNode != null) {
-                    if (currNode.val.distanceSquaredTo(locOfClosestEnemyMuck) <= MUCKRAKER_ACTION_RADIUS + 10) {
+                    if (currNode.val.distanceSquaredTo(targetedEnemyMuck.location) <= MUCKRAKER_ACTION_RADIUS + 10) {
                         slandererInDanger = true;
                         break;
                     }
@@ -286,7 +312,7 @@ public class Politician extends Unit {
                 // slanderers in danger and we can't do a 2 birds one stone.
                 if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
                     // go towards closest muckraker in hope of more optimal empowering.
-                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(locOfClosestEnemyMuck));
+                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(targetedEnemyMuck.location));
                 } else {
                     if (rc.canEmpower(optimalEmpowerRadius)) {
                         rc.empower(optimalEmpowerRadius);
@@ -351,9 +377,13 @@ public class Politician extends Unit {
         }
 
         if (!setFlagThisTurn) {
-            if (role == DEFEND_SLANDERER && locOfClosestEnemyMuck != null) {
-                setFlag(Comms.getTargetedMuckSignal(locOfClosestEnemyMuck));
+            System.out.println("targeting " + targetedEnemyMuck);
+            if (role == DEFEND_SLANDERER && targetedEnemyMuck != null) {
+                setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID));
             }
+        }
+        if (!setFlagThisTurn) {
+            rc.setFlag(0);
         }
 
         if (rc.isReady()) {

@@ -25,6 +25,27 @@ public class HashMap<K, V> {
         }
         return false;
     }
+    // ASSUMING ALREADY CONTAINED
+    public void setAlreadyContainedValue(K key, V obj) {
+        int index = (Math.abs(key.hashCode())) % this.capacity;
+        // doesn't contain, add it
+        HashMapNodeVal<K, V> node = new HashMapNodeVal<K, V>(key, null);
+
+        // unroll function calls here for bytecode and also easier
+
+        // below is copied from LinkedList.contains
+        Node<HashMapNodeVal<K, V>> llnode = table[index].head;
+
+        while (llnode != null) {
+            if (llnode.val.equals(node)) {
+                // found it
+                llnode.val.val = obj;
+
+                return;
+            }
+            llnode = llnode.next;
+        }
+    }
     public V get(K key) {
         int index = (Math.abs(key.hashCode())) % this.capacity;
 

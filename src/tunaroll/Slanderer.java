@@ -25,6 +25,7 @@ public class Slanderer extends Unit {
     }
 
     public static void run() throws GameActionException {
+        setFlagThisTurn = false;
         setFlag(Comms.IMASLANDERERR);
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
