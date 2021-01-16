@@ -106,7 +106,8 @@ public class EnlightmentCenter extends RobotPlayer {
         boolean buildEarlyPoliticianToTakeNeutralHQ = false;
         // if enemy HQ is near
         boolean nearbyEnemyHQ = false;
-        boolean nearbyEnemyMuckraker = false;
+        int enemyMuckrakersSeen = 0;
+        int nearbyPolis = 0;
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
@@ -121,10 +122,12 @@ public class EnlightmentCenter extends RobotPlayer {
                     nearbyEnemyHQ = true;
                 }
             } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                nearbyEnemyMuckraker = true;
+                enemyMuckrakersSeen += 1;
+            } else if (bot.team == myTeam && bot.type == RobotType.POLITICIAN) {
+                nearbyPolis += 1;
             }
         }
-        if (turnCount == 1 && nearbyEnemyMuckraker == false && rc.getInfluence() >= 150) {
+        if (turnCount == 1 && enemyMuckrakersSeen > 0 && rc.getInfluence() >= 150) {
             tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence() - rc.getInfluence() % 40 + 1);
         }
 
@@ -163,19 +166,28 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (lastScoutBuildDirIndex <= 2 && rc.isReady()) {
                     lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
                     Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
-                    MapLocation buildLoc = rc.getLocation().add(dir);
-                    if (rc.onTheMap(buildLoc)) {
-                        RobotInfo bot = rc.senseRobotAtLocation(buildLoc);
-                        if (bot == null) {
-                            // flag of 0 is default no signal value flag of 1-4 represents build direction
-                            specialMessageQueue.add(SKIP_FLAG);
-                            specialMessageQueue.add(Comms.GO_SCOUT);
-                            rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
-                            Stats.muckrakersBuilt += 1;
-                            // add new id
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            muckrakerIDs.add(newbot.ID);
+                    
+
+                    Direction checkDir = dir;
+                    int i = 0;
+                    while(i < 9) {
+                        if (rc.canBuildRobot(RobotType.MUCKRAKER, checkDir, 1)) {
+                            break;
                         }
+                        checkDir = checkDir.rotateLeft();
+                        i++;
+                    }
+                    if (rc.canBuildRobot(RobotType.MUCKRAKER, checkDir, 1)) {
+                        // flag of 0 is default no signal value flag of 1-4 represents build direction
+                        specialMessageQueue.add(SKIP_FLAG);
+                        specialMessageQueue.add(Comms.GO_SCOUT);
+                        rc.buildRobot(RobotType.MUCKRAKER, dir, 1);
+                        Stats.muckrakersBuilt += 1;
+                        
+                        // add new id
+                        MapLocation buildLoc = rc.getLocation().add(checkDir);
+                        RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
+                        muckrakerIDs.add(newbot.ID);
                     }
                 }
                 if (lastScoutBuildDirIndex == 3) {
@@ -222,7 +234,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 0.5 || turnCount <= 2) {
                         buildSlanderer = true;
                     }
-                    if (nearbyEnemyMuckraker) {
+                    if (enemyMuckrakersSeen > 0) {
                         buildSlanderer = false;
                     }
                     boolean buildPoli = false;
@@ -230,7 +242,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (slandererIDs.size / (politicianIDs.size + 0.1) > 1) {
                         buildPoli = true;
                     }
-                    if (nearbyEnemyMuckraker) {
+                    if (enemyMuckrakersSeen > nearbyPolis) {
                         buildPoli = true;
                     }
 
@@ -249,7 +261,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && rc.getInfluence() >= 41) {
+                        if (buildSlanderer && rc.getInfluence() >= 21) {
                             int want = Math.min(rc.getInfluence() - rc.getInfluence() % 20 + 1, 141);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
@@ -268,6 +280,10 @@ public class EnlightmentCenter extends RobotPlayer {
                                 muckrakerIDs.add(newbot.ID);
                                 lastBuildTurn = turnCount;
                                 spentInfluence += influenceWant;
+                                if (turnCount <= 20) {
+                                    specialMessageQueue.add(SKIP_FLAG);
+                                    specialMessageQueue.add(Comms.GO_SCOUT);
+                                }
                                 break;
                             }
                         }

@@ -11,6 +11,7 @@ public class Constants {
             RobotType.MUCKRAKER, };
 
     public static final int MUCKRAKER_SENSE_RADIUS = 30;
+    public static final int POLI_SENSE_RADIUS = 25;
     public static final int MUCKRAKER_ACTION_RADIUS = 12;
     public static final int POLI_ACTION_RADIUS = 9;
     public static final int TEAM_FRIEND = 0;

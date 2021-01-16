@@ -35,6 +35,7 @@ public class Comms {
     public static final int GO_SCOUT = 0x900002;
 
     public static final int ATTACK_EC = 0xa00000;
+    public static final int TARGETED_MUCK = 0xb00000;
 
     // some long hash map locs in event we don't have map dims
     // this thing below is for checking if the signal shoudl be proccessed as a
@@ -213,5 +214,13 @@ public class Comms {
         int lochash = SIGNAL_MASK & signal;
         System.out.println("reading attack EC sig hash:" + lochash);
         return decodeMapLocation(lochash, rc);
+    }
+
+    public static int getTargetedMuckSignal(MapLocation muckLoc) {
+        return TARGETED_MUCK | encodeMapLocation(muckLoc);
+    }
+    /** returns the hash of the location of targeted muck */
+    public static int readTargetedMuckSignal(int signal) {
+        return SIGNAL_MASK & signal;
     }
 }

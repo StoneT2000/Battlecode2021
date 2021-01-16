@@ -91,7 +91,9 @@ public class Politician extends Unit {
             protectLocation = closestCorner;
         }
 
-        RobotInfo[] nearbyBots = rc.senseNearbyRobots();
+        RobotInfo[] nearbyEnemyBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, oppTeam);
+        RobotInfo[] nearbyFriendBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, myTeam);
+        RobotInfo[] nearbyNeutralBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, Team.NEUTRAL);
         MapLocation locOfClosestFriendlyPoli = null;
         int distToClosestFriendlyPoli = 999999999;
         MapLocation locOfClosestEnemyMuck = null;
@@ -108,57 +110,73 @@ public class Politician extends Unit {
 
         LinkedList<MapLocation> locsOfFriendSlands = new LinkedList<>();
 
-        for (int i = nearbyBots.length; --i >= 0;) {
-            RobotInfo bot = nearbyBots[i];
+        for (int i = nearbyFriendBots.length; --i >= 0;) {
+            RobotInfo bot = nearbyFriendBots[i];
             int dist = rc.getLocation().distanceSquaredTo(bot.location);
             boolean withinDist = dist <= 9;
-            if (bot.team == myTeam) {
+            if (withinDist) {
+                friendlyUnitsAtDistanceCount[dist] += 1;
+            }
+            if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
+                // System.out.println("Found sland");
+                locsOfFriendSlands.add(bot.location);
+                if (homeEC != null) {
+                    int distToEC = bot.location.distanceSquaredTo(protectLocation);
+                    // consider cmparing with slands ec?
+                    if (distToEC > minDistAwayFromProtectLoc) {
+                        minDistAwayFromProtectLoc = (int) Math.pow(Math.sqrt(distToEC) + 2, 2);
+                    }
+                }
+            } else if (bot.type == RobotType.POLITICIAN) {
+                if (dist < distToClosestFriendlyPoli) {
+                    distToClosestFriendlyPoli = dist;
+                    locOfClosestFriendlyPoli = bot.location;
+                }
+            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                if (homeEC == null) {
+                    homeEC = bot.location;
+                }
+                handleFoundEC(bot);
+            }
+        }
+        
+        for (int i = nearbyEnemyBots.length; --i >= 0;) {
+            RobotInfo bot = nearbyEnemyBots[i];
+            int dist = rc.getLocation().distanceSquaredTo(bot.location);
+            boolean withinDist = dist <= 9;
+            if (withinDist) {
+                oppUnitsAtDistanceCount[dist] += 1;
+            }
+            if (bot.type == RobotType.MUCKRAKER) {
                 if (withinDist) {
-                    friendlyUnitsAtDistanceCount[dist] += 1;
+                    oppMuckUnitsAtDistanceCount[dist] += 1;
                 }
-                if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
-                    // System.out.println("Found sland");
-                    locsOfFriendSlands.add(bot.location);
-                    if (homeEC != null) {
-                        int distToEC = bot.location.distanceSquaredTo(protectLocation);
-                        // consider cmparing with slands ec?
-                        if (distToEC > minDistAwayFromProtectLoc) {
-                            minDistAwayFromProtectLoc = (int) Math.pow(Math.sqrt(distToEC) + 2, 2);
-                        }
-                    }
-                } else if (bot.type == RobotType.POLITICIAN) {
-                    if (dist < distToClosestFriendlyPoli) {
-                        distToClosestFriendlyPoli = dist;
-                        locOfClosestFriendlyPoli = bot.location;
-                    }
-                } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                    if (homeEC == null) {
-                        homeEC = bot.location;
-                    }
+                if (dist < distToClosestEnemyMuck) {
+                    distToClosestEnemyMuck = dist;
+                    // tood check its not already targeted by nearby polis
+                    locOfClosestEnemyMuck = bot.location;
                 }
-            } else if (bot.team == oppTeam) {
-                if (withinDist) {
-                    oppUnitsAtDistanceCount[dist] += 1;
-                }
-                if (bot.type == RobotType.MUCKRAKER) {
-                    if (withinDist) {
-                        oppMuckUnitsAtDistanceCount[dist] += 1;
-                    }
-                    if (dist < distToClosestEnemyMuck) {
-                        distToClosestEnemyMuck = dist;
-                        locOfClosestEnemyMuck = bot.location;
-                    }
-                }
-            } else {
-                // neutral team
-                if (withinDist) {
-                    neutralUnitsAtDistanceCount[dist] += 1;
-                }
+            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                handleFoundEC(bot);
+            }
+        
+        }
+
+        for (int i = nearbyNeutralBots.length; --i >= 0;) {
+            RobotInfo bot = nearbyNeutralBots[i];
+            int dist = rc.getLocation().distanceSquaredTo(bot.location);
+            // neutral team
+            boolean withinDist = dist <= 9;
+            if (withinDist) {
+                neutralUnitsAtDistanceCount[dist] += 1;
             }
             if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
             }
         }
+
+
+
         if (haveMapDimensions()) {
             if (closestCorner == null) {
                 MapLocation[] corners = new MapLocation[] { new MapLocation(offsetx, offsety),
@@ -330,6 +348,12 @@ public class Politician extends Unit {
         // handle flags that arernt corner stuff
         if (specialMessageQueue.size > 0) {
             setFlag(specialMessageQueue.dequeue().val);
+        }
+
+        if (!setFlagThisTurn) {
+            if (role == DEFEND_SLANDERER && locOfClosestEnemyMuck != null) {
+                setFlag(Comms.getTargetedMuckSignal(locOfClosestEnemyMuck));
+            }
         }
 
         if (rc.isReady()) {
