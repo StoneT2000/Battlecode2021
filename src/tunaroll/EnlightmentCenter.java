@@ -72,7 +72,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 // lost, increase bid, and see what happens
                 minBidAmount *= 2;
                 minBidAmount = Math.max(minBidAmount, 1);
-                if (rc.getInfluence() < 1000) {
+                if (rc.getInfluence() < 1000 && influenceGainedLastTurn > 0) {
                     minBidAmount = Math.min(minBidAmount, Math.ceil(influenceGainedLastTurn * factor));
                 }
                 
