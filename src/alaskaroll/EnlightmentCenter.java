@@ -17,13 +17,8 @@ public class EnlightmentCenter extends RobotPlayer {
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
-    static final int[] optimalSlandBuildVals = new int[]{
-        0,  21,  41,  63,  85, 107, 130,
-      154, 178, 203, 228, 255, 282, 310,
-      339, 368, 399, 431, 463, 497, 532,
-      568, 605, 643, 683, 724, 766, 810,
-      855, 902, 949
-    };
+    static final int[] optimalSlandBuildVals = new int[] { 0, 21, 41, 63, 85, 107, 130, 154, 178, 203, 228, 255, 282,
+            310, 339, 368, 399, 431, 463, 497, 532, 568, 605, 643, 683, 724, 766, 810, 855, 902, 949 };
 
     static HashTable<Integer> ecIDs = new HashTable<>(10);
     static HashTable<Integer> muckrakerIDs = new HashTable<>(120);
@@ -36,7 +31,6 @@ public class EnlightmentCenter extends RobotPlayer {
     static double minBidAmount = 2;
     static int lastTeamVotes = 0;
     static int lastTurnInfluence = GameConstants.INITIAL_ENLIGHTENMENT_CENTER_INFLUENCE;
-
 
     static HashTable<Integer> attackingPolis = new HashTable<>(20);
     static HashTable<Integer> attackingMucks = new HashTable<>(20);
@@ -90,7 +84,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (minBidAmount > rc.getInfluence() * 0.05) {
                     minBidAmount = Math.ceil(rc.getInfluence() * 0.025);
                 }
-                
+
             }
             lastTeamVotes = rc.getTeamVotes();
 
@@ -111,7 +105,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
                 + minBidAmount);
 
-        System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: " + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
+        System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: "
+                + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
 
         // global comms code independent of role
 
@@ -160,9 +155,8 @@ public class EnlightmentCenter extends RobotPlayer {
             MapLocation loc = neutralHashNode.val.location;
             int hash = Comms.encodeMapLocation(loc);
             if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
-                    
+
                 int dist = loc.distanceSquaredTo(rc.getLocation());
-                System.out.println("Considering " + neutralHashNode.val.location + " known c " +  neutralHashNode.val.lastKnownConviction);
                 if (dist < closestDist && rc.getInfluence() > neutralHashNode.val.lastKnownConviction + 50) {
                     closestDist = dist;
                     neutralECLocToTake = neutralHashNode.val;
@@ -186,13 +180,13 @@ public class EnlightmentCenter extends RobotPlayer {
             MapLocation loc = enemyHashNode.val.location;
             int hash = Comms.encodeMapLocation(loc);
             // if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
-                    
-                int dist = loc.distanceSquaredTo(rc.getLocation());
-                // System.out.println("Enemy ec " + enemyHashNode.val.location);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    enemyECLocToTake = enemyHashNode.val;
-                }
+
+            int dist = loc.distanceSquaredTo(rc.getLocation());
+            // System.out.println("Enemy ec " + enemyHashNode.val.location);
+            if (dist < closestDist) {
+                closestDist = dist;
+                enemyECLocToTake = enemyHashNode.val;
+            }
             // }
             enemyHashNode = enemyECLocs.next();
         }
@@ -203,11 +197,10 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (lastScoutBuildDirIndex <= 2 && rc.isReady()) {
                     lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
                     Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
-                    
 
                     Direction checkDir = dir;
                     int i = 0;
-                    while(i < 9) {
+                    while (i < 9) {
                         if (rc.canBuildRobot(RobotType.MUCKRAKER, checkDir, 1)) {
                             break;
                         }
@@ -220,7 +213,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         specialMessageQueue.add(Comms.GO_SCOUT);
                         rc.buildRobot(RobotType.MUCKRAKER, checkDir, 1);
                         Stats.muckrakersBuilt += 1;
-                        
+
                         // add new id
                         MapLocation buildLoc = rc.getLocation().add(checkDir);
                         RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
@@ -269,16 +262,18 @@ public class EnlightmentCenter extends RobotPlayer {
                     if (enemyMuckrakersSeen > nearbyPolis) {
                         buildPoli = true;
                     }
-                    
+
                     boolean considerAttackingEnemy = false;
                     int allowance = rc.getInfluence() - nearbyEnemyFirePower;
                     if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                         considerAttackingEnemy = true;
                     }
 
-                    System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take " + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
+                    System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
+                            + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
                     // capture netural ECs
-                    if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 50) {
+                    if (neutralECLocToTake != null
+                            && allowance >= neutralECLocToTake.lastKnownConviction + 50) {
                         int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                         if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                             // TODO: dont do this if enemy is near and can capture easily
@@ -298,13 +293,11 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                     }
 
-                    
-
                     // spawn buff muck
                     if (enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
                         int want = 571;
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
-                            rc.getLocation().directionTo(enemyECLocToTake.location));
+                                rc.getLocation().directionTo(enemyECLocToTake.location));
                         if (newbot != null) {
                             attackingMucks.add(newbot.ID);
                             muckrakerIDs.add(newbot.ID);
@@ -315,13 +308,14 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                    
-                    // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
+
+                    // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn
+                    // >= what we have now
                     else if (enemyECLocToTake != null && considerAttackingEnemy) {
                         int want = allowance;
                         want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
-                            rc.getLocation().directionTo(enemyECLocToTake.location));
+                                rc.getLocation().directionTo(enemyECLocToTake.location));
                         if (newbot != null) {
                             attackingPolis.add(newbot.ID);
                             politicianIDs.add(newbot.ID);
@@ -332,14 +326,12 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                    
 
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                         Direction dir = DIRECTIONS[lastRushBuildIndex];
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        
-                        
+
                         if (buildPoli && allowance >= 20) {
                             int influenceWant = 20;
                             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
@@ -362,8 +354,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 spentInfluence += want;
                                 break;
                             }
-                        }
-                        else {
+                        } else {
                             int influenceWant = 1;
                             if (rc.canBuildRobot(RobotType.MUCKRAKER, dir, influenceWant)) {
                                 rc.buildRobot(RobotType.MUCKRAKER, dir, influenceWant);
@@ -392,7 +383,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 idsToRemove.add(attackPoliNode.val);
             } else {
                 int flag = rc.getFlag(attackPoliNode.val);
-                
+
             }
             attackPoliNode = attackingPolis.next();
         }
@@ -635,9 +626,9 @@ public class EnlightmentCenter extends RobotPlayer {
             if (optimalSlandBuildVals[mid] > x) {
                 high = mid;
             } else if (optimalSlandBuildVals[mid] < x) {
-              low = mid + 1;
+                low = mid + 1;
             } else {
-              return x;
+                return x;
             }
         }
         return optimalSlandBuildVals[low - 1];

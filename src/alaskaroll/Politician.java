@@ -341,25 +341,34 @@ public class Politician extends Unit {
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
+                    // if not enemy anymore, just supply the EC with eco
+
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
-                    // measure if worth
-                    int friendlyUnitsInRadius = 0;
-                    int oppUnitsInRadius = 0;
-                    int neutralsInRadius = 0;
-                    for (int i = 1; i <= 9; i++) {
-                        oppUnitsInRadius += oppUnitsAtDistanceCount[i];
-                        friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
-                        neutralsInRadius += neutralUnitsAtDistanceCount[i];
-                        int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
-                        if (distToEC <= i) {
-                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
-                                    rc.getConviction() + nearbyFirePower / 2, 0) / n;
+                    if (enemyEC.team == myTeam) {
+                        if (distToEC == 1) {
+                            rc.empower(1);
+                        }
+                    } else {
+                        // measure if worth
+                        int friendlyUnitsInRadius = 0;
+                        int oppUnitsInRadius = 0;
+                        int neutralsInRadius = 0;
+                        for (int i = 1; i <= 9; i++) {
+                            oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                            friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                            neutralsInRadius += neutralUnitsAtDistanceCount[i];
+                            int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
+                            if (distToEC <= i) {
+                                int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
+                                        rc.getConviction() + (int) (nearbyFirePower / 1.2), 0) / n;
 
+                                
 
-                            double discountFactor = 0.5;
-                            if (speechInfluencePerUnit >= enemyEC.conviction + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis) * discountFactor) {
-                                rc.empower(i);
-                                break;
+                                double discountFactor = 0.5;
+                                if (speechInfluencePerUnit >= enemyEC.conviction + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis) * discountFactor) {
+                                    rc.empower(i);
+                                    break;
+                                }
                             }
                         }
                     }
