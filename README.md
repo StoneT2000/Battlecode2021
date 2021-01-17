@@ -86,3 +86,19 @@ A: yes, rc.getEmpowerFactor(Team team, int roundsInFuture)
 
 Q: What information do we know about the bids once they occur? Can we get the winning bid? Can we see the other guy's bid?  
 A: We can calculate if an allied EC won the bid, or our own EC instance won the bid. loss or tie is indistinguishable. we cant see opponent bid. We can only see our own vote and our own instance's bid (not allied EC bids).
+
+
+
+## REPLAYS
+
+me vs babyducks
+
+https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/2768baa239534feaaa4de3e5b98cf4.bc21
+- highkey winning and very very strong start
+- lose later because first EC doesn't spend its insane influence and just take the win
+  - can fix with ecs communicating with each other (sync up info on ECs especially...)
+- not taking easy neutrals earlier cuz mixed signals for ATTACK_EC is making some polis go the wrong direction
+- we lose slanderers easily since we dont make them go to "our side"
+  - have scouting mucks report regions with high empty space and to the edge near our ec
+  - polis are bad with lattice, they dont reform
+  - IMPORTANT, have units report mucks they see!!!?!?!??!?! slands  run away from scoped out mucks
