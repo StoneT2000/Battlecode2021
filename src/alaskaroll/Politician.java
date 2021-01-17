@@ -65,7 +65,7 @@ public class Politician extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if (turnCount < 2) {
+                if (turnCount < 2 || role == ATTACK_EC) {
                     role = ATTACK_EC;
                     attackLoc = Comms.readAttackECSignal(flag, rc);
                 }
@@ -87,6 +87,8 @@ public class Politician extends Unit {
         // determine location to try and protect
         if (homeEC != null) {
             protectLocation = homeEC;
+        } else if (protectLocation == null) {
+            protectLocation = rc.getLocation();
         }
 
         RobotInfo[] nearbyEnemyBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, oppTeam);
@@ -125,7 +127,9 @@ public class Politician extends Unit {
             if (withinDist) {
                 friendlyUnitsAtDistanceCount[dist] += 1;
             }
-            if (rc.canGetFlag(bot.ID) && rc.getFlag(bot.ID) == Comms.IMASLANDERERR) {
+            int flag = rc.getFlag(bot.ID);
+            handleFlag(flag);
+            if (flag == Comms.IMASLANDERERR) {
                 locsOfFriendSlands.add(bot.location);
                 if (homeEC != null) {
                     int distToEC = bot.location.distanceSquaredTo(protectLocation);
@@ -139,7 +143,6 @@ public class Politician extends Unit {
                     distToClosestFriendlyPoli = dist;
                     locOfClosestFriendlyPoli = bot.location;
                 }
-                int flag = rc.getFlag(bot.ID);
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
                     case Comms.TARGETED_MUCK:
                         int id = Comms.readTargetedMuckSignal(flag);
@@ -359,6 +362,10 @@ public class Politician extends Unit {
             }
         }
 
+        int pauseSpecialMessageQueue = 1;
+        if (role == ATTACK_EC) {
+            pauseSpecialMessageQueue = 6;
+        }
         // if we have map dimensions, send out scouting info
         if (ECDetailsToSend.size > 0) {
             Node<ECDetails> ecDetailsNode = ECDetailsToSend.dequeue();
@@ -369,7 +376,7 @@ public class Politician extends Unit {
         }
 
         // handle flags that arernt corner stuff
-        if (specialMessageQueue.size > 0) {
+        if (specialMessageQueue.size > 0 && turnCount % pauseSpecialMessageQueue == 0) {
             setFlag(specialMessageQueue.dequeue().val);
         }
 

@@ -60,7 +60,7 @@ public class EnlightmentCenter extends RobotPlayer {
         if (!wonInVotes() && turnCount >= 100) {
             if (rc.getTeamVotes() > lastTeamVotes) {
                 // won, lower the bid
-                minBidAmount /= 1.1;
+                minBidAmount /= 1.25;
                 minBidAmount = Math.max(minBidAmount, 1);
             } else {
                 double factor = 0.25;
@@ -72,8 +72,12 @@ public class EnlightmentCenter extends RobotPlayer {
                 // lost, increase bid, and see what happens
                 minBidAmount *= 2;
                 minBidAmount = Math.max(minBidAmount, 1);
-                if (rc.getInfluence() < 1000) {
+                if (rc.getInfluence() < 1000 && influenceGainedLastTurn > 0) {
                     minBidAmount = Math.min(minBidAmount, Math.ceil(influenceGainedLastTurn * factor));
+                }
+                // dont let ourselves bid insane amounts
+                if (minBidAmount > rc.getInfluence() * 0.05) {
+                    minBidAmount = Math.ceil(rc.getInfluence() * 0.025);
                 }
                 
             }
@@ -110,20 +114,21 @@ public class EnlightmentCenter extends RobotPlayer {
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
+        int nearbyEnemyFirePower = 0;
+        int nearbyEnemyPolis = 0;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
-            if (bot.team == oppTeam && bot.type == RobotType.POLITICIAN) {
-                // int c = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
-            } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                if (bot.team == Team.NEUTRAL && bot.influence <= 130) {
-                    buildEarlyPoliticianToTakeNeutralHQ = true;
-                } else if (bot.team == oppTeam) {
-                    nearbyEnemyHQ = true;
+            if (bot.team == oppTeam) {
+                if (bot.type == RobotType.POLITICIAN) {
+                    nearbyEnemyPolis += 1;
+                    nearbyEnemyFirePower += bot.influence;
+                } else if (bot.type == RobotType.MUCKRAKER) {
+                    enemyMuckrakersSeen += 1;
                 }
-            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                enemyMuckrakersSeen += 1;
-            } else if (bot.team == myTeam && bot.type == RobotType.POLITICIAN) {
-                nearbyPolis += 1;
+            } else if (bot.team == myTeam) {
+                if (bot.type == RobotType.POLITICIAN) {
+                    nearbyPolis += 1;
+                }
             }
         }
         if (turnCount == 1 && enemyMuckrakersSeen == 0 && rc.getInfluence() >= 150) {
@@ -227,7 +232,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                } else if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 20) {
+                } else if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 50) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                         // TODO: dont do this if enemy is near and can capture easily

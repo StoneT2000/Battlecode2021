@@ -249,6 +249,40 @@ public class Muckraker extends Unit {
             setFlag(specialMessageQueue.dequeue().val);
         }
 
+        // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
+        int turnCountMod = 2;
+
+         if (!haveMapDimensions()) {
+            // if we have more corner points, send those out as well
+            int signalX = -1;
+            if (turnCount % turnCountMod == 0) {
+                if (cornerXs.size > 0) {
+                    signalX = 1;
+                }
+            } else if (turnCount % turnCountMod == 1) {
+                if (cornerYs.size > 0) {
+                    signalX = 0;
+                }
+            }
+            if (signalX == 1) {
+                Node<Integer> cornernode = cornerXs.next();
+                if (cornernode == null) {
+                    cornerXs.resetIterator();
+                    cornernode = cornerXs.next();
+                }
+                setFlag(Comms.getCornerLocSignalX(cornernode.val));
+            } else if (signalX == 0) {
+                // signal y then
+                Node<Integer> cornernode = cornerYs.next();
+                if (cornernode == null) {
+                    cornerYs.resetIterator();
+                    cornernode = cornerYs.next();
+                }
+                setFlag(Comms.getCornerLocSignalY(cornernode.val));
+            }
+        }
+
+
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER && rc.canMove(dir)) {
@@ -323,37 +357,6 @@ public class Muckraker extends Unit {
         }
         if (eastEdge != null) {
             cornerXs.add(eastEdge.x);
-        }
-
-        // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
-        if (!haveMapDimensions()) {
-            // if we have more corner points, send those out as well
-            int signalX = -1;
-            if (turnCount % 2 == 0) {
-                if (cornerXs.size > 0) {
-                    signalX = 1;
-                }
-            } else {
-                if (cornerYs.size > 0) {
-                    signalX = 0;
-                }
-            }
-            if (signalX == 1) {
-                Node<Integer> cornernode = cornerXs.next();
-                if (cornernode == null) {
-                    cornerXs.resetIterator();
-                    cornernode = cornerXs.next();
-                }
-                setFlag(Comms.getCornerLocSignalX(cornernode.val));
-            } else if (signalX == 0) {
-                // signal y then
-                Node<Integer> cornernode = cornerYs.next();
-                if (cornernode == null) {
-                    cornerYs.resetIterator();
-                    cornernode = cornerYs.next();
-                }
-                setFlag(Comms.getCornerLocSignalY(cornernode.val));
-            }
         }
     }
 }
