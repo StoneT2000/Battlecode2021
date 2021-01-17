@@ -119,7 +119,7 @@ public class Slanderer extends Unit {
         
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
-            if (dir != Direction.CENTER) {
+            if (dir != Direction.CENTER && rc.canMove(dir)) {
                 rc.move(dir);
             };
         }

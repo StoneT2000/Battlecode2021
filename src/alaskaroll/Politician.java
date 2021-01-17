@@ -59,7 +59,9 @@ public class Politician extends Unit {
                 mapHeight = vs2[1];
                 break;
             case Comms.POLI_SACRIFICE:
-                role = SACRIFICE;
+                if (turnCount < 2) {
+                    role = SACRIFICE;
+                }
                 break;
             case Comms.FOUND_EC:
                 processFoundECFlag(flag);
@@ -82,6 +84,12 @@ public class Politician extends Unit {
         } else {
             // clean out this
             multiPartMessagesByBotID.remove(homeECID);
+        }
+
+        if(role == SACRIFICE) {
+            if (rc.canEmpower(1)) {
+                rc.empower(1);
+            }
         }
 
         // determine location to try and protect
@@ -247,19 +255,19 @@ public class Politician extends Unit {
             }
         }
         if (homeEC != null) {
-            if (rc.getLocation().distanceSquaredTo(homeEC) == 1) {
-                // if buff is high, suicide?
-                if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-                        / 4 > rc.getConviction() * 2) {
-                    rc.empower(1);
-                }
-            } else if (rc.getLocation().distanceSquaredTo(homeEC) == 2) {
-                // if buff is high, suicide?
-                if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-                        / 6 > rc.getConviction() * 2) {
-                    rc.empower(2);
-                }
-            }
+            // if (rc.getLocation().distanceSquaredTo(homeEC) == 1) {
+            //     // if buff is high, suicide?
+            //     if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+            //             / 4 > rc.getConviction() * 2) {
+            //         rc.empower(1);
+            //     }
+            // } else if (rc.getLocation().distanceSquaredTo(homeEC) == 2) {
+            //     // if buff is high, suicide?
+            //     if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
+            //             / 6 > rc.getConviction() * 2) {
+            //         rc.empower(2);
+            //     }
+            // }
         }
 
         boolean succesfullyCapturedEC = false;

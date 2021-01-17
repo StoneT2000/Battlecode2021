@@ -95,7 +95,7 @@ public class Muckraker extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if (turnCount < 4) {
+                if (turnCount < 2) {
                     role = RUSH;
                     attackLoc = Comms.readAttackECSignal(flag, rc);
                 }

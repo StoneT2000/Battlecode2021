@@ -28,7 +28,8 @@ public class EnlightmentCenter extends RobotPlayer {
     static int lastTurnInfluence = GameConstants.INITIAL_ENLIGHTENMENT_CENTER_INFLUENCE;
 
 
-    static HashTable<Integer> attackingPolis = new HashTable<>(10);
+    static HashTable<Integer> attackingPolis = new HashTable<>(20);
+    static HashTable<Integer> attackingMucks = new HashTable<>(20);
     static int turnBuiltNeutralAttackingPoli = 0;
 
     static int multiPartMessageType = 0;
@@ -99,6 +100,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
                 + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
                 + minBidAmount);
+
+        System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: " + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
 
         // global comms code independent of role
 
@@ -219,16 +222,19 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             case NORMAL:
                 // generate infinite influence
-                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 6 > rc.getConviction() * 2
+                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 2 > rc.getConviction() * 2
                         && rc.getInfluence() < MAX_INF_PER_ROBOT * 0.9) {
                     // TODO: bug, some of this is wasted due to nearby friendly units
-                    for (Direction dir : DIRECTIONS) {
+                    for (Direction dir : CARD_DIRECTIONS) {
                         MapLocation buildLoc = rc.getLocation().add(dir);
                         if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
                             rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             politicianIDs.add(newbot.ID);
                             lastBuildTurn = turnCount;
+                            int sig1 = Comms.getPoliSacrificeSignal();
+                            specialMessageQueue.add(SKIP_FLAG);
+                            specialMessageQueue.add(sig1);
                             break;
                         }
                     }
@@ -275,9 +281,26 @@ public class EnlightmentCenter extends RobotPlayer {
                         // if our inf is at 80% of maximum, we're winning anyway
                         considerAttackingEnemy = true;
                     }
+
+                    // spawn buff muck
+                    if (enemyECLocToTake != null && attackingMucks.size == 0 && rc.getInfluence() >= 426 + 50) {
+                        int want = 426;
+                        want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
+                        RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
+                            rc.getLocation().directionTo(enemyECLocToTake.location));
+                        if (newbot != null) {
+                            attackingMucks.add(newbot.ID);
+                            muckrakerIDs.add(newbot.ID);
+                            turnBuiltNeutralAttackingPoli = turnCount;
+                            int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
+                            specialMessageQueue.add(SKIP_FLAG);
+                            specialMessageQueue.add(sig1);
+                            break;
+                        }
+                    }
                     
                     // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
-                    if (enemyECLocToTake != null && considerAttackingEnemy) {
+                    else if (enemyECLocToTake != null && considerAttackingEnemy) {
                         int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
                         want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
