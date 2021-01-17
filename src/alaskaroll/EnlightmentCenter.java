@@ -15,6 +15,14 @@ public class EnlightmentCenter extends RobotPlayer {
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
+    static final int[] optimalSlandBuildVals = new int[]{
+        0,  21,  41,  63,  85, 107, 130,
+      154, 178, 203, 228, 255, 282, 310,
+      339, 368, 399, 431, 463, 497, 532,
+      568, 605, 643, 683, 724, 766, 810,
+      855, 902, 949
+    };
+
     static HashTable<Integer> ecIDs = new HashTable<>(10);
     static HashTable<Integer> muckrakerIDs = new HashTable<>(120);
     static HashTable<Integer> slandererIDs = new HashTable<>(50);
@@ -134,8 +142,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
             }
         }
-        if (turnCount == 1 && enemyMuckrakersSeen == 0 && rc.getInfluence() >= 150) {
-            tryToBuildAnywhere(RobotType.SLANDERER, rc.getInfluence() - rc.getInfluence() % 40 + 1);
+        if (turnCount == 1 && enemyMuckrakersSeen == 0 && rc.getInfluence() <= 151 && rc.getInfluence() >= 149) {
+            tryToBuildAnywhere(RobotType.SLANDERER, 131);
         }
 
         // strategy for taking ecs
@@ -277,15 +285,16 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     
                     boolean considerAttackingEnemy = false;
-                    if ((rc.getInfluence() >= 300 && influenceGainedLastTurn * 10 >= rc.getInfluence()) || rc.getInfluence() >= 900) {
-                        // if our inf is at 80% of maximum, we're winning anyway
+                    int allowance = rc.getInfluence() - nearbyEnemyFirePower;
+                    if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                         considerAttackingEnemy = true;
                     }
 
+                    
+
                     // spawn buff muck
-                    if (enemyECLocToTake != null && attackingMucks.size == 0 && rc.getInfluence() >= 426 + 50) {
-                        int want = 426;
-                        want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
+                    if (enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
+                        int want = 571;
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
                         if (newbot != null) {
@@ -301,7 +310,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     
                     // try and take enemy EC loc if we have 300 inf and if 10 times the inf / turn >= what we have now
                     else if (enemyECLocToTake != null && considerAttackingEnemy) {
-                        int want = Math.min(rc.getInfluence() - 40, rc.getInfluence() - 40);
+                        int want = allowance;
                         want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
@@ -323,7 +332,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         MapLocation buildLoc = rc.getLocation().add(dir);
                         
                         
-                        if (buildPoli && rc.getInfluence() >= 20) {
+                        if (buildPoli && allowance >= 20) {
                             int influenceWant = 20;
                             if (rc.canBuildRobot(RobotType.POLITICIAN, dir, influenceWant)) {
                                 rc.buildRobot(RobotType.POLITICIAN, dir, influenceWant);
@@ -334,8 +343,9 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && rc.getInfluence() >= 21) {
-                            int want = Math.min(rc.getInfluence() - rc.getInfluence() % 20 + 1, 141);
+                        if (buildSlanderer && allowance >= 21) {
+                            // int want = Math.min(allowance - allowance % 20 + 1, 949);
+                            int want = findOptimalSlandererInfluenceUnderX(allowance);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);
                                 RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
@@ -496,7 +506,7 @@ public class EnlightmentCenter extends RobotPlayer {
         Node<Integer> currIDNode = muckrakerIDs.next();
         LinkedList<Integer> idsToRemove = new LinkedList<>();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 8000) {
+            if (Clock.getBytecodesLeft() < 10000) {
                 break;
             }
             try {
@@ -539,7 +549,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         currIDNode = slandererIDs.next();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 6000) {
+            if (Clock.getBytecodesLeft() < 8000) {
                 break;
             }
             try {
@@ -570,7 +580,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         currIDNode = politicianIDs.next();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 4000) {
+            if (Clock.getBytecodesLeft() < 6000) {
                 break;
             }
             try {
@@ -608,4 +618,20 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
     }
+
+    public static int findOptimalSlandererInfluenceUnderX(int x) {
+        int low = 0;
+        int high = optimalSlandBuildVals.length;
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (optimalSlandBuildVals[mid] > x) {
+                high = mid;
+            } else if (optimalSlandBuildVals[mid] < x) {
+              low = mid + 1;
+            } else {
+              return x;
+            }
+        }
+        return optimalSlandBuildVals[low - 1];
+    };
 }
