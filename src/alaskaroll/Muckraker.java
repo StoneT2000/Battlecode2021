@@ -253,7 +253,7 @@ public class Muckraker extends Unit {
         // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
         int turnCountMod = 2;
 
-         if (!haveMapDimensions()) {
+         if (!haveMapDimensions() && !setFlagThisTurn) {
             // if we have more corner points, send those out as well
             int signalX = -1;
             if (turnCount % turnCountMod == 0) {

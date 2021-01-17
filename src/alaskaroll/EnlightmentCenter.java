@@ -5,6 +5,8 @@ import alaskaroll.utils.*;
 
 import static alaskaroll.Constants.*;
 
+import javax.management.NotificationBroadcasterSupport;
+
 public class EnlightmentCenter extends RobotPlayer {
     static int lastScoutBuildDirIndex = -1;
     static int lastRushBuildIndex = -1;
@@ -160,7 +162,8 @@ public class EnlightmentCenter extends RobotPlayer {
             if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                     
                 int dist = loc.distanceSquaredTo(rc.getLocation());
-                if (dist < closestDist) {
+                System.out.println("Considering " + neutralHashNode.val.location + " known c " +  neutralHashNode.val.lastKnownConviction);
+                if (dist < closestDist && rc.getInfluence() > neutralHashNode.val.lastKnownConviction + 50) {
                     closestDist = dist;
                     neutralECLocToTake = neutralHashNode.val;
                 }
@@ -246,23 +249,6 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-                } else if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 50) {
-                    int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
-                    if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
-                        // TODO: dont do this if enemy is near and can capture easily
-                        int want = neutralECLocToTake.lastKnownConviction + 20;
-                        RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
-                                rc.getLocation().directionTo(neutralECLocToTake.location));
-                        if (newbot != null) {
-                            attackingPolis.add(newbot.ID);
-                            politicianIDs.add(newbot.ID);
-                            turnBuiltNeutralAttackingPoli = turnCount;
-                            int sig1 = Comms.getAttackECSignal(neutralECLocToTake.location);
-                            specialMessageQueue.add(SKIP_FLAG);
-                            specialMessageQueue.add(sig1);
-                            locHashesOfCurrentlyAttackedNeutralECs.add(hash);
-                        }
-                    }
                 }
                 // proceed with generic building
                 else {
@@ -288,6 +274,28 @@ public class EnlightmentCenter extends RobotPlayer {
                     int allowance = rc.getInfluence() - nearbyEnemyFirePower;
                     if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                         considerAttackingEnemy = true;
+                    }
+
+                    System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take " + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
+                    // capture netural ECs
+                    if (neutralECLocToTake != null && rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 50) {
+                        int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
+                        if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
+                            // TODO: dont do this if enemy is near and can capture easily
+                            int want = neutralECLocToTake.lastKnownConviction + 50;
+                            RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
+                                    rc.getLocation().directionTo(neutralECLocToTake.location));
+                            if (newbot != null) {
+                                attackingPolis.add(newbot.ID);
+                                politicianIDs.add(newbot.ID);
+                                turnBuiltNeutralAttackingPoli = turnCount;
+                                int sig1 = Comms.getAttackNeutralECSignal(neutralECLocToTake.location);
+                                specialMessageQueue.add(SKIP_FLAG);
+                                specialMessageQueue.add(sig1);
+                                locHashesOfCurrentlyAttackedNeutralECs.add(hash);
+                                break;
+                            }
+                        }
                     }
 
                     

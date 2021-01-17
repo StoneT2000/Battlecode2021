@@ -17,6 +17,7 @@ public class Comms {
     public static final int SIGNAL_TYPE_5BIT_MASK = 0xf80000;
     /** mask used to get all of the content of a signal/flag */
     public static final int SIGNAL_MASK = 0x0fffff;
+    public static final int SIGNAL_5BIT_MASK = 0x07ffff;
     public static final int CORNER_LOC_X = 0x100000;
     public static final int CORNER_LOC_Y = 0x200000;
     public static final int MAP_OFFSET_X_AND_WIDTH = 0x300000;
@@ -35,6 +36,7 @@ public class Comms {
     public static final int GO_SCOUT = 0x900002;
 
     public static final int ATTACK_EC = 0xa00000;
+    public static final int ATTACK_NEUTRAL_EC = 0xa80000;
     
     // bottom 2 can be combined
     public static final int TARGETED_MUCK = 0xb00000;
@@ -216,6 +218,15 @@ public class Comms {
     public static MapLocation readAttackECSignal(int signal, RobotController rc) {
         int lochash = SIGNAL_MASK & signal;
         // System.out.println("reading attack EC sig hash:" + lochash);
+        return decodeMapLocation(lochash, rc);
+    }
+
+    public static int getAttackNeutralECSignal(MapLocation ECLoc) {
+        return ATTACK_NEUTRAL_EC | encodeMapLocation(ECLoc);
+    }
+
+    public static MapLocation readAttackNeutralECSignal(int signal, RobotController rc) {
+        int lochash = SIGNAL_5BIT_MASK & signal;
         return decodeMapLocation(lochash, rc);
     }
 

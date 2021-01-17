@@ -21,6 +21,7 @@ public class Politician extends Unit {
     static final int SACRIFICE = 0;
     static final int DEFEND_SLANDERER = 2;
     static final int ATTACK_EC = 3;
+    static final int ATTACK_NEUTRAL_EC = 4;
     static Direction exploreDir = Direction.NORTH;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
@@ -67,10 +68,21 @@ public class Politician extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if (turnCount < 2 || role == ATTACK_EC) {
-                    role = ATTACK_EC;
-                    attackLoc = Comms.readAttackECSignal(flag, rc);
+                switch(Comms.SIGNAL_TYPE_5BIT_MASK & flag) {
+                    case Comms.ATTACK_EC:
+                        if (turnCount < 2 || role == ATTACK_EC) {
+                            role = ATTACK_EC;
+                            attackLoc = Comms.readAttackECSignal(flag, rc);
+                        }
+                        break;
+                    case Comms.ATTACK_NEUTRAL_EC:
+                        if (turnCount < 2) {
+                            role = ATTACK_NEUTRAL_EC;
+                            attackLoc = Comms.readAttackECSignal(flag, rc);
+                        }
+                        break;
                 }
+                
                 break;
 
         }
@@ -254,21 +266,6 @@ public class Politician extends Unit {
                 }
             }
         }
-        if (homeEC != null) {
-            // if (rc.getLocation().distanceSquaredTo(homeEC) == 1) {
-            //     // if buff is high, suicide?
-            //     if (rc.canEmpower(1) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-            //             / 4 > rc.getConviction() * 2) {
-            //         rc.empower(1);
-            //     }
-            // } else if (rc.getLocation().distanceSquaredTo(homeEC) == 2) {
-            //     // if buff is high, suicide?
-            //     if (rc.canEmpower(2) && calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
-            //             / 6 > rc.getConviction() * 2) {
-            //         rc.empower(2);
-            //     }
-            // }
-        }
 
         boolean succesfullyCapturedEC = false;
 
@@ -339,7 +336,7 @@ public class Politician extends Unit {
                 }
 
             }
-        } else if (role == ATTACK_EC) {
+        } else if (role == ATTACK_EC || role == ATTACK_NEUTRAL_EC) {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
             if (rc.canEmpower(1)) {
