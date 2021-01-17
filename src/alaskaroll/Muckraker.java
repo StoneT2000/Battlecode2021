@@ -38,6 +38,8 @@ public class Muckraker extends Unit {
      */
     static MapLocation targetLoc = null;
 
+    static MapLocation attackLoc = null;
+
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
 
@@ -92,6 +94,11 @@ public class Muckraker extends Unit {
             case Comms.FOUND_EC:
                 processFoundECFlag(flag);
                 break;
+            case Comms.ATTACK_EC:
+                if (turnCount < 4) {
+                    role = RUSH;
+                    attackLoc = Comms.readAttackECSignal(flag, rc);
+                }
             case Comms.SMALL_SIGNAL:
                 break;
         }
@@ -189,22 +196,16 @@ public class Muckraker extends Unit {
                 targetSlanderers(locOfClosestSlanderer);
                 break;
             case RUSH:
-                targetLoc = rc.getLocation();
+                targetLoc = attackLoc;
                 if (!haveMapDimensions()) {
                     scoutCorners();
                 }
                 if (rc.isReady()) {
-                    if (locOfClosestSlanderer != null) {
-                        targetSlanderers(locOfClosestSlanderer);
-                    } else {
-                        if (enemyECLocs.size > 0) {
-                            HashMapNodeVal<Integer, ECDetails> eclocnode = enemyECLocs.next();
-                            if (eclocnode == null) {
-                                enemyECLocs.resetIterator();
-                                eclocnode = enemyECLocs.next();
-                            }
-                            MapLocation ECLoc = eclocnode.val.location;
-                            targetLoc = ECLoc;
+                    targetSlanderers(locOfClosestSlanderer);
+                    if (rc.canSenseLocation(attackLoc)) {
+                        RobotInfo info = rc.senseRobotAtLocation(attackLoc);
+                        if (info.team != oppTeam) {
+                            // TODO no longer attack here
                         }
                     }
                 }

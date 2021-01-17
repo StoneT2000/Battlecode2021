@@ -67,7 +67,7 @@ public class Slanderer extends Unit {
         
 
         targetLoc = rc.getLocation();
-        if (rc.getLocation().distanceSquaredTo(homeEC) <= 2 ) {
+        if (rc.getLocation().distanceSquaredTo(homeEC) <= 4) {
             targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
         }
         
@@ -80,7 +80,7 @@ public class Slanderer extends Unit {
         }
 
         int bestLatticeLocVal = Integer.MIN_VALUE;
-        if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) > 2) {
+        if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) > 4) {
             bestLatticeLoc = currLoc;
             bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(originPoint);
         }
@@ -89,7 +89,7 @@ public class Slanderer extends Unit {
 
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
             if (rc.onTheMap(checkLoc)) {
-                if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) > 2) {
+                if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) > 4) {
                     RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
                     if (bot == null || bot.ID == rc.getID()) {
                         int value = -checkLoc.distanceSquaredTo(originPoint);
