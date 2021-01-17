@@ -102,3 +102,4 @@ https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/
   - have scouting mucks report regions with high empty space and to the edge near our ec
   - polis are bad with lattice, they dont reform
   - IMPORTANT, have units report mucks they see!!!?!?!??!?! slands  run away from scoped out mucks
+  - build more polis earlier...?
