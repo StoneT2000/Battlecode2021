@@ -236,6 +236,8 @@ public class Muckraker extends Unit {
 
         /** COMMS */
 
+        
+
         // if we have map dimensions, send out scouting info
         if (ECDetailsToSend.size > 0) {
             Node<ECDetails> ecDetailsNode = ECDetailsToSend.dequeue();

@@ -22,6 +22,7 @@ public class Politician extends Unit {
     static final int DEFEND_SLANDERER = 2;
     static final int ATTACK_EC = 3;
     static final int ATTACK_NEUTRAL_EC = 4;
+    static final int SCOUT = 5;
     static Direction exploreDir = Direction.NORTH;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
@@ -104,6 +105,10 @@ public class Politician extends Unit {
             }
         }
 
+        if (rc.getConviction() < 14) {
+            role = SCOUT;
+        }
+
         // determine location to try and protect
         if (homeEC != null) {
             protectLocation = homeEC;
@@ -165,7 +170,8 @@ public class Politician extends Unit {
                 }
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
                     case Comms.TARGETED_MUCK:
-                        int id = Comms.readTargetedMuckSignal(flag);
+                        int[] data = Comms.readTargetedMuckSignal(flag);
+                        int id = data[0];
                         if (numberOfPolisTargetingMucks.contains(id)) {
                             // TODO: this can be optimized by moving the function out
                             int a = numberOfPolisTargetingMucks.get(id);
@@ -374,6 +380,21 @@ public class Politician extends Unit {
                     }
                 }
             }
+        } else if (role == SCOUT) {
+            targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+            Direction[] dirs = new Direction[] { exploreDir.rotateLeft(), exploreDir.rotateRight(),
+                    exploreDir.rotateLeft().rotateLeft(), exploreDir.rotateRight().rotateRight(),
+                    exploreDir.rotateLeft().rotateLeft().rotateLeft(),
+                    exploreDir.rotateRight().rotateRight().rotateRight(), exploreDir.opposite() };
+            int i = -1;
+            while (!rc.onTheMap(targetLoc)) {
+                i++;
+                targetLoc = rc.getLocation().add(dirs[i]).add(dirs[i]).add(dirs[i]);
+                
+            }
+            if (i != -1) {
+                exploreDir = dirs[i];
+            }
         }
 
         int pauseSpecialMessageQueue = 1;
@@ -397,7 +418,10 @@ public class Politician extends Unit {
         if (!setFlagThisTurn) {
             // System.out.println("targeting " + targetedEnemyMuck);
             if (role == DEFEND_SLANDERER && targetedEnemyMuck != null) {
-                setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID));
+                MapLocation myLoc = rc.getLocation();
+                int dx =  targetedEnemyMuck.location.x - myLoc.x;
+                int dy =  targetedEnemyMuck.location.y - myLoc.y;
+                setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
             } else if (role == ATTACK_EC) {
                 int sig = Comms.getTargetedECSignal(attackLoc);
                 setFlag(sig);

@@ -256,7 +256,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     boolean buildPoli = false;
 
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 1) {
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.8) {
                         buildPoli = true;
                     }
                     if (enemyMuckrakersSeen > nearbyPolis) {
@@ -345,6 +345,8 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                         if (buildSlanderer && allowance >= 21) {
                             // int want = Math.min(allowance - allowance % 20 + 1, 949);
+                            // TODO: cap size of slanderer based on nearby power
+                            
                             int want = findOptimalSlandererInfluenceUnderX(allowance);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);

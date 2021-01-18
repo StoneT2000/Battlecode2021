@@ -230,12 +230,25 @@ public class Comms {
         return decodeMapLocation(lochash, rc);
     }
 
-    public static int getTargetedMuckSignal(int id) {
-        return TARGETED_MUCK | id;
+    public static final int relativePoliPosOffset = 5;
+    public static final int MIN_ROBOT_ID = 10000;
+    
+    // encode the id, and relative direction of muckraker in dx and dy
+    // expect dx, dy in [0, 7]
+    public static int getTargetedMuckSignal(int id, int dx, int dy) {
+        int ox = dx + relativePoliPosOffset;
+        int oy = dy + relativePoliPosOffset;
+        int encoded = ox * 11 + oy;
+        return TARGETED_MUCK | (encoded << 13) | (id - MIN_ROBOT_ID);
     }
-    /** returns the hash of the id of targeted muck */
-    public static int readTargetedMuckSignal(int signal) {
-        return SIGNAL_MASK & signal;
+    /** returns the hash of the id of targeted muck and relative pos -> [id, dx, dy] */
+    public static int[] readTargetedMuckSignal(int signal) {
+        
+        int encodedxdy = (signal & (0x0fe000)) >> 13;
+        int dx = (encodedxdy / 11) - relativePoliPosOffset;
+        int dy = (encodedxdy % 11) - relativePoliPosOffset;
+        int id = signal & (0x001fff);
+        return new int[]{id, dx, dy};
     }
     public static int getTargetedECSignal(MapLocation ecloc) {
         return TARGETED_EC | encodeMapLocation(ecloc);

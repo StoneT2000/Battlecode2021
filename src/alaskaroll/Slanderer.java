@@ -49,32 +49,61 @@ public class Slanderer extends Unit {
         int distToClosestFriendEC = 99999999;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
-            if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestEnemyMuckraker) {
-                    distToClosestEnemyMuckraker = dist;
-                    locOfClosestEnemyMuckraker = bot.location;
+            if (bot.team == myTeam) {
+                switch (bot.type) {
+                    case ENLIGHTENMENT_CENTER:
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToClosestFriendEC) {
+                            distToClosestFriendEC = dist;
+                            locOfClosestFriendEC = bot.location;
+                        }
+                        break;
+                    case POLITICIAN:
+                        int flag = rc.getFlag(bot.ID);
+                        switch (Comms.SIGNAL_TYPE_MASK & flag) {
+                            case Comms.TARGETED_MUCK:
+                                int[] data = Comms.readTargetedMuckSignal(flag);
+                                int dx = data[1];
+                                int dy = data[1];
+                                // System.out.println("Muck spotted at " + dx + " - " + dy + " - of " + bot.location);
+                                MapLocation muckloc = new MapLocation(bot.location.x + dx, bot.location.y + dy);
+                                int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
+                                if (distToSpottedMuck < distToClosestEnemyMuckraker) {
+                                    distToClosestEnemyMuckraker = distToSpottedMuck;
+                                    locOfClosestEnemyMuckraker = muckloc;
+                                }
+                                break;
+                                // TODO: add signal for just seeing a muck but not targeting
+                                // TODO: propagate that signal backwards through the network of units
+                        }
+                        break;
+                    default:
+                        break;
                 }
-            } else if (bot.team == myTeam && bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestFriendEC) {
-                    distToClosestFriendEC = dist;
-                    locOfClosestFriendEC = bot.location;
+            } else if (bot.team == oppTeam) {
+                switch (bot.type) {
+                    case MUCKRAKER:
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToClosestEnemyMuckraker) {
+                            distToClosestEnemyMuckraker = dist;
+                            locOfClosestEnemyMuckraker = bot.location;
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
         }
-
-        
 
         targetLoc = rc.getLocation();
         if (rc.getLocation().distanceSquaredTo(homeEC) <= 4) {
             targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
         }
-        
+
         // search in sensor range for close stuff
         MapLocation currLoc = rc.getLocation();
         MapLocation bestLatticeLoc = null;
-        
+
         if (originPoint == null) {
             originPoint = homeEC;
         }
@@ -82,20 +111,21 @@ public class Slanderer extends Unit {
         int bestLatticeLocVal = Integer.MIN_VALUE;
         if (locOnLattice(currLoc) && currLoc.distanceSquaredTo(homeEC) > 4) {
             bestLatticeLoc = currLoc;
-            bestLatticeLocVal = - bestLatticeLoc.distanceSquaredTo(originPoint);
+            bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(originPoint);
         }
         for (int i = 0; ++i < BFS20.length;) {
             int[] deltas = BFS20[i];
-
             MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
-            if (rc.onTheMap(checkLoc)) {
-                if (locOnLattice(checkLoc) && checkLoc.distanceSquaredTo(homeEC) > 4) {
-                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-                    if (bot == null || bot.ID == rc.getID()) {
-                        int value = -checkLoc.distanceSquaredTo(originPoint);
-                        if (value > bestLatticeLocVal) {
-                            bestLatticeLocVal = value;
-                            bestLatticeLoc = checkLoc;
+            if (locOnLattice(checkLoc)) {
+                if (rc.onTheMap(checkLoc)) {
+                    if (checkLoc.distanceSquaredTo(homeEC) > 4) {
+                        RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
+                        if (bot == null || bot.ID == rc.getID()) {
+                            int value = -checkLoc.distanceSquaredTo(originPoint);
+                            if (value > bestLatticeLocVal) {
+                                bestLatticeLocVal = value;
+                                bestLatticeLoc = checkLoc;
+                            }
                         }
                     }
                 }
@@ -112,16 +142,17 @@ public class Slanderer extends Unit {
         }
 
         if (locOfClosestEnemyMuckraker != null) {
-            Direction awayDir = findDirAwayFromLocations(new MapLocation[]{locOfClosestEnemyMuckraker});
+            Direction awayDir = findDirAwayFromLocations(new MapLocation[] { locOfClosestEnemyMuckraker });
             targetLoc = rc.getLocation().add(awayDir);
             originPoint = originPoint.add(awayDir);
         }
-        
+
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER && rc.canMove(dir)) {
                 rc.move(dir);
-            };
+            }
+            ;
         }
     }
 
