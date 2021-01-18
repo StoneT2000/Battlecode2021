@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const find = (filename, team = "A") => {
+const find = (filename, team = "B") => {
   const content = `${fs.readFileSync(filename)}`.split("\n");
   let i = 0;
   for (const line of content) {

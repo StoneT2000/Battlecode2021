@@ -1,9 +1,9 @@
-package sprinttuna;
+package sprinttunaold;
 
 import battlecode.common.*;
-import sprinttuna.utils.*;
+import sprinttunaold.utils.*;
 
-import static sprinttuna.Constants.*;
+import static sprinttunaold.Constants.*;
 
 import javax.management.NotificationBroadcasterSupport;
 
@@ -47,8 +47,6 @@ public class EnlightmentCenter extends RobotPlayer {
         static int politiciansBuilt = 0;
         static int slanderersBuilt = 0;
     }
-
-    static int lastTurnBuiltBuffScoutMuck = -1;
 
     public static void setup() throws GameActionException {
         role = BUILD_SCOUTS;
@@ -298,6 +296,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                     rc.getLocation().directionTo(neutralECLocToTake.location));
                             if (newbot != null) {
                                 attackingPolis.add(newbot.ID);
+                                politicianIDs.add(newbot.ID);
                                 turnBuiltNeutralAttackingPoli = turnCount;
                                 int sig1 = Comms.getAttackNeutralECSignal(neutralECLocToTake.location);
                                 specialMessageQueue.add(SKIP_FLAG);
@@ -307,6 +306,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             }
                         }
                     }
+
                     // spawn buff muck
                     if (enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
                         int want = 571;
@@ -314,6 +314,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.getLocation().directionTo(enemyECLocToTake.location));
                         if (newbot != null) {
                             attackingMucks.add(newbot.ID);
+                            muckrakerIDs.add(newbot.ID);
                             turnBuiltNeutralAttackingPoli = turnCount;
                             int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
                             specialMessageQueue.add(SKIP_FLAG);
@@ -331,6 +332,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 rc.getLocation().directionTo(enemyECLocToTake.location));
                         if (newbot != null) {
                             attackingPolis.add(newbot.ID);
+                            politicianIDs.add(newbot.ID);
                             turnBuiltNeutralAttackingPoli = turnCount;
                             int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
                             specialMessageQueue.add(SKIP_FLAG);
@@ -338,21 +340,6 @@ public class EnlightmentCenter extends RobotPlayer {
                             break;
                         }
                     }
-
-                    if (neutralECLocToTake == null && enemyECLocToTake == null && turnCount > lastTurnBuiltBuffScoutMuck + 40) {
-                        // consider spawning somewhat buff scout mucks
-                        if (allowance >= 450) {
-                            int want = 200;
-                            RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want);
-                            // System.out.println("build buff scout");
-                            if (newbot!=null) {
-                                lastTurnBuiltBuffScoutMuck = turnCount;
-                                specialMessageQueue.add(SKIP_FLAG);
-                                specialMessageQueue.add(Comms.GO_SCOUT);
-                            }
-                        }
-                    }
-
 
                     for (int i = 0; i < 8; i++) {
                         lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
@@ -479,7 +466,7 @@ public class EnlightmentCenter extends RobotPlayer {
         }
     }
 
-    private static RobotInfo tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
+    private static void tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
         for (Direction dir : DIRECTIONS) {
             MapLocation buildLoc = rc.getLocation().add(dir);
             if (rc.canBuildRobot(type, dir, influence)) {
@@ -494,10 +481,9 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 // setFlag(Comms.getPoliSacrificeSignal());
                 lastBuildTurn = turnCount;
-                return newbot;
+                break;
             }
         }
-        return null;
     }
 
     private static RobotInfo tryToBuildAnywhere(RobotType type, int influence, Direction preferredDir)

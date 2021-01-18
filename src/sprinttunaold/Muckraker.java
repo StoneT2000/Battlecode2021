@@ -1,12 +1,12 @@
-package sprinttuna;
+package sprinttunaold;
 
 import battlecode.common.*;
-import sprinttuna.utils.LinkedList;
-import sprinttuna.utils.Node;
-import sprinttuna.utils.HashMapNodeVal;
-import sprinttuna.utils.HashTable;
+import sprinttunaold.utils.LinkedList;
+import sprinttunaold.utils.Node;
+import sprinttunaold.utils.HashMapNodeVal;
+import sprinttunaold.utils.HashTable;
 
-import static sprinttuna.Constants.*;
+import static sprinttunaold.Constants.*;
 
 public class Muckraker extends Unit {
     public static final int[][] BFS30 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
@@ -114,7 +114,7 @@ public class Muckraker extends Unit {
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
-            if (homeECFlag == Comms.GO_SCOUT && turnCount < 4) {
+            if (homeECFlag == Comms.GO_SCOUT) {
                 role = SCOUT;
             }
         }

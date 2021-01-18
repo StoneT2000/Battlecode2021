@@ -1,12 +1,12 @@
-package sprinttuna;
+package sprinttunaold;
 
 import battlecode.common.*;
-import sprinttuna.utils.HashMap;
-import sprinttuna.utils.HashTable;
-import sprinttuna.utils.LinkedList;
-import sprinttuna.utils.Node;
+import sprinttunaold.utils.HashMap;
+import sprinttunaold.utils.HashTable;
+import sprinttunaold.utils.LinkedList;
+import sprinttunaold.utils.Node;
 
-import static sprinttuna.Constants.*;
+import static sprinttunaold.Constants.*;
 
 public class Politician extends Unit {
     public static final int[][] BFS25 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
@@ -399,11 +399,7 @@ public class Politician extends Unit {
                     // if not enemy anymore, just supply the EC with eco
 
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
-                    if (enemyEC == null) {
-                        // System.out.println("attackLoc: " + attackLoc + " -  myloc" + rc.getLocation());
-                        // shouldnt happen...
-                    }
-                    else if (enemyEC.team == myTeam) {
+                    if (enemyEC.team == myTeam) {
                         if (distToEC == 1) {
                             rc.empower(1);
                         }
@@ -487,9 +483,6 @@ public class Politician extends Unit {
         boolean canWiggle = true;
         if (role == ATTACK_EC && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
             canWiggle = false;
-        }
-        if (targetLoc == null) {
-            System.out.println("role " + role + " - " + rc.getLocation());
         }
         if (rc.isReady() && targetLoc != null) {
             Direction dir = getNextDirOnPath(targetLoc);
