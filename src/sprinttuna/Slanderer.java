@@ -159,7 +159,7 @@ public class Slanderer extends Unit {
         if (locOfClosestEnemyMuckraker != null) {
             Direction awayDir = findDirAwayFromLocations(new MapLocation[] { locOfClosestEnemyMuckraker });
             targetLoc = rc.getLocation().add(awayDir);
-            originPoint = originPoint.add(awayDir);
+            // originPoint = originPoint.add(awayDir);
         }
 
         if (rc.isReady()) {

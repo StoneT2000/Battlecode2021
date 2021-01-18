@@ -99,15 +99,6 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
-        System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
-                + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
-                + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
-                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
-                + minBidAmount);
-
-        System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: "
-                + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
-
         // global comms code independent of role
 
         // iterate over all known units, remove if they arent there anymore
@@ -150,7 +141,6 @@ public class EnlightmentCenter extends RobotPlayer {
         ECDetails neutralECLocToTake = null;
         int closestDist = 99999999;
         neutralECLocs.resetIterator();
-        System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
         while (neutralHashNode != null) {
             MapLocation loc = neutralHashNode.val.location;
@@ -183,7 +173,6 @@ public class EnlightmentCenter extends RobotPlayer {
             // if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
 
             int dist = loc.distanceSquaredTo(rc.getLocation());
-            // System.out.println("Enemy ec " + enemyHashNode.val.location);
             if (dist < closestDist) {
                 closestDist = dist;
                 enemyECLocToTake = enemyHashNode.val;
@@ -282,9 +271,6 @@ public class EnlightmentCenter extends RobotPlayer {
                     if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                         considerAttackingEnemy = true;
                     }
-
-                    System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
-                            + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
                     // capture netural ECs
                     if (neutralECLocToTake != null
                             && allowance >= neutralECLocToTake.lastKnownConviction + 50) {
@@ -434,7 +420,6 @@ public class EnlightmentCenter extends RobotPlayer {
         if (enemyECLocs.size > 0) {
             turnCountModulus = 5;
         }
-        System.out.println("turncountmod " + turnCountModulus);
 
         // send locations of enemy ECs
         if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
@@ -445,15 +430,12 @@ public class EnlightmentCenter extends RobotPlayer {
                 ecLocHashNode = enemyECLocs.next();
             }
             MapLocation ECLoc = ecLocHashNode.val.location;
-            System.out.println("Sending " + ECLoc);
             int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, ecLocHashNode.val.lastKnownConviction);
             setFlag(signal);
         }
 
         // send map dimensions
         if (mapHeight >= 32 && mapWidth >= 32) {
-            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
-                    + " - Height: " + mapHeight);
             if (!setFlagThisTurn) {
                 if (turnCount % turnCountModulus == 0) {
                     int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);

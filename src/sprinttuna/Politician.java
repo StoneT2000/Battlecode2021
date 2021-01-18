@@ -145,6 +145,7 @@ public class Politician extends Unit {
         int nearbyFirePower = 0;
         int nearbyEnemyFirePower = 0;
         int nearbyEnemyPolis = 0;
+        int numberOfNearbyFriendlySlanderers = 0;
 
         for (int i = nearbyFriendBots.length; --i >= 0;) {
             RobotInfo bot = nearbyFriendBots[i];
@@ -153,11 +154,17 @@ public class Politician extends Unit {
             if (withinDist) {
                 friendlyUnitsAtDistanceCount[dist] += 1;
             }
-            int flag = rc.getFlag(bot.ID);
-            handleFlag(flag);
+            int flag = 0;
+           
+            if (rc.canGetFlag(bot.ID)) {
+                flag = rc.getFlag(bot.ID);
+                handleFlag(flag);
+            }
+            // TODO: comm slanderer and home id otherwise polis might go super far away
             if (flag == Comms.IMASLANDERERR) {
                 locsOfFriendSlands.add(bot.location);
                 if (homeEC != null) {
+                    numberOfNearbyFriendlySlanderers += 1;
                     int distToEC = bot.location.distanceSquaredTo(protectLocation);
                     // consider cmparing with slands ec?
                     if (distToEC > minDistAwayFromProtectLoc) {
@@ -196,6 +203,11 @@ public class Politician extends Unit {
                 }
                 // handleFoundEC(bot);
             }
+        }
+
+        if (numberOfNearbyFriendlySlanderers == 0) {
+            // move closer to base if we dont see any
+            minDistAwayFromProtectLoc = 3;
         }
 
         for (int i = nearbyEnemyBots.length; --i >= 0;) {
@@ -277,7 +289,7 @@ public class Politician extends Unit {
         boolean succesfullyCapturedEC = false;
 
         if (role == DEFEND_SLANDERER) {
-            if (targetedEnemyMuck != null) {
+            if (targetedEnemyMuck != null || closestEnemyMuck != null) {
 
                 // find an optimal empower distance that destroys as many muckrakers as possible
                 int mucksCountInRadius = 0;
@@ -308,18 +320,34 @@ public class Politician extends Unit {
                 boolean slandererInDanger = false;
                 // TODO: optimize to kill more mucks if not in danger and we see more than 2
                 // relatively close
-                MapLocation[] muckLocsToCheck = new MapLocation[]{targetedEnemyMuck.location, closestEnemyMuck.location};
+                RobotInfo[] muckLocsToCheck = new RobotInfo[]{targetedEnemyMuck, closestEnemyMuck};
+
+                if (targetedEnemyMuck != null) {
+                // System.out.println("Target " + targetedEnemyMuck.location + " - Closest " + closestEnemyMuck.location);
+                }
+                if (closestEnemyMuck.location != null) {
+
+                }
 
                 checkIfSlandererInDanger: {
-                    for (MapLocation muckLoc : muckLocsToCheck) {
-                        if (muckLoc == null) {
+                    for (RobotInfo muckInfo : muckLocsToCheck) {
+                        if (muckInfo == null) {
                             continue;
                         }
+                        MapLocation muckLoc = muckInfo.location;
                         // System.out.println("eying " + muckLoc + " - min dist " 
                         // + minDistAwayFromProtectLoc);
-                        if (muckLoc.distanceSquaredTo(homeEC) < minDistAwayFromProtectLoc) {
-                            slandererInDanger = true;
-                            break checkIfSlandererInDanger;
+                        if (homeEC != null) {
+                            int muckDistToHome = muckLoc.distanceSquaredTo(homeEC);
+                            // if (muckDistToHome < minDistAwayFromProtectLoc) {
+                            //     slandererInDanger = true;
+                            //     break checkIfSlandererInDanger;
+                            // }
+                            int myDistToHome = rc.getLocation().distanceSquaredTo(homeEC);
+                            if (myDistToHome >= muckDistToHome && muckDistToHome < 30) {
+                                slandererInDanger = true;
+                                break checkIfSlandererInDanger;
+                            }
                         }
                         Node<MapLocation> currNode = locsOfFriendSlands.head;
                         while (currNode != null) {
@@ -338,7 +366,9 @@ public class Politician extends Unit {
                 // slanderers in danger and we can't do a 2 birds one stone.
                 if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
                     // go towards closest muckraker in hope of more optimal empowering.
-                    targetLoc = rc.getLocation().add(rc.getLocation().directionTo(targetedEnemyMuck.location));
+                    if (targetedEnemyMuck != null) {
+                        targetLoc = rc.getLocation().add(rc.getLocation().directionTo(targetedEnemyMuck.location));
+                    }
                 } else {
                     if (rc.canEmpower(optimalEmpowerRadius)) {
                         rc.empower(optimalEmpowerRadius);
