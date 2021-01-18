@@ -488,9 +488,6 @@ public class Politician extends Unit {
         if (role == ATTACK_EC && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
             canWiggle = false;
         }
-        if (targetLoc == null) {
-            System.out.println("role " + role + " - " + rc.getLocation());
-        }
         if (rc.isReady() && targetLoc != null) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER) {
