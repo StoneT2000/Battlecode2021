@@ -41,7 +41,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
-
+    static int lastTurnSawEnemyMuck = 10;
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -132,6 +132,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     nearbyEnemyFirePower += bot.influence;
                 } else if (bot.type == RobotType.MUCKRAKER) {
                     enemyMuckrakersSeen += 1;
+                    lastTurnSawEnemyMuck = turnCount;
                 }
             } else if (bot.team == myTeam) {
                 if (bot.type == RobotType.POLITICIAN) {
@@ -225,14 +226,15 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 break;
             case NORMAL:
+                int allowance = rc.getInfluence() - nearbyEnemyFirePower;
                 // generate infinite influence
-                if (calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 10) / 2 > rc.getConviction() * 2
+                if (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) / 2 > allowance * 2
                         && rc.getInfluence() < MAX_INF_PER_ROBOT * 0.9) {
                     // TODO: bug, some of this is wasted due to nearby friendly units
                     for (Direction dir : CARD_DIRECTIONS) {
                         MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, rc.getConviction())) {
-                            rc.buildRobot(RobotType.POLITICIAN, dir, rc.getConviction());
+                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, allowance)) {
+                            rc.buildRobot(RobotType.POLITICIAN, dir, allowance);
                             RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
                             politicianIDs.add(newbot.ID);
                             lastBuildTurn = turnCount;
@@ -256,7 +258,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     boolean buildPoli = false;
 
-                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.8) {
+                    if (slandererIDs.size / (politicianIDs.size + 0.1) > 0.9) {
                         buildPoli = true;
                     }
                     if (enemyMuckrakersSeen > nearbyPolis) {
@@ -268,9 +270,15 @@ public class EnlightmentCenter extends RobotPlayer {
                         buildSlanderer = false;
                         buildPoli = true;
                     }
+                    // dont build slanderers, spam more polis if we recently saw a muckraker
+
+                    if (turnCount - lastTurnSawEnemyMuck < 8) {
+                        buildPoli = true;
+                    }
+
 
                     boolean considerAttackingEnemy = false;
-                    int allowance = rc.getInfluence() - nearbyEnemyFirePower;
+                    
                     if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                         considerAttackingEnemy = true;
                     }
@@ -353,6 +361,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             // int want = Math.min(allowance - allowance % 20 + 1, 949);
                             // TODO: cap size of slanderer based on nearby power
                             
+
                             int want = findOptimalSlandererInfluenceUnderX(allowance);
                             if (rc.canBuildRobot(RobotType.SLANDERER, dir, want)) {
                                 rc.buildRobot(RobotType.SLANDERER, dir, want);

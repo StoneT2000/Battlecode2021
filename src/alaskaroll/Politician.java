@@ -33,6 +33,7 @@ public class Politician extends Unit {
     static MapLocation targetedEnemyLoc = null;
 
     static MapLocation protectLocation = null;
+    /** radius of defence lattice */
     static int minDistAwayFromProtectLoc = 3;
 
     public static void setup() throws GameActionException {
@@ -303,17 +304,35 @@ public class Politician extends Unit {
                     }
                 }
 
-                Node<MapLocation> currNode = locsOfFriendSlands.dequeue();
+                
                 boolean slandererInDanger = false;
                 // TODO: optimize to kill more mucks if not in danger and we see more than 2
                 // relatively close
-                while (currNode != null) {
-                    if (currNode.val.distanceSquaredTo(targetedEnemyMuck.location) <= MUCKRAKER_ACTION_RADIUS + 10) {
-                        slandererInDanger = true;
-                        break;
+                MapLocation[] muckLocsToCheck = new MapLocation[]{targetedEnemyMuck.location, closestEnemyMuck.location};
+
+                checkIfSlandererInDanger: {
+                    for (MapLocation muckLoc : muckLocsToCheck) {
+                        if (muckLoc == null) {
+                            continue;
+                        }
+                        // System.out.println("eying " + muckLoc + " - min dist " 
+                        // + minDistAwayFromProtectLoc);
+                        if (muckLoc.distanceSquaredTo(homeEC) < minDistAwayFromProtectLoc) {
+                            slandererInDanger = true;
+                            break checkIfSlandererInDanger;
+                        }
+                        Node<MapLocation> currNode = locsOfFriendSlands.head;
+                        while (currNode != null) {
+                            if (currNode.val.distanceSquaredTo(muckLoc) <= MUCKRAKER_ACTION_RADIUS + 100) {
+                                slandererInDanger = true;
+                                break checkIfSlandererInDanger;
+                            }
+                            currNode = currNode.next;
+                        }
                     }
-                    currNode = locsOfFriendSlands.dequeue();
                 }
+
+                
 
                 // we keep following mucks if we cant optimally empower muckrakers or no
                 // slanderers in danger and we can't do a 2 birds one stone.
@@ -417,7 +436,7 @@ public class Politician extends Unit {
 
         if (!setFlagThisTurn) {
             // System.out.println("targeting " + targetedEnemyMuck);
-            if (role == DEFEND_SLANDERER && targetedEnemyMuck != null) {
+            if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
                 MapLocation myLoc = rc.getLocation();
                 int dx =  targetedEnemyMuck.location.x - myLoc.x;
                 int dy =  targetedEnemyMuck.location.y - myLoc.y;

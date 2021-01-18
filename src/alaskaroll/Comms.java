@@ -250,7 +250,7 @@ public class Comms {
         int dx = (encodedxdy / 11) - relativePoliPosOffset;
         int dy = (encodedxdy % 11) - relativePoliPosOffset;
         int id = signal & (0x001fff);
-        return new int[]{id, dx, dy};
+        return new int[]{id + MIN_ROBOT_ID, dx, dy};
     }
     public static int getTargetedECSignal(MapLocation ecloc) {
         return TARGETED_EC | encodeMapLocation(ecloc);
