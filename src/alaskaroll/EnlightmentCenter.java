@@ -263,6 +263,12 @@ public class EnlightmentCenter extends RobotPlayer {
                         buildPoli = true;
                     }
 
+                    // if we have this much influence and we're trying to build slanderers, nope, build polis, slanderers wont really help ...
+                    if (rc.getInfluence() >= 150000 && buildSlanderer == true) {
+                        buildSlanderer = false;
+                        buildPoli = true;
+                    }
+
                     boolean considerAttackingEnemy = false;
                     int allowance = rc.getInfluence() - nearbyEnemyFirePower;
                     if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {

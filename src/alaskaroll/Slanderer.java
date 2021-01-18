@@ -58,7 +58,7 @@ public class Slanderer extends Unit {
                             locOfClosestFriendEC = bot.location;
                         }
                         break;
-                    case POLITICIAN:
+                    case POLITICIAN: {
                         int flag = rc.getFlag(bot.ID);
                         switch (Comms.SIGNAL_TYPE_MASK & flag) {
                             case Comms.TARGETED_MUCK:
@@ -77,6 +77,22 @@ public class Slanderer extends Unit {
                                 // TODO: propagate that signal backwards through the network of units
                         }
                         break;
+                    }
+                    case MUCKRAKER: {
+                        int flag = rc.getFlag(bot.ID);
+                        switch (Comms.SIGNAL_TYPE_MASK & flag) {
+                            case Comms.SPOTTED_MUCK:
+                                MapLocation muckloc = Comms.readSpottedMuckSignal(flag, rc);
+                                System.out.println("Muck spotted at " + muckloc);
+                                int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
+                                if (distToSpottedMuck < distToClosestEnemyMuckraker) {
+                                    distToClosestEnemyMuckraker = distToSpottedMuck;
+                                    locOfClosestEnemyMuckraker = muckloc;
+                                }
+                                break;
+                        }
+                        break;
+                    }
                     default:
                         break;
                 }

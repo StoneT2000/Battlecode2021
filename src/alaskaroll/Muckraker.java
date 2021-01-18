@@ -125,6 +125,9 @@ public class Muckraker extends Unit {
         int distToSlosestSlanderer = 99999999;
         MapLocation locOfClosestFriendlyMuckraker = null;
         int distToClosestFriendlyMuckraker = 999999999;
+        int distToClosestEnemyMuck = 9999999;
+        RobotInfo closestEnemyMuck = null;
+        boolean friendlySlandererInSlandererRange = false;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == myTeam) {
@@ -145,6 +148,17 @@ public class Muckraker extends Unit {
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 // we always send these signals out in the event the EC changes team
                 handleFoundEC(bot);
+            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
+                int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                if (dist < distToClosestEnemyMuck) {
+                    distToClosestEnemyMuck = dist;
+                    closestEnemyMuck = bot;
+                }
+            } else if (bot.team == myTeam && bot.type == RobotType.SLANDERER) {
+                int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                if (dist <= SLANDERER_SENSE_RADIUS + 10) {
+                    friendlySlandererInSlandererRange = true;
+                }
             }
         }
 
@@ -236,7 +250,11 @@ public class Muckraker extends Unit {
 
         /** COMMS */
 
-        
+        if (friendlySlandererInSlandererRange && closestEnemyMuck != null) {
+
+            int sig = Comms.getSpottedMuckSignal(closestEnemyMuck.location);
+            setFlag(sig);
+        }
 
         // if we have map dimensions, send out scouting info
         if (ECDetailsToSend.size > 0) {
@@ -248,7 +266,7 @@ public class Muckraker extends Unit {
         }
 
         // handle flags that arernt corner stuff
-        if (specialMessageQueue.size > 0) {
+        if (!setFlagThisTurn && specialMessageQueue.size > 0) {
             setFlag(specialMessageQueue.dequeue().val);
         }
 
