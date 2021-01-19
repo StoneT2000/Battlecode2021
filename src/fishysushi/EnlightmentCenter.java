@@ -50,10 +50,17 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static int lastTurnBuiltBuffScoutMuck = -1;
 
+    static boolean firstEC = false;
+    static int buildCount = 0;
+
     public static void setup() throws GameActionException {
         role = BUILD_SCOUTS;
         lastScoutBuildDirIndex = -1;
         ecIDs.add(rc.getID());
+
+        if (rc.getRoundNum() < 2) {
+            firstEC = true;
+        }
     }
 
     public static void run() throws GameActionException {
@@ -142,8 +149,23 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
             }
         }
-        if (turnCount == 1 && enemyMuckrakersSeen == 0 && rc.getInfluence() <= 151 && rc.getInfluence() >= 149) {
-            tryToBuildAnywhere(RobotType.SLANDERER, 131);
+
+        // initial build
+        System.out.println("BC: " + buildCount);
+        if (firstEC && rc.isReady()) {
+            if (buildCount == 0) {
+                tryToBuildAnywhere(RobotType.SLANDERER, 131);
+                buildCount += 1;
+            } 
+            else if (buildCount == 3) {
+                // System.out.println("ooli build");
+                tryToBuildAnywhere(RobotType.POLITICIAN, 16);
+                buildCount += 1;
+            }
+            else if (buildCount == 4) {
+                tryToBuildAnywhere(RobotType.SLANDERER, findOptimalSlandererInfluenceUnderX(rc.getInfluence()));
+                buildCount += 1;
+            }
         }
 
         // strategy for taking ecs
@@ -215,6 +237,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(Comms.GO_SCOUT);
                         rc.buildRobot(RobotType.MUCKRAKER, checkDir, 1);
+                        buildCount += 1;
                         Stats.muckrakersBuilt += 1;
 
                         // add new id
@@ -370,8 +393,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                 break;
                             }
                         }
-                        if (buildSlanderer && allowance >= 21) {
-                            // int want = Math.min(allowance - allowance % 20 + 1, 949);
+                        if (buildSlanderer && allowance >= 41) {
                             // TODO: cap size of slanderer based on nearby power
                             
 

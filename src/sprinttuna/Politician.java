@@ -464,7 +464,8 @@ public class Politician extends Unit {
         }
 
         // handle flags that arernt corner stuff
-        if (specialMessageQueue.size > 0 && turnCount % pauseSpecialMessageQueue == 0) {
+        int currRound = rc.getRoundNum();
+        if (specialMessageQueue.size > 0 && currRound % pauseSpecialMessageQueue == 0) {
             setFlag(specialMessageQueue.dequeue().val);
         }
 
