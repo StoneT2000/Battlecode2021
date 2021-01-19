@@ -103,3 +103,12 @@ https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/
   - polis are bad with lattice, they dont reform
   - IMPORTANT, have units report mucks they see!!!?!?!??!?! slands  run away from scoped out mucks
   - build more polis earlier...?
+
+## Funny / Best Replays
+
+1. Chicken vs DaMa - Sprint Tournament 1
+  - https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/9edc7a4174040a012618d532618552.bc21
+  - The little poli that could: 
+2. Chop Suey (California Roll) vs babyducks
+  - https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/306f7fce39c733e7285bc5d2ac8c58.bc21
+  - In game 1, round 1154, Chop Suey is winning with total influence. But then a EC at the top right spends all its influence on one politician and gets captured. Luckily the big politician goes to the left and captures a EC! Only to then spawn the biggest slanderer ever and get exposed and lose everything
