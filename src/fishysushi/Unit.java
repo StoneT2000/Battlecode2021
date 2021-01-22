@@ -68,7 +68,7 @@ public abstract class Unit extends RobotPlayer {
                 
                 if (thisDist > origDist) {
                     val += 200000;
-                } 
+                }
                 if (thisDist == 0) {
                     val = 0;
                 }
