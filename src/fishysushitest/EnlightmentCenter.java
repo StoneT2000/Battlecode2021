@@ -265,7 +265,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 // generate infinite influence
                 // estimate influence generated per turn by spending this, see if it is better
                 // than spawning a slanderer
-                int inf_per_turn = (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) - allowance) / 10;
+                int packedDiscount = 2;
+                int inf_per_turn = (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) / packedDiscount - allowance) / 10;
                 // divide inf per turn by 2 if there's very little space
                 double sland_inf_per_turn = 1;
                 if (allowance >= 21) {
@@ -273,7 +274,6 @@ public class EnlightmentCenter extends RobotPlayer {
                     sland_inf_per_turn = (slandererInfPerTurn(opt_choice) * GameConstants.EMBEZZLE_NUM_ROUNDS
                             - opt_choice) / (double) GameConstants.EMBEZZLE_NUM_ROUNDS;
                 }
-                inf_per_turn /= 2;
                 System.out.println(
                         "Inf per turn - " + inf_per_turn + " vs. sland inf per turn now - " + sland_inf_per_turn);
                 // if (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) / 2 >
