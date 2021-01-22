@@ -21,11 +21,11 @@ public strictfp class RobotPlayer {
     static int mapWidth = 0;
     static int mapHeight = 0;
 
-    /** locations using long map hash  (encoding w/o using map offsets) */
+    /** locations using long map hash (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> enemyECLocs = new HashMap<>(12);
-    /** locations using long map hash  (encoding w/o using map offsets) */
+    /** locations using long map hash (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> friendlyECLocs = new HashMap<>(12);
-    /** locations using long map hash  (encoding w/o using map offsets) */
+    /** locations using long map hash (encoding w/o using map offsets) */
     static HashMap<Integer, ECDetails> neutralECLocs = new HashMap<>(12);
 
     /** maps robot id to message parts they sent if message is multi-part */
@@ -113,7 +113,7 @@ public strictfp class RobotPlayer {
     }
 
     public static int minimumConvictionNeededToSpreadNConviction(Team team, int n, int roundsInFuture) {
-        return (int)((n + GameConstants.EMPOWER_TAX) / rc.getEmpowerFactor(team, roundsInFuture));
+        return (int) ((n + GameConstants.EMPOWER_TAX) / rc.getEmpowerFactor(team, roundsInFuture));
     }
 
     public static void setFlag(int flag) throws GameActionException {
@@ -130,11 +130,12 @@ public strictfp class RobotPlayer {
         int teamval = data[0];
         int hash = data[1];
         int influence = data[2];
-        
+
         MapLocation ECLoc = Comms.decodeMapLocation(hash, rc);
         storeAndProcessECLocAndTeam(ECLoc, teamval, influence);
-        
+
     }
+
     /**
      * stores EC Loc data and removes old data if necessary
      */
@@ -168,5 +169,31 @@ public strictfp class RobotPlayer {
         }
         return false;
     }
-}
 
+    public static int slandererInfPerTurn(int startingInfluence) {
+        return (int) Math.floor((1. / 50. + 0.03 * Math.exp(-0.001 * startingInfluence)) * startingInfluence);
+    }
+
+    public static int dirToInt(Direction dir) {
+        switch (dir) {
+            case NORTH:
+                return 0;
+            case NORTHEAST:
+                return 1;
+            case EAST:
+                return 2;
+            case SOUTHEAST:
+                return 3;
+            case SOUTH:
+                return 4;
+            case SOUTHWEST:
+                return 5;
+            case WEST:
+                return 6;
+            case NORTHWEST:
+                return 7;
+            default:
+                return -1;
+        }
+    }
+}
