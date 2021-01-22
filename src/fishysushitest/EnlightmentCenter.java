@@ -12,6 +12,8 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int NORMAL = 1;
     static int role = NORMAL;
 
+    static boolean gotBuffed = false;
+
     static int highMapX = Integer.MIN_VALUE;
     static int highMapY = Integer.MIN_VALUE;
 
@@ -303,9 +305,16 @@ public class EnlightmentCenter extends RobotPlayer {
 
                 // if we have this much influence and we're trying to build slanderers, nope,
                 // build polis, slanderers wont really help ...
-                if (rc.getInfluence() >= 150000 && buildSlanderer == true) {
+                if (rc.getInfluence() >= 250000 && buildSlanderer == true) {
                     buildSlanderer = false;
                     buildPoli = true;
+                }
+                // try and maintain this much influence, don't spend it on giant poli units
+                if (rc.getInfluence() >= 200000) {
+                    gotBuffed = true;
+                }
+                if (rc.getInfluence() < 4000) {
+                    gotBuffed = false;
                 }
                 // dont build slanderers, spam more polis if we recently saw a muckraker
 
@@ -322,12 +331,12 @@ public class EnlightmentCenter extends RobotPlayer {
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
                         + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
                 // capture netural ECs
-                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 50) {
+                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 200) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     // limit ourselves to send only one poli per neutral
                     if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                         // TODO: dont do this if enemy is near and can capture easily
-                        int want = neutralECLocToTake.lastKnownConviction + 50;
+                        int want = neutralECLocToTake.lastKnownConviction + 200;
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
                                 rc.getLocation().directionTo(neutralECLocToTake.location));
                         if (newbot != null) {
@@ -361,6 +370,11 @@ public class EnlightmentCenter extends RobotPlayer {
                 else if (enemyECLocToTake != null && considerAttackingEnemy) {
                     int want = allowance;
                     want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
+                    
+                    // if we got buffed, reduce allowance significantly
+                    if (gotBuffed) {
+                        want = Math.min(allowance, 1500);
+                    }
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
                     if (newbot != null) {
