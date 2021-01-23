@@ -1,4 +1,4 @@
-package skepticalsushi.utils;
+package confusedsushi.utils;
 
 public class Node<T> {
     public Node<T> next;

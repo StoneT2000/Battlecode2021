@@ -1,4 +1,4 @@
-package skepticalsushi.utils;
+package confusedsushi.utils;
 
 public class LinkedList<T> {
     public int size = 0;

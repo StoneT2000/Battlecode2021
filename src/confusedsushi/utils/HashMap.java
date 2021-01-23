@@ -1,4 +1,4 @@
-package skepticalsushi.utils;
+package confusedsushi.utils;
 
 public class HashMap<K, V> {
     public LinkedList<HashMapNodeVal<K, V>>[] table;

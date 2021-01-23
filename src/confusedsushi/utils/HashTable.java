@@ -1,4 +1,4 @@
-package skepticalsushi.utils;
+package confusedsushi.utils;
 
 public class HashTable<T> {
     LinkedList<T>[] table;

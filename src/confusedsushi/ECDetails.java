@@ -1,4 +1,4 @@
-package skepticalsushi;
+package confusedsushi;
 
 import battlecode.common.*;
 
