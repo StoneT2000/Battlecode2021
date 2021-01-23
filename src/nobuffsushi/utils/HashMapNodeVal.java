@@ -1,4 +1,4 @@
-package fishysushitest.utils;
+package nobuffsushi.utils;
 // using this as node values, we can compare keys and store values still as linkedlist contain method uses .equals
 public class HashMapNodeVal<K,V> {
     public K key;

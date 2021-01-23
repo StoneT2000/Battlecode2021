@@ -1,9 +1,9 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import fishysushitest.utils.*;
+import nobuffsushi.utils.*;
 
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public class EnlightmentCenter extends RobotPlayer {
     static int lastScoutBuildDirIndex = -1;

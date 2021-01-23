@@ -1,7 +1,7 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public class Comms {
 

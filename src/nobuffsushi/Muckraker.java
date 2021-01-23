@@ -1,12 +1,12 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import fishysushitest.utils.LinkedList;
-import fishysushitest.utils.Node;
-import fishysushitest.utils.HashMapNodeVal;
-import fishysushitest.utils.HashTable;
+import nobuffsushi.utils.LinkedList;
+import nobuffsushi.utils.Node;
+import nobuffsushi.utils.HashMapNodeVal;
+import nobuffsushi.utils.HashTable;
 
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public class Muckraker extends Unit {
     public static final int[][] BFS30 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },

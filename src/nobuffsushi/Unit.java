@@ -1,10 +1,10 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import fishysushitest.utils.HashTable;
-import fishysushitest.utils.LinkedList;
+import nobuffsushi.utils.HashTable;
+import nobuffsushi.utils.LinkedList;
 
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public abstract class Unit extends RobotPlayer {
 

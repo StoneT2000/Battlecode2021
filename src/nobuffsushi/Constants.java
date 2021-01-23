@@ -1,4 +1,4 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
 

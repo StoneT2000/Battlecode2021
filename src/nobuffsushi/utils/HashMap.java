@@ -1,4 +1,4 @@
-package fishysushitest.utils;
+package nobuffsushi.utils;
 
 public class HashMap<K, V> {
     public LinkedList<HashMapNodeVal<K, V>>[] table;

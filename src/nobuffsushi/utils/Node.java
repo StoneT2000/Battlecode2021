@@ -1,4 +1,4 @@
-package fishysushitest.utils;
+package nobuffsushi.utils;
 
 public class Node<T> {
     public Node<T> next;

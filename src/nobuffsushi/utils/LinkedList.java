@@ -1,4 +1,4 @@
-package fishysushitest.utils;
+package nobuffsushi.utils;
 
 public class LinkedList<T> {
     public int size = 0;

@@ -1,12 +1,12 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import fishysushitest.Comms;
-import fishysushitest.utils.HashMap;
-import fishysushitest.utils.HashTable;
-import fishysushitest.utils.Node;
+import nobuffsushi.Comms;
+import nobuffsushi.utils.HashMap;
+import nobuffsushi.utils.HashTable;
+import nobuffsushi.utils.Node;
 
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;

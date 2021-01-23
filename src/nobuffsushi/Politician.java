@@ -1,12 +1,12 @@
-package fishysushitest;
+package nobuffsushi;
 
 import battlecode.common.*;
-import fishysushitest.utils.HashMap;
-import fishysushitest.utils.HashTable;
-import fishysushitest.utils.LinkedList;
-import fishysushitest.utils.Node;
+import nobuffsushi.utils.HashMap;
+import nobuffsushi.utils.HashTable;
+import nobuffsushi.utils.LinkedList;
+import nobuffsushi.utils.Node;
 
-import static fishysushitest.Constants.*;
+import static nobuffsushi.Constants.*;
 
 public class Politician extends Unit {
     public static final int[][] BFS25 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
