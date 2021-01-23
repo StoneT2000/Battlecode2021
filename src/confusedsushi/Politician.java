@@ -222,6 +222,8 @@ public class Politician extends Unit {
             minDistAwayFromProtectLoc = 3;
         }
 
+        RobotInfo nearestEnemyEC = null;
+        int cloestsEnemyECDist = 99999999;
         for (int i = nearbyEnemyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyEnemyBots[i];
             int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -251,6 +253,11 @@ public class Politician extends Unit {
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
+                if (dist < cloestsEnemyECDist) {
+                    cloestsEnemyECDist = dist;
+                    nearestEnemyEC = bot;
+                }
+                
             } else if (bot.type == RobotType.POLITICIAN && dist <= 9) {
                 nearbyEnemyFirePower += bot.influence;
                 nearbyEnemyPolis += 1;
@@ -463,11 +470,18 @@ public class Politician extends Unit {
         } else if (role == ATTACK_EC || role == ATTACK_NEUTRAL_EC) {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
+            
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
                     // if not enemy anymore, just supply the EC with eco
 
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
+                    
+                    if (enemyEC == null && nearestEnemyEC != null) {
+                        // check surroundings?!??!?
+                        attackLoc = nearestEnemyEC.location;
+                        enemyEC = nearestEnemyEC;
+                    }
                     if (enemyEC == null) {
                         // System.out.println("attackLoc: " + attackLoc + " - myloc" +
                         // rc.getLocation());
@@ -488,9 +502,11 @@ public class Politician extends Unit {
                             int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                             if (distToEC <= i) {
                                 int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
-                                        rc.getConviction() + (int) (nearbyFirePower / 0.5), 0) / n;
+                                        rc.getConviction() + (int) (nearbyFirePower), 0) / n;
 
                                 double discountFactor = 0.5;
+                                System.out.println("nearby fire " +  nearbyFirePower + " - buff" + rc.getEmpowerFactor(myTeam, 0));
+                                System.out.println("Dist " + i  +"  - per " + speechInfluencePerUnit + " - ec conv" + enemyEC.conviction + " - nb " + nearbyEnemyFirePower);
                                 if (speechInfluencePerUnit >= enemyEC.conviction
                                         + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis)
                                                 * discountFactor) {
@@ -540,11 +556,17 @@ public class Politician extends Unit {
 
         if (!setFlagThisTurn) {
             // System.out.println("targeting " + targetedEnemyMuck);
-            if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
+            if (role == DEFEND_SLANDERER && rc.getConviction() > STANDARD_DEFEND_POLI_CONVICTION)  {
+                setFlag(Comms.IM_STOPPING_BUFF_MUCK);
+            }
+            else if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
+                if (rc.getConviction() <= STANDARD_DEFEND_POLI_CONVICTION) {
                 MapLocation myLoc = rc.getLocation();
                 int dx = targetedEnemyMuck.location.x - myLoc.x;
                 int dy = targetedEnemyMuck.location.y - myLoc.y;
-                setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
+                    setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
+                }
+                
             } else if (role == ATTACK_EC) {
                 int sig = Comms.getTargetedECSignal(attackLoc);
                 setFlag(sig);

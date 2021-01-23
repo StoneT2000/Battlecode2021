@@ -252,7 +252,13 @@ public class Muckraker extends Unit {
 
         if (friendlySlandererInSlandererRange && closestEnemyMuck != null) {
 
-            int sig = Comms.getSpottedMuckSignal(closestEnemyMuck.location);
+            int sig = Comms.getSpottedMuckSignal(closestEnemyMuck.location, closestEnemyMuck.conviction);
+            setFlag(sig);
+        }
+
+        // report buff mucks
+        if (closestEnemyMuck != null && closestEnemyMuck.conviction >= BUFF_MUCK_THRESHOLD) {
+            int sig = Comms.getSpottedMuckSignal(closestEnemyMuck.location, closestEnemyMuck.conviction);
             setFlag(sig);
         }
 

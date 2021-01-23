@@ -159,7 +159,7 @@ public class Slanderer extends Unit {
         if (locOfClosestEnemyMuckraker != null) {
             Direction awayDir = findDirAwayFromLocations(new MapLocation[] { locOfClosestEnemyMuckraker });
             // targetLoc = rc.getLocation().add(awayDir);
-            System.out.println("running away from muck at " + locOfClosestEnemyMuckraker + " - dir " + awayDir);
+            // System.out.println("running away from muck at " + locOfClosestEnemyMuckraker + " - dir " + awayDir);
             // originPoint = originPoint.add(awayDir);
             // use different pathing algo for running away
             Direction greedyDir = Direction.CENTER;
@@ -177,9 +177,9 @@ public class Slanderer extends Unit {
                         }
                     }
                 }
-                System.out.println("chose " + greedyDir);
+                // System.out.println("chose " + greedyDir);
             } else {
-                System.out.println("cant move ");
+                // System.out.println("cant move ");
             }
             
             if (greedyDir != Direction.CENTER) {

@@ -56,6 +56,8 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static int lastTurnBuiltBuffScoutMuck = -1;
 
+    static LinkedList<Integer> bigEnemyMuckSizes;
+
     static boolean firstEC = false;
     static int buildCount = 0;
 
@@ -71,6 +73,8 @@ public class EnlightmentCenter extends RobotPlayer {
 
     public static void run() throws GameActionException {
 
+        // fields that reset each turn and get manipulated by other functions lmao
+        bigEnemyMuckSizes = new LinkedList<>();
         setFlagThisTurn = false;
         // how much influence is spent on building
         int spentInfluence = 0;
@@ -135,7 +139,7 @@ public class EnlightmentCenter extends RobotPlayer {
         int enemyMuckrakersSeen = 0;
         int nearbyPolis = 0;
         // list of enemy mucks with larger inf
-        LinkedList<Integer> bigEnemyMuckSizes = new LinkedList<>();
+        
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
@@ -158,7 +162,7 @@ public class EnlightmentCenter extends RobotPlayer {
             } else if (bot.team == myTeam) {
                 if (bot.type == RobotType.POLITICIAN) {
                     nearbyPolis += 1;
-                    if (bot.conviction > STANDARD_DEFEND_POLI_CONVICTION) {
+                    if (rc.getFlag(bot.ID) == Comms.IM_STOPPING_BUFF_MUCK) {
                         // TODO: perhaps more accurately calcultae this based on the buff value in the
                         // future?
                         // concern, would need to be conservative with how near future we calc buff for.
@@ -619,7 +623,7 @@ public class EnlightmentCenter extends RobotPlayer {
             if (Clock.getBytecodesLeft() < 10000) {
                 break;
             }
-            try {
+            if (rc.canGetFlag(currIDNode.val)) {
                 int flag = rc.getFlag(currIDNode.val);
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
                     case Comms.CORNER_LOC_X:
@@ -637,9 +641,17 @@ public class EnlightmentCenter extends RobotPlayer {
                     case Comms.FOUND_EC:
                         processFoundECFlag(flag);
                         break;
+                    case Comms.SPOTTED_MUCK:
+                        int[] data  = Comms.readSpottedMuckSignal(flag, rc);
+                        MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
+                        if (rc.getLocation().distanceSquaredTo(muckloc) <= 150) {
+                            bigEnemyMuckSizes.add(data[1]);
+                        }
+                        // System.out.println("found muck by muck at " + muckloc + " size: "  + data[1]);
+                        break;
 
                 }
-            } catch (GameActionException error) {
+            } else {
                 // lost this muck
                 idsToRemove.add(currIDNode.val);
             }

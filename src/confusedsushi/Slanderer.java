@@ -82,7 +82,8 @@ public class Slanderer extends Unit {
                         int flag = rc.getFlag(bot.ID);
                         switch (Comms.SIGNAL_TYPE_MASK & flag) {
                             case Comms.SPOTTED_MUCK:
-                                MapLocation muckloc = Comms.readSpottedMuckSignal(flag, rc);
+                                int[] data = Comms.readSpottedMuckSignal(flag, rc);
+                                MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
                                 int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
                                 if (distToSpottedMuck < distToClosestEnemyMuckraker) {
                                     distToClosestEnemyMuckraker = distToSpottedMuck;

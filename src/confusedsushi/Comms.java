@@ -35,6 +35,7 @@ public class Comms {
     public static final int IMASLANDERERR = 0x900001;
     public static final int GO_SCOUT = 0x900002;
     public static final int IM_ATTACKING_NEUTRAL_EC = 0x900003;
+    public static final int IM_STOPPING_BUFF_MUCK = 0x900004;
 
     public static final int ATTACK_EC = 0xa00000;
     public static final int ATTACK_NEUTRAL_EC = 0xa80000;
@@ -262,10 +263,22 @@ public class Comms {
         return decodeMapLocation(lochash, rc);
     }
 
-    public static int getSpottedMuckSignal(MapLocation muckLoc) {
-        return SPOTTED_MUCK | encodeMapLocation(muckLoc);
+    public static int getSpottedMuckSignal(MapLocation muckLoc, int conviction) {
+        int sendConv = (int) Math.ceil((double)conviction / 20.0);
+        if (conviction > 1240) {
+            sendConv = 63; // 63 indicates the ec inf is over 630
+        }
+        // 4 - 14 - 6
+        return SPOTTED_MUCK | (encodeMapLocation(muckLoc) << 6) | sendConv;
     }
-    public static MapLocation readSpottedMuckSignal(int signal, RobotController rc) {
-        return decodeMapLocation(SIGNAL_MASK & signal, rc);
+    /**
+     * 
+     * @return [maphash, conviction]
+     */
+    public static int[] readSpottedMuckSignal(int signal, RobotController rc) {
+        
+        int hash = (signal & 0x0fffc0) >> 6;
+        int conviction = signal & 0x00003f;
+        return new int[]{hash, conviction * 20};
     }
 }
