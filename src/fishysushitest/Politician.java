@@ -70,7 +70,7 @@ public class Politician extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                switch(Comms.SIGNAL_TYPE_5BIT_MASK & flag) {
+                switch (Comms.SIGNAL_TYPE_5BIT_MASK & flag) {
                     case Comms.ATTACK_EC:
                         if (turnCount < 2 || role == ATTACK_EC) {
                             role = ATTACK_EC;
@@ -84,7 +84,7 @@ public class Politician extends Unit {
                         }
                         break;
                 }
-                
+
                 break;
 
         }
@@ -92,6 +92,9 @@ public class Politician extends Unit {
 
     public static void run() throws GameActionException {
         setFlagThisTurn = false;
+        // control whether the unit will prefer to stay still as opposed to wigglign out
+        // of tight space
+        boolean absolutelydonotwiggle = false;
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
@@ -100,7 +103,7 @@ public class Politician extends Unit {
             multiPartMessagesByBotID.remove(homeECID);
         }
 
-        if(role == SACRIFICE) {
+        if (role == SACRIFICE) {
             if (rc.canEmpower(1)) {
                 rc.empower(1);
             }
@@ -146,6 +149,8 @@ public class Politician extends Unit {
         int nearbyEnemyFirePower = 0;
         int nearbyEnemyPolis = 0;
         int numberOfNearbyFriendlySlanderers = 0;
+        RobotInfo highestTargetableBuffMuck = null;
+        int highestTargetableBuffMuckConviction = 0;
 
         for (int i = nearbyFriendBots.length; --i >= 0;) {
             RobotInfo bot = nearbyFriendBots[i];
@@ -155,7 +160,7 @@ public class Politician extends Unit {
                 friendlyUnitsAtDistanceCount[dist] += 1;
             }
             int flag = 0;
-           
+
             if (rc.canGetFlag(bot.ID)) {
                 flag = rc.getFlag(bot.ID);
                 handleFlag(flag);
@@ -223,7 +228,7 @@ public class Politician extends Unit {
                 }
                 if (dist < distToTargetedEnemyMuck) {
                     Integer num = numberOfPolisTargetingMucks.get(bot.ID);
-                    if (num == null || num < 1) {
+                    if (num == null || num < 1 || bot.conviction >= BUFF_MUCK_THRESHOLD) {
                         distToTargetedEnemyMuck = dist;
                         targetedEnemyMuck = bot;
                     }
@@ -231,6 +236,11 @@ public class Politician extends Unit {
                 if (dist < distToClosestEnemyMuck) {
                     distToClosestEnemyMuck = dist;
                     closestEnemyMuck = bot;
+                }
+                if (bot.conviction >= BUFF_MUCK_THRESHOLD) {
+                    if (bot.conviction > highestTargetableBuffMuckConviction) {
+                        highestTargetableBuffMuck = bot;
+                    }
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
                 handleFoundEC(bot);
@@ -290,6 +300,12 @@ public class Politician extends Unit {
 
         if (role == DEFEND_SLANDERER) {
             if (targetedEnemyMuck != null || closestEnemyMuck != null) {
+                boolean targetBuffMuck = false;
+                if (rc.getConviction() > STANDARD_DEFEND_POLI_CONVICTION && highestTargetableBuffMuck != null) {
+                    // a buff poli to fight buff mucks
+                    targetBuffMuck = true;
+                    targetedEnemyMuck = highestTargetableBuffMuck;
+                }
 
                 // find an optimal empower distance that destroys as many muckrakers as possible
                 int mucksCountInRadius = 0;
@@ -298,6 +314,7 @@ public class Politician extends Unit {
                 int neutralsInRadius = 0;
                 int maxMucksDestroyed = 0;
                 int optimalEmpowerRadius = -1;
+                int highestInfPerUnit = 0;
                 for (int i = 1; i <= 9; i++) {
                     mucksCountInRadius += oppMuckUnitsAtDistanceCount[i];
                     oppUnitsInRadius += oppUnitsAtDistanceCount[i];
@@ -305,73 +322,118 @@ public class Politician extends Unit {
                     friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
                     int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                     if (mucksCountInRadius > 0) {
+
                         int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam, rc.getConviction(), 0)
                                 / n;
-                        if (speechInfluencePerUnit >= 2) {
-                            if (mucksCountInRadius > maxMucksDestroyed) {
-                                maxMucksDestroyed = mucksCountInRadius;
+                        if (targetBuffMuck && rc.getLocation().distanceSquaredTo(targetedEnemyMuck.location) <= i) {
+                            // if targeting buff muck and in range, see how much conictionwe can inflict now
+                            // this is find to empower if at least use half our conviction correctly or we
+                            // eliminate the enemy unit
+                            if ((speechInfluencePerUnit >= rc.getConviction() / 2
+                                    || speechInfluencePerUnit >= targetedEnemyMuck.conviction)
+                                    && speechInfluencePerUnit > highestInfPerUnit) {
                                 optimalEmpowerRadius = i;
+                                highestInfPerUnit = speechInfluencePerUnit;
+                            }
+                        } else {
+                            if (speechInfluencePerUnit >= 2) {
+                                if (mucksCountInRadius > maxMucksDestroyed) {
+                                    maxMucksDestroyed = mucksCountInRadius;
+                                    optimalEmpowerRadius = i;
+                                }
                             }
                         }
                     }
                 }
-
-                
-                boolean slandererInDanger = false;
-                // TODO: optimize to kill more mucks if not in danger and we see more than 2
-                // relatively close
-                RobotInfo[] muckLocsToCheck = new RobotInfo[]{targetedEnemyMuck, closestEnemyMuck};
-
-                if (targetedEnemyMuck != null) {
-                // System.out.println("Target " + targetedEnemyMuck.location + " - Closest " + closestEnemyMuck.location);
-                }
-                if (closestEnemyMuck.location != null) {
-
-                }
-
-                checkIfSlandererInDanger: {
-                    for (RobotInfo muckInfo : muckLocsToCheck) {
-                        if (muckInfo == null) {
-                            continue;
-                        }
-                        MapLocation muckLoc = muckInfo.location;
-                        // System.out.println("eying " + muckLoc + " - min dist " 
-                        // + minDistAwayFromProtectLoc);
-                        if (homeEC != null) {
-                            int muckDistToHome = muckLoc.distanceSquaredTo(homeEC);
-                            // if (muckDistToHome < minDistAwayFromProtectLoc) {
-                            //     slandererInDanger = true;
-                            //     break checkIfSlandererInDanger;
-                            // }
-                            int myDistToHome = rc.getLocation().distanceSquaredTo(homeEC);
-                            if (myDistToHome >= muckDistToHome && muckDistToHome < 30) {
-                                slandererInDanger = true;
-                                break checkIfSlandererInDanger;
-                            }
-                        }
-                        Node<MapLocation> currNode = locsOfFriendSlands.head;
-                        while (currNode != null) {
-                            if (currNode.val.distanceSquaredTo(muckLoc) <= MUCKRAKER_ACTION_RADIUS + 100) {
-                                slandererInDanger = true;
-                                break checkIfSlandererInDanger;
-                            }
-                            currNode = currNode.next;
-                        }
-                    }
-                }
-
-                
-
-                // we keep following mucks if we cant optimally empower muckrakers or no
-                // slanderers in danger and we can't do a 2 birds one stone.
-                if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
-                    // go towards closest muckraker in hope of more optimal empowering.
-                    if (targetedEnemyMuck != null) {
+                if (targetBuffMuck == true) {
+                    if (optimalEmpowerRadius != -1 && rc.canEmpower(optimalEmpowerRadius)) {
+                        rc.empower(optimalEmpowerRadius);
+                    } else {
                         targetLoc = rc.getLocation().add(rc.getLocation().directionTo(targetedEnemyMuck.location));
                     }
                 } else {
-                    if (rc.canEmpower(optimalEmpowerRadius)) {
-                        rc.empower(optimalEmpowerRadius);
+                    // logic for targeting cheap mucks
+                    // target if slanderer in danger or we can hit 2 at a time
+                    boolean slandererInDanger = false;
+                    // TODO: optimize to kill more mucks if not in danger and we see more than 2
+                    // relatively close
+                    RobotInfo[] muckLocsToCheck = new RobotInfo[] { targetedEnemyMuck, closestEnemyMuck };
+
+                    if (targetedEnemyMuck != null) {
+                        // System.out.println("Target " + targetedEnemyMuck.location + " - Closest " +
+                        // closestEnemyMuck.location);
+                    }
+                    if (closestEnemyMuck.location != null) {
+
+                    }
+
+                    checkIfSlandererInDanger: {
+                        for (RobotInfo muckInfo : muckLocsToCheck) {
+                            if (muckInfo == null) {
+                                continue;
+                            }
+                            MapLocation muckLoc = muckInfo.location;
+                            // System.out.println("eying " + muckLoc + " - min dist "
+                            // + minDistAwayFromProtectLoc);
+                            if (homeEC != null) {
+                                int muckDistToHome = muckLoc.distanceSquaredTo(homeEC);
+                                // if (muckDistToHome < minDistAwayFromProtectLoc) {
+                                // slandererInDanger = true;
+                                // break checkIfSlandererInDanger;
+                                // }
+                                int myDistToHome = rc.getLocation().distanceSquaredTo(homeEC);
+                                if (myDistToHome >= muckDistToHome && muckDistToHome < 30) {
+                                    slandererInDanger = true;
+                                    break checkIfSlandererInDanger;
+                                }
+                            }
+                            Node<MapLocation> currNode = locsOfFriendSlands.head;
+                            while (currNode != null) {
+                                if (currNode.val.distanceSquaredTo(muckLoc) <= MUCKRAKER_ACTION_RADIUS + 100) {
+                                    slandererInDanger = true;
+                                    break checkIfSlandererInDanger;
+                                }
+                                currNode = currNode.next;
+                            }
+                        }
+                    }
+
+                    // we keep following mucks if we cant optimally empower muckrakers or no
+                    // slanderers in danger and we can't do a 2 birds one stone.
+                    if (optimalEmpowerRadius == -1 || (!slandererInDanger && maxMucksDestroyed < 2)) {
+                        // go towards closest muckraker in hope of more optimal empowering.
+                        if (targetedEnemyMuck != null) {
+                            targetLoc = rc.getLocation().add(rc.getLocation().directionTo(targetedEnemyMuck.location));
+                            if (targetedEnemyMuck.conviction >= BUFF_MUCK_THRESHOLD) {
+                                absolutelydonotwiggle = true;
+                            }
+                        } else if (closestEnemyMuck != null && closestEnemyMuck.conviction >= BUFF_MUCK_THRESHOLD) {
+                            // move closer if it's probably a buff muck or something
+                            targetLoc = rc.getLocation().add(rc.getLocation().directionTo(closestEnemyMuck.location));
+                            absolutelydonotwiggle = true;
+                        } else {
+                            // lastly do latticing
+                            // move away from EC...
+                            // bottom code copied from else
+                            if (homeEC != null && rc.getLocation().distanceSquaredTo(homeEC) <= 2) {
+                                targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
+                            } else {
+                                if (bestLatticeLoc == null) {
+                                    targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                                    if (!rc.onTheMap(targetLoc)) {
+                                        exploreDir = exploreDir.rotateLeft().rotateLeft();
+                                        targetLoc = rc.getLocation().add(exploreDir).add(exploreDir).add(exploreDir);
+                                    }
+                                } else {
+                                    targetLoc = bestLatticeLoc;
+                                }
+                            }
+
+                        }
+                    } else {
+                        if (rc.canEmpower(optimalEmpowerRadius)) {
+                            rc.empower(optimalEmpowerRadius);
+                        }
                     }
                 }
             } else {
@@ -400,10 +462,10 @@ public class Politician extends Unit {
 
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
                     if (enemyEC == null) {
-                        // System.out.println("attackLoc: " + attackLoc + " -  myloc" + rc.getLocation());
+                        // System.out.println("attackLoc: " + attackLoc + " - myloc" +
+                        // rc.getLocation());
                         // shouldnt happen...
-                    }
-                    else if (enemyEC.team == myTeam) {
+                    } else if (enemyEC.team == myTeam) {
                         if (distToEC == 1) {
                             rc.empower(1);
                         }
@@ -421,10 +483,10 @@ public class Politician extends Unit {
                                 int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
                                         rc.getConviction() + (int) (nearbyFirePower / 1.2), 0) / n;
 
-                                
-
                                 double discountFactor = 0.5;
-                                if (speechInfluencePerUnit >= enemyEC.conviction + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis) * discountFactor) {
+                                if (speechInfluencePerUnit >= enemyEC.conviction
+                                        + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis)
+                                                * discountFactor) {
                                     rc.empower(i);
                                     break;
                                 }
@@ -443,7 +505,7 @@ public class Politician extends Unit {
             while (!rc.onTheMap(targetLoc)) {
                 i++;
                 targetLoc = rc.getLocation().add(dirs[i]).add(dirs[i]).add(dirs[i]);
-                
+
             }
             if (i != -1) {
                 exploreDir = dirs[i];
@@ -473,8 +535,8 @@ public class Politician extends Unit {
             // System.out.println("targeting " + targetedEnemyMuck);
             if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
                 MapLocation myLoc = rc.getLocation();
-                int dx =  targetedEnemyMuck.location.x - myLoc.x;
-                int dy =  targetedEnemyMuck.location.y - myLoc.y;
+                int dx = targetedEnemyMuck.location.x - myLoc.x;
+                int dy = targetedEnemyMuck.location.y - myLoc.y;
                 setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
             } else if (role == ATTACK_EC) {
                 int sig = Comms.getTargetedECSignal(attackLoc);
@@ -489,16 +551,40 @@ public class Politician extends Unit {
         if (role == ATTACK_EC && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
             canWiggle = false;
         }
-        if (rc.isReady() && targetLoc != null) {
-            Direction dir = getNextDirOnPath(targetLoc);
-            if (dir != Direction.CENTER) {
-                rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc) && canWiggle) {
-                // wiggle out if perhaps stuck
-                for (Direction wiggleDir : DIRECTIONS) {
-                    // MapLocation loc = rc.getLocation().add(wiggleDir);
-                    if (rc.canMove(wiggleDir)) {
-                        rc.move(wiggleDir);
+        if (absolutelydonotwiggle) {
+            // do completely greedy movement
+            if (rc.isReady() && targetLoc != null) {
+                Direction greedyDir = Direction.CENTER;
+                int bestDist = rc.getLocation().distanceSquaredTo(targetLoc);
+                for (Direction dir : DIRECTIONS) {
+                    if (rc.canMove(dir)) {
+                        MapLocation newloc = rc.getLocation().add(dir);
+                        if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
+                            int thisDist = newloc.distanceSquaredTo(targetLoc);
+                            // minimize dist
+                            if (thisDist < bestDist) {
+                                greedyDir = dir;
+                                bestDist = thisDist;
+                            }
+                        }
+                    }
+                }
+                if (greedyDir != Direction.CENTER) {
+                    rc.move(greedyDir);
+                }
+            }
+        } else {
+            if (rc.isReady() && targetLoc != null) {
+                Direction dir = getNextDirOnPath(targetLoc);
+                if (dir != Direction.CENTER) {
+                    rc.move(dir);
+                } else if (!rc.getLocation().equals(targetLoc) && canWiggle) {
+                    // wiggle out if perhaps stuck
+                    for (Direction wiggleDir : DIRECTIONS) {
+                        // MapLocation loc = rc.getLocation().add(wiggleDir);
+                        if (rc.canMove(wiggleDir)) {
+                            rc.move(wiggleDir);
+                        }
                     }
                 }
             }

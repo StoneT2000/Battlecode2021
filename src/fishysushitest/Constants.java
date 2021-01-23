@@ -13,6 +13,8 @@ public class Constants {
         public static final RobotType[] SPAWNABLE_ROBOTS = { RobotType.POLITICIAN, RobotType.SLANDERER,
                         RobotType.MUCKRAKER, };
 
+        public static final int STANDARD_DEFEND_POLI_CONVICTION = 20;
+        public static final int BUFF_MUCK_THRESHOLD = 15;
         public static final int MUCKRAKER_SENSE_RADIUS = 30;
         public static final int POLI_SENSE_RADIUS = 25;
         public static final int MUCKRAKER_ACTION_RADIUS = 12;

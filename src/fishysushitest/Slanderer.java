@@ -158,16 +158,40 @@ public class Slanderer extends Unit {
 
         if (locOfClosestEnemyMuckraker != null) {
             Direction awayDir = findDirAwayFromLocations(new MapLocation[] { locOfClosestEnemyMuckraker });
-            targetLoc = rc.getLocation().add(awayDir);
+            // targetLoc = rc.getLocation().add(awayDir);
+            System.out.println("running away from muck at " + locOfClosestEnemyMuckraker + " - dir " + awayDir);
             // originPoint = originPoint.add(awayDir);
-        }
-
-        if (rc.isReady()) {
-            Direction dir = getNextDirOnPath(targetLoc);
-            if (dir != Direction.CENTER && rc.canMove(dir)) {
-                rc.move(dir);
+            // use different pathing algo for running away
+            Direction greedyDir = Direction.CENTER;
+            int bestDist = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuckraker);
+            if (rc.isReady()) {
+                for (Direction dir : DIRECTIONS) {
+                    if (rc.canMove(dir)) {
+                        MapLocation newloc = rc.getLocation().add(dir);
+                        if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
+                            int thisDist = newloc.distanceSquaredTo(locOfClosestEnemyMuckraker);
+                            if (thisDist > bestDist) {
+                                greedyDir = dir;
+                                bestDist = thisDist;
+                            }
+                        }
+                    }
+                }
+                System.out.println("chose " + greedyDir);
+            } else {
+                System.out.println("cant move ");
             }
-            ;
+            
+            if (greedyDir != Direction.CENTER) {
+                rc.move(greedyDir);
+            }
+        } else {
+            if (rc.isReady()) {
+                Direction dir = getNextDirOnPath(targetLoc);
+                if (dir != Direction.CENTER && rc.canMove(dir)) {
+                    rc.move(dir);
+                }
+            }
         }
     }
 

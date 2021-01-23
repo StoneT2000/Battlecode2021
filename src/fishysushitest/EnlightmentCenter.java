@@ -134,30 +134,40 @@ public class EnlightmentCenter extends RobotPlayer {
         boolean nearbyEnemyHQ = false;
         int enemyMuckrakersSeen = 0;
         int nearbyPolis = 0;
+        // list of enemy mucks with larger inf
+        LinkedList<Integer> bigEnemyMuckSizes = new LinkedList<>();
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         int nearbyEnemyFirePower = 0;
         int nearbyEnemyPolis = 0;
+        int nearbyAntiBuffMuckFirepower = 0;
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == oppTeam) {
                 if (bot.type == RobotType.POLITICIAN) {
                     nearbyEnemyPolis += 1;
-                    nearbyEnemyFirePower += bot.influence;
+                    nearbyEnemyFirePower += bot.conviction;
                 } else if (bot.type == RobotType.MUCKRAKER) {
                     enemyMuckrakersSeen += 1;
                     lastTurnSawEnemyMuck = turnCount;
+                    if (bot.conviction >= 30) {
+                        bigEnemyMuckSizes.add(bot.conviction);
+                    }
                 }
             } else if (bot.team == myTeam) {
                 if (bot.type == RobotType.POLITICIAN) {
                     nearbyPolis += 1;
+                    if (bot.conviction > STANDARD_DEFEND_POLI_CONVICTION) {
+                        // TODO: perhaps more accurately calcultae this based on the buff value in the future?
+                        // concern, would need to be conservative with how near future we calc buff for. probably want to use maybe 40 turns before we expect a spawned anti buff muck poli to actually be used maybe
+                        nearbyAntiBuffMuckFirepower += (bot.conviction - GameConstants.EMPOWER_TAX);
+                    }
                 }
             }
         }
 
         // initial build
-        System.out.println("BC: " + buildCount);
         if (firstEC && rc.isReady()) {
             if (buildCount == 0) {
                 tryToBuildAnywhere(RobotType.SLANDERER, 130);
@@ -301,7 +311,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (enemyMuckrakersSeen > nearbyPolis) {
                     buildPoli = true;
                 }
-                System.out.println("BUild poli " + buildPoli + " - allowance - " + allowance);
 
                 // if we have this much influence and we're trying to build slanderers, nope,
                 // build polis, slanderers wont really help ...
@@ -324,9 +333,46 @@ public class EnlightmentCenter extends RobotPlayer {
 
                 boolean considerAttackingEnemy = false;
 
+                boolean bigEnemyMucksToDealWith = false;
+                int firePowerLeftToFightAntiBuffMuck = nearbyAntiBuffMuckFirepower;
+                int antiBuffMuckPoliSizeNeeded = -1;
+                if (bigEnemyMuckSizes.size > 0) {
+                    Node<Integer> node = bigEnemyMuckSizes.head;
+                    while(node != null) {
+                        if (firePowerLeftToFightAntiBuffMuck - node.val > 0) {
+                            firePowerLeftToFightAntiBuffMuck -= node.val;
+                        } else {
+                            break;
+                        }
+                        node = node.next;
+                    }
+                    // all nodes left are muck sizes that are not dealt with
+                    if (node != null) {
+                        antiBuffMuckPoliSizeNeeded = node.val + GameConstants.EMPOWER_TAX;
+                    }
+                    if (antiBuffMuckPoliSizeNeeded != -1) {
+                        bigEnemyMucksToDealWith = true;
+                    }
+                }
+
+                System.out.println("antiBuffMuckPoliSizeNeeded: " + antiBuffMuckPoliSizeNeeded);
+                // if theres a enemy muck to deal with and we have an allowance of at least 20, spawn a poli to defend!
+                if (bigEnemyMucksToDealWith && allowance >= 20) {
+                    int size = (int) Math.min(((double) antiBuffMuckPoliSizeNeeded) / 0.8, (double) allowance);
+                    // TODO: spawn in direction of that buff muck
+                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, size);
+                    if (newbot != null) {
+                        spentInfluence += size;
+                        break;
+                    }
+                }
+
                 if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
                     considerAttackingEnemy = true;
                 }
+
+                
+                
 
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
                         + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
@@ -361,6 +407,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(sig1);
+                        spentInfluence += want;
                         break;
                     }
                 }
@@ -383,6 +430,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(sig1);
+                        spentInfluence += want;
                         break;
                     }
                 }
@@ -399,6 +447,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             lastTurnBuiltBuffScoutMuck = turnCount;
                             specialMessageQueue.add(SKIP_FLAG);
                             specialMessageQueue.add(Comms.GO_SCOUT);
+                            spentInfluence += want;
                             break;
                         }
                     }
@@ -418,6 +467,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             specialMessageQueue.add(SKIP_FLAG);
                             specialMessageQueue.add(sig1);
                             SacrificePoliBuildDirToTurnCount[dirToInt(dir)] = turnCount;
+                            spentInfluence += allowance;
                             break;
                         }
                     }
@@ -429,7 +479,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (buildPoli && allowance >= 20) {
                     int influenceWant = 20;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, influenceWant, dir);
-                    System.out.println("Try to build poli " + rc.isReady() + " - " + rc.getInfluence());
                     if (newbot != null) {
                         spentInfluence += influenceWant;
                         break;
