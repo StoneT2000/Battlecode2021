@@ -41,7 +41,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
 
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
-    static int lastTurnSawEnemyMuck = 10;
+    static int lastTurnSawEnemyMuck = -10;
 
     // maps north, east, south, west to last turn we built a sacrifice poli there
     // if turnCount - SacrificePoliBuildDirToTurnCount[i] == 10, try avoid spawning

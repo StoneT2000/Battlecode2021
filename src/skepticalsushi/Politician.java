@@ -49,7 +49,7 @@ public class Politician extends Unit {
         // first turn set flag to indiciate unit type
     }
 
-    public static void handleFlag(int flag) {
+    public static void handleFlag(int flag) throws GameActionException {
         switch (Comms.SIGNAL_TYPE_MASK & flag) {
             case Comms.MAP_OFFSET_X_AND_WIDTH:
                 int[] vs = Comms.readMapOffsetSignalXWidth(flag);
@@ -72,7 +72,14 @@ public class Politician extends Unit {
             case Comms.ATTACK_EC:
                 switch (Comms.SIGNAL_TYPE_5BIT_MASK & flag) {
                     case Comms.ATTACK_EC:
-                        if (turnCount < 2 || role == ATTACK_EC) {
+                        boolean needsnewTarget = false;
+                        if (attackLoc != null && rc.canSenseLocation(attackLoc)) {
+                            RobotInfo info = rc.senseRobotAtLocation(attackLoc);
+                            if (info != null && info.team == myTeam) {
+                                needsnewTarget= true;
+                            }
+                        }
+                        if (turnCount < 2 || (needsnewTarget && role == ATTACK_EC)) {
                             role = ATTACK_EC;
                             attackLoc = Comms.readAttackECSignal(flag, rc);
                         }
@@ -481,7 +488,7 @@ public class Politician extends Unit {
                             int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                             if (distToEC <= i) {
                                 int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
-                                        rc.getConviction() + (int) (nearbyFirePower / 1.2), 0) / n;
+                                        rc.getConviction() + (int) (nearbyFirePower / 0.5), 0) / n;
 
                                 double discountFactor = 0.5;
                                 if (speechInfluencePerUnit >= enemyEC.conviction
