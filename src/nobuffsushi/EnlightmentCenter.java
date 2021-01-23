@@ -41,11 +41,6 @@ public class EnlightmentCenter extends RobotPlayer {
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
     static int lastTurnSawEnemyMuck = 10;
 
-    // maps north, east, south, west to last turn we built a sacrifice poli there
-    // if turnCount - SacrificePoliBuildDirToTurnCount[i] == 10, try avoid spawning
-    // a unit adjacent to direction
-    static int[] SacrificePoliBuildDirToTurnCount = new int[] { -100, -100, -100, -100, -100, -100, -100, -100 };
-
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -262,28 +257,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             case NORMAL:
                 int allowance = rc.getInfluence() - nearbyEnemyFirePower;
-                // generate infinite influence
-                // estimate influence generated per turn by spending this, see if it is better
-                // than spawning a slanderer
-                int packedDiscount = 2;
-                int inf_per_turn = (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) / packedDiscount - allowance) / 10;
-                // divide inf per turn by 2 if there's very little space
-                double sland_inf_per_turn = 1;
-                if (allowance >= 21) {
-                    int opt_choice = findOptimalSlandererInfluenceUnderX(allowance);
-                    sland_inf_per_turn = (slandererInfPerTurn(opt_choice) * GameConstants.EMBEZZLE_NUM_ROUNDS
-                            - opt_choice) / (double) GameConstants.EMBEZZLE_NUM_ROUNDS;
-                }
-                System.out.println(
-                        "Inf per turn - " + inf_per_turn + " vs. sland inf per turn now - " + sland_inf_per_turn);
-                // if (calculatePoliticianEmpowerConviction(myTeam, allowance, 10) / 2 >
-                // allowance * 2
-                // && rc.getInfluence() < MAX_INF_PER_ROBOT * 0.9) {
-
-                // proceed with generic building
-                // else {
-
-                // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                 boolean buildSlanderer = false;
                 if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 0.5 || turnCount <= 2) {
                     buildSlanderer = true;
@@ -322,7 +295,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
                         + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
                 // capture netural ECs
-                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 200) {
+                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 50) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     // limit ourselves to send only one poli per neutral
                     if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
@@ -385,25 +358,6 @@ public class EnlightmentCenter extends RobotPlayer {
                             lastTurnBuiltBuffScoutMuck = turnCount;
                             specialMessageQueue.add(SKIP_FLAG);
                             specialMessageQueue.add(Comms.GO_SCOUT);
-                            break;
-                        }
-                    }
-                }
-
-                // if we want to build a slanderer and not poli, then its likely safe to do so
-                // without getting reverse buffed
-                if (buildPoli == false && buildSlanderer && inf_per_turn > sland_inf_per_turn) {
-                    for (Direction dir : CARD_DIRECTIONS) {
-                        MapLocation buildLoc = rc.getLocation().add(dir);
-                        if (rc.canBuildRobot(RobotType.POLITICIAN, dir, allowance)) {
-                            rc.buildRobot(RobotType.POLITICIAN, dir, allowance);
-                            RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                            politicianIDs.add(newbot.ID);
-                            lastBuildTurn = turnCount;
-                            int sig1 = Comms.getPoliSacrificeSignal();
-                            specialMessageQueue.add(SKIP_FLAG);
-                            specialMessageQueue.add(sig1);
-                            SacrificePoliBuildDirToTurnCount[dirToInt(dir)] = turnCount;
                             break;
                         }
                     }
