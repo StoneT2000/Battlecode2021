@@ -159,8 +159,11 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (bot.type == RobotType.POLITICIAN) {
                     nearbyPolis += 1;
                     if (bot.conviction > STANDARD_DEFEND_POLI_CONVICTION) {
-                        // TODO: perhaps more accurately calcultae this based on the buff value in the future?
-                        // concern, would need to be conservative with how near future we calc buff for. probably want to use maybe 40 turns before we expect a spawned anti buff muck poli to actually be used maybe
+                        // TODO: perhaps more accurately calcultae this based on the buff value in the
+                        // future?
+                        // concern, would need to be conservative with how near future we calc buff for.
+                        // probably want to use maybe 40 turns before we expect a spawned anti buff muck
+                        // poli to actually be used maybe
                         nearbyAntiBuffMuckFirepower += (bot.conviction - GameConstants.EMPOWER_TAX);
                     }
                 }
@@ -190,10 +193,10 @@ public class EnlightmentCenter extends RobotPlayer {
         }
 
         // strategy for taking ecs
-        boolean stockInfluence = false;
+        boolean stockInfluenceForNeutral = false;
         /** closest neutral ec loc */
         ECDetails neutralECLocToTake = null;
-        int closestDist = 99999999;
+        int lowestCost = 9999999;
         neutralECLocs.resetIterator();
         System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
@@ -201,25 +204,23 @@ public class EnlightmentCenter extends RobotPlayer {
             MapLocation loc = neutralHashNode.val.location;
             int hash = Comms.encodeMapLocation(loc);
             if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
-
-                int dist = loc.distanceSquaredTo(rc.getLocation());
-                if (dist < closestDist && rc.getInfluence() > neutralHashNode.val.lastKnownConviction + 250) {
-                    closestDist = dist;
+                if (lowestCost > neutralHashNode.val.lastKnownConviction) {
+                    lowestCost = neutralHashNode.val.lastKnownConviction;
                     neutralECLocToTake = neutralHashNode.val;
                 }
             }
             neutralHashNode = neutralECLocs.next();
         }
         if (neutralECLocToTake != null) {
-            if (rc.getInfluence() >= MIN_INF_NEEDED_TO_TAKE_NEUTRAL_EC) {
+            if (rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 200) {
 
             } else {
-                stockInfluence = true;
+                stockInfluenceForNeutral = true;
             }
         }
 
         ECDetails enemyECLocToTake = null;
-        closestDist = 99999999;
+        int closestDist = 99999999;
         enemyECLocs.resetIterator();
         HashMapNodeVal<Integer, ECDetails> enemyHashNode = enemyECLocs.next();
         while (enemyHashNode != null) {
@@ -274,7 +275,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 break;
             case NORMAL:
                 int allowance = rc.getInfluence() - nearbyEnemyFirePower;
-                
+
                 // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                 boolean buildSlanderer = false;
                 if (muckrakerIDs.size / (slandererIDs.size + 0.1) > 0.5 || turnCount <= 2) {
@@ -318,7 +319,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 int antiBuffMuckPoliSizeNeeded = -1;
                 if (bigEnemyMuckSizes.size > 0) {
                     Node<Integer> node = bigEnemyMuckSizes.head;
-                    while(node != null) {
+                    while (node != null) {
                         if (firePowerLeftToFightAntiBuffMuck - node.val > 0) {
                             firePowerLeftToFightAntiBuffMuck -= node.val;
                         } else {
@@ -336,7 +337,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
 
                 System.out.println("antiBuffMuckPoliSizeNeeded: " + antiBuffMuckPoliSizeNeeded);
-                // if theres a enemy muck to deal with and we have an allowance of at least 20, spawn a poli to defend!
+                // if theres a enemy muck to deal with and we have an allowance of at least 20,
+                // spawn a poli to defend!
                 if (bigEnemyMucksToDealWith && allowance >= 20) {
                     int size = (int) Math.min(((double) antiBuffMuckPoliSizeNeeded) / 0.8, (double) allowance);
                     // TODO: spawn in direction of that buff muck
@@ -348,11 +350,10 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
 
                 if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
-                    considerAttackingEnemy = true;
+                    if (!stockInfluenceForNeutral) {
+                        considerAttackingEnemy = true;
+                    }
                 }
-
-                
-                
 
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
                         + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
@@ -377,7 +378,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 // spawn buff muck
-                if (enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
+                if (!stockInfluenceForNeutral && enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
                     int want = 571;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
@@ -397,7 +398,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 else if (enemyECLocToTake != null && considerAttackingEnemy) {
                     int want = allowance;
                     want = (int) Math.min(want, MAX_INF_PER_ROBOT * 0.25);
-                    
+
                     // if we got buffed, reduce allowance significantly
                     if (gotBuffed) {
                         want = Math.min(allowance, 1500);
@@ -571,12 +572,13 @@ public class EnlightmentCenter extends RobotPlayer {
         for (Direction dir : dirs) {
             // MapLocation buildLoc = rc.getLocation().add(dir);
             if (rc.canBuildRobot(type, dir, influence)) {
-                // code that doesn't reallyy work to avoid interfering with sacrificing politicians
+                // code that doesn't reallyy work to avoid interfering with sacrificing
+                // politicians
                 // int ind = dirToInt(dir);
                 // if (turnCount - SacrificePoliBuildDirToTurnCount[ind] != 10) {
-                //     System.out.println("dir " + dir + " - avoids sacrificing poli");
-                //     dirAvoidingSacrificeDirs = dir;
-                //     break;
+                // System.out.println("dir " + dir + " - avoids sacrificing poli");
+                // dirAvoidingSacrificeDirs = dir;
+                // break;
                 // }
                 if (chosenDir != null) {
                     continue;
@@ -585,7 +587,7 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
         // if (dirAvoidingSacrificeDirs != null) {
-        //     chosenDir = dirAvoidingSacrificeDirs;
+        // chosenDir = dirAvoidingSacrificeDirs;
         // }
         if (chosenDir != null) {
             rc.buildRobot(type, chosenDir, influence);
