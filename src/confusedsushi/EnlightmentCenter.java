@@ -196,7 +196,7 @@ public class EnlightmentCenter extends RobotPlayer {
         boolean stockInfluenceForNeutral = false;
         /** closest neutral ec loc */
         ECDetails neutralECLocToTake = null;
-        int lowestCost = 9999999;
+        int bestScore = 9999999;
         neutralECLocs.resetIterator();
         System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
@@ -204,8 +204,10 @@ public class EnlightmentCenter extends RobotPlayer {
             MapLocation loc = neutralHashNode.val.location;
             int hash = Comms.encodeMapLocation(loc);
             if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
-                if (lowestCost > neutralHashNode.val.lastKnownConviction) {
-                    lowestCost = neutralHashNode.val.lastKnownConviction;
+                int dist = rc.getLocation().distanceSquaredTo(neutralHashNode.val.location);
+                int score = dist + neutralHashNode.val.lastKnownConviction * 0;
+                if (bestScore > score) {
+                    bestScore = score;
                     neutralECLocToTake = neutralHashNode.val;
                 }
             }
