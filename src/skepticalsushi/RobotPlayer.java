@@ -109,7 +109,6 @@ public strictfp class RobotPlayer {
 
     // TODO: this might be wrong calculation
     public static int calculatePoliticianEmpowerConviction(Team team, int conviction, int roundsInFuture) {
-    public static int minimumConvictionNeededToSpreadNConviction(Team team, int n, int roundsInFuture) {
         return (int) ((double)(conviction - GameConstants.EMPOWER_TAX) * rc.getEmpowerFactor(team, roundsInFuture));
     }
 
