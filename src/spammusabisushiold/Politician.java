@@ -1,12 +1,12 @@
-package spammusabisushi;
+package spammusabisushiold;
 
 import battlecode.common.*;
-import spammusabisushi.utils.HashMap;
-import spammusabisushi.utils.HashTable;
-import spammusabisushi.utils.LinkedList;
-import spammusabisushi.utils.Node;
+import spammusabisushiold.utils.HashMap;
+import spammusabisushiold.utils.HashTable;
+import spammusabisushiold.utils.LinkedList;
+import spammusabisushiold.utils.Node;
 
-import static spammusabisushi.Constants.*;
+import static spammusabisushiold.Constants.*;
 
 public class Politician extends Unit {
     public static final int[][] BFS25 = { { 0, 0 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 0, 1 }, { 2, 0 }, { 1, -1 },
@@ -76,7 +76,7 @@ public class Politician extends Unit {
                         if (attackLoc != null && rc.canSenseLocation(attackLoc)) {
                             RobotInfo info = rc.senseRobotAtLocation(attackLoc);
                             if (info != null && info.team == myTeam) {
-                                needsnewTarget = true;
+                                needsnewTarget= true;
                             }
                         }
                         if (turnCount < 2 || (needsnewTarget && role == ATTACK_EC)) {
@@ -229,25 +229,6 @@ public class Politician extends Unit {
                 if (withinDist) {
                     oppMuckUnitsAtDistanceCount[dist] += 1;
                 }
-                // check if muck is already completely suurrounded if its buff
-                boolean mucksurrounded = true;
-                if (bot.conviction >= BUFF_MUCK_THRESHOLD) {
-                    for (Direction dir: DIRECTIONS) {
-                        MapLocation check = bot.location.add(dir);
-                        if (rc.canSenseLocation(check)) {
-                            RobotInfo info = rc.senseRobotAtLocation(check);
-                            // TOOD: check our team?
-                            if (info == null || info.team == oppTeam) {
-                                mucksurrounded = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (mucksurrounded && dist > 2) {
-                        continue;
-                    }
-                    // if ()
-                }
                 if (dist < distToTargetedEnemyMuck) {
                     Integer num = numberOfPolisTargetingMucks.get(bot.ID);
                     if (num == null || num < 1 || bot.conviction >= BUFF_MUCK_THRESHOLD) {
@@ -270,7 +251,7 @@ public class Politician extends Unit {
                     cloestsEnemyECDist = dist;
                     nearestEnemyEC = bot;
                 }
-
+                
             } else if (bot.type == RobotType.POLITICIAN && dist <= 9) {
                 nearbyEnemyFirePower += bot.influence;
                 nearbyEnemyPolis += 1;
@@ -295,7 +276,7 @@ public class Politician extends Unit {
         MapLocation bestLatticeLoc = null;
         int bestLatticeLocVal = Integer.MIN_VALUE;
         findbestLatticeLoc: {
-            if (homeEC == null) { 
+            if (homeEC == null) {
                 break findbestLatticeLoc;
             }
             if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0
@@ -303,7 +284,6 @@ public class Politician extends Unit {
                 bestLatticeLoc = currLoc;
                 bestLatticeLocVal = -bestLatticeLoc.distanceSquaredTo(protectLocation);
             }
-
             for (int i = 0; ++i < BFS25.length;) {
                 int[] deltas = BFS25[i];
 
@@ -386,6 +366,7 @@ public class Politician extends Unit {
                     // TODO: optimize to kill more mucks if not in danger and we see more than 2
                     // relatively close
                     RobotInfo[] muckLocsToCheck = new RobotInfo[] { targetedEnemyMuck, closestEnemyMuck };
+
 
                     checkIfSlandererInDanger: {
                         for (RobotInfo muckInfo : muckLocsToCheck) {
@@ -471,7 +452,7 @@ public class Politician extends Unit {
         } else if (role == ATTACK_EC || role == ATTACK_NEUTRAL_EC) {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
-
+            
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
                     // if not enemy anymore, just supply the EC with eco
@@ -485,7 +466,7 @@ public class Politician extends Unit {
                     if (enemyEC != null) {
                         distToEC = rc.getLocation().distanceSquaredTo(enemyEC.location);
                     }
-
+                    
                     if (enemyEC == null) {
                         // System.out.println("attackLoc: " + attackLoc + " - myloc" +
                         // rc.getLocation());
@@ -497,7 +478,7 @@ public class Politician extends Unit {
                             targetLoc = rc.getLocation().add(awayDir).add(awayDir);
                         }
                         // if (distToEC == 1) {
-                        // rc.empower(1);
+                        //     rc.empower(1);
                         // }
                     } else {
                         // measure if worth
@@ -519,10 +500,8 @@ public class Politician extends Unit {
                                         rc.getConviction() + (int) (nearbyFirePower), 0) / n;
 
                                 double discountFactor = 0.5;
-                                // System.out.println("nearby fire " + nearbyFirePower + " - buff" +
-                                // rc.getEmpowerFactor(myTeam, 0));
-                                // System.out.println("Dist " + i +" - per " + speechInfluencePerUnit + " - ec
-                                // conv" + enemyEC.conviction + " - nb " + nearbyEnemyFirePower);
+                                // System.out.println("nearby fire " +  nearbyFirePower + " - buff" + rc.getEmpowerFactor(myTeam, 0));
+                                // System.out.println("Dist " + i  +"  - per " + speechInfluencePerUnit + " - ec conv" + enemyEC.conviction + " - nb " + nearbyEnemyFirePower);
                                 if (speechInfluencePerUnit >= enemyEC.conviction
                                         + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis)
                                                 * discountFactor) {
@@ -572,21 +551,17 @@ public class Politician extends Unit {
 
         if (!setFlagThisTurn) {
             // System.out.println("targeting " + targetedEnemyMuck);
-            if (role == DEFEND_SLANDERER && rc.getConviction() > STANDARD_DEFEND_POLI_CONVICTION) {
+            if (role == DEFEND_SLANDERER && rc.getConviction() > STANDARD_DEFEND_POLI_CONVICTION)  {
                 setFlag(Comms.IM_STOPPING_BUFF_MUCK);
-            } else if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
-                if (targetedEnemyMuck.conviction < BUFF_MUCK_THRESHOLD) {
-                    if (rc.getConviction() <= STANDARD_DEFEND_POLI_CONVICTION) {
-                        MapLocation myLoc = rc.getLocation();
-                        int dx = targetedEnemyMuck.location.x - myLoc.x;
-                        int dy = targetedEnemyMuck.location.y - myLoc.y;
-                        setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
-                    }
-                } else {
-                    // if buff, send spotted signal
-                    setFlag(Comms.getSpottedMuckSignal(targetedEnemyMuck.location, targetedEnemyMuck.conviction));
+            }
+            else if (role == DEFEND_SLANDERER && targetedEnemyMuck != null && turnCount >= 10) {
+                if (rc.getConviction() <= STANDARD_DEFEND_POLI_CONVICTION) {
+                MapLocation myLoc = rc.getLocation();
+                int dx = targetedEnemyMuck.location.x - myLoc.x;
+                int dy = targetedEnemyMuck.location.y - myLoc.y;
+                    setFlag(Comms.getTargetedMuckSignal(targetedEnemyMuck.ID, dx, dy));
                 }
-
+                
             } else if (role == ATTACK_EC) {
                 int sig = Comms.getTargetedECSignal(attackLoc);
                 setFlag(sig);
