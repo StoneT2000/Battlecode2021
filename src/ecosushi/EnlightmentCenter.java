@@ -6,7 +6,7 @@ import ecosushi.utils.*;
 import static ecosushi.Constants.*;
 
 public class EnlightmentCenter extends RobotPlayer {
-    static int lastScoutBuildDirIndex = -1;
+    static int lastScoutBuildDirIndex = 0;
     static int lastRushBuildIndex = -1;
     static final int BUILD_SCOUTS = 0;
     static final int NORMAL = 1;
@@ -68,7 +68,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
     public static void setup() throws GameActionException {
         // role = BUILD_SCOUTS;
-        lastScoutBuildDirIndex = -1;
+        lastScoutBuildDirIndex = 0;
         ecIDs.add(rc.getID());
 
         if (rc.getRoundNum() < 2) {
@@ -289,38 +289,6 @@ public class EnlightmentCenter extends RobotPlayer {
 
         switch (role) {
             case BUILD_SCOUTS:
-                // TODO: handle edge cases if diagonals are blocked
-                // if (lastScoutBuildDirIndex <= 2 && rc.isReady()) {
-                // lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1);
-                // Direction dir = DIAG_DIRECTIONS[lastScoutBuildDirIndex];
-
-                // Direction checkDir = dir;
-                // int i = 0;
-                // while (i < 9) {
-                // if (rc.canBuildRobot(RobotType.MUCKRAKER, checkDir, 1)) {
-                // break;
-                // }
-                // checkDir = checkDir.rotateLeft();
-                // i++;
-                // }
-                // if (rc.canBuildRobot(RobotType.MUCKRAKER, checkDir, 1)) {
-                // // flag of 0 is default no signal value flag of 1-4 represents build
-                // direction
-                // specialMessageQueue.add(SKIP_FLAG);
-                // specialMessageQueue.add(Comms.GO_SCOUT);
-                // rc.buildRobot(RobotType.MUCKRAKER, checkDir, 1);
-                // buildCount += 1;
-                // Stats.muckrakersBuilt += 1;
-
-                // // add new id
-                // MapLocation buildLoc = rc.getLocation().add(checkDir);
-                // RobotInfo newbot = rc.senseRobotAtLocation(buildLoc);
-                // muckrakerIDs.add(newbot.ID);
-                // }
-                // }
-                // if (lastScoutBuildDirIndex == 3) {
-                // role = NORMAL;
-                // }
                 break;
             case NORMAL:
                 
@@ -441,6 +409,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             specialMessageQueue.add(SKIP_FLAG);
                             specialMessageQueue.add(sig1);
                             locHashesOfCurrentlyAttackedNeutralECs.add(hash);
+                            spentInfluence += want;
                             break;
                         }
                     }
@@ -486,16 +455,45 @@ public class EnlightmentCenter extends RobotPlayer {
 
                 // build scouting buff mucks that "flank"
                 if (neutralECLocToTake == null && enemyECLocToTake == null
-                        && turnCount > lastTurnBuiltBuffScoutMuck + 40) {
+                        && turnCount > lastTurnBuiltBuffScoutMuck + 20) {
                     // consider spawning somewhat buff scout mucks
                     if (allowance >= 450) {
                         int want = 200;
-                        RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want);
+                        // if heavily stocked and nothing to spend on (not even 949 slanderer), build even bigger muck then
+                        if (allowance > 1000) {
+                            want = 900;
+                        }
+                        
+                        Direction scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
+                        // scout directions that arent off map / we can see
+                        while(!rc.onTheMap(rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir))) {
+                            scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
+                            lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
+                        }
                         // System.out.println("build buff scout");
+                        RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want, scoutDir);
                         if (newbot != null) {
+                            lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
                             lastTurnBuiltBuffScoutMuck = turnCount;
                             specialMessageQueue.add(SKIP_FLAG);
-                            specialMessageQueue.add(Comms.GO_SCOUT);
+                            switch(scoutDir) {
+                                case NORTH:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_NORTH);
+                                    break;
+                                case EAST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_EAST);
+                                    break;
+                                case SOUTH:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_SOUTH);
+                                    break;
+                                case WEST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_WEST);
+                                    break;
+                                default:
+                                    // shouldn't happen
+                                    specialMessageQueue.add(Comms.GO_SCOUT);
+                                    break;
+                            }
                             spentInfluence += want;
                             break;
                         }
@@ -505,8 +503,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                 Direction dir = DIRECTIONS[lastRushBuildIndex];
 
-                if (buildPoli && allowance >= 20) {
-                    int influenceWant = 20;
+                if (buildPoli && allowance >= 17) {
+                    int influenceWant = 17;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, influenceWant, dir);
                     if (newbot != null) {
                         spentInfluence += influenceWant;

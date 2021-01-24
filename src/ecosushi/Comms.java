@@ -34,6 +34,10 @@ public class Comms {
     // small signals:
     public static final int IMASLANDERERR = 0x900001;
     public static final int GO_SCOUT = 0x900002;
+    public static final int GO_SCOUT_NORTH = 0x900003;
+    public static final int GO_SCOUT_EAST = 0x900004;
+    public static final int GO_SCOUT_SOUTH = 0x900005;
+    public static final int GO_SCOUT_WEST = 0x900006;
     public static final int IM_ATTACKING_NEUTRAL_EC = 0x900003;
     public static final int IM_STOPPING_BUFF_MUCK = 0x900004;
 

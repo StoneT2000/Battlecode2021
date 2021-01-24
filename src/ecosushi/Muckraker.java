@@ -118,9 +118,34 @@ public class Muckraker extends Unit {
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             handleFlag(homeECFlag);
-            if (homeECFlag == Comms.GO_SCOUT && turnCount < 4) {
-                role = SCOUT;
+            if (turnCount < 4) {
+                switch (homeECFlag) {
+                    case Comms.GO_SCOUT:
+                        role = SCOUT;
+                        break;
+                    case Comms.GO_SCOUT_NORTH:
+                        role = SCOUT;
+                        scoutDir = Direction.NORTH;
+                        break;
+                    case Comms.GO_SCOUT_SOUTH:
+                        role = SCOUT;
+                        scoutDir = Direction.SOUTH;
+                        break;
+                    case Comms.GO_SCOUT_EAST:
+                        role = SCOUT;
+                        scoutDir = Direction.EAST;
+                        break;
+                    case Comms.GO_SCOUT_WEST:
+                        role = SCOUT;
+                        scoutDir = Direction.WEST;
+                        break;
+
+                }
+                if (role == SCOUT) {
+                    System.out.println("Scout dir: " + scoutDir);
+                }
             }
+
         }
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();

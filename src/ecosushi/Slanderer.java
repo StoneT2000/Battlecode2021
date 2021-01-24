@@ -185,7 +185,6 @@ public class Slanderer extends Unit {
         }
 
         if (locOfClosestEnemyMuckraker != null) {
-            System.out.println("closest enemy muck: " + locOfClosestEnemyMuckraker);
             Direction greedyDir = Direction.CENTER;
             int bestDist = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuckraker);
             if (rc.isReady()) {
