@@ -73,14 +73,12 @@ public abstract class Unit extends RobotPlayer {
                 if (thisDist == 0) {
                     val = 0;
                 }
-                System.out.println("dir " + dir + " v - " + val + " thisDist " + thisDist);
                 if (val < bestValue) {
                     bestValue = val;
                     greedyDir = dir;
                 }
             }
         }
-        System.out.println("==== BEST " +  greedyDir + " - v: " + bestValue);
         if (greedyDir == Direction.CENTER) {
             return Direction.CENTER;
         }

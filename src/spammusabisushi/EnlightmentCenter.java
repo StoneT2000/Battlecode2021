@@ -43,6 +43,8 @@ public class EnlightmentCenter extends RobotPlayer {
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
     static int lastTurnSawEnemyMuck = -10;
 
+    static int lastTurnBuiltMediumMuck = -10;
+
     // maps north, east, south, west to last turn we built a sacrifice poli there
     // if turnCount - SacrificePoliBuildDirToTurnCount[i] == 10, try avoid spawning
     // a unit adjacent to direction
@@ -57,6 +59,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static int lastTurnBuiltBuffScoutMuck = -1;
 
     static LinkedList<Integer> bigEnemyMuckSizes;
+    static LinkedList<MapLocation> bigEnemyMuckLocs;
 
     static boolean firstEC = false;
     static int buildCount = 0;
@@ -80,6 +83,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         // fields that reset each turn and get manipulated by other functions lmao
         bigEnemyMuckSizes = new LinkedList<>();
+        bigEnemyMuckLocs = new LinkedList<>();
         setFlagThisTurn = false;
         // how much influence is spent on building
         int spentInfluence = 0;
@@ -161,6 +165,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     lastTurnSawEnemyMuck = turnCount;
                     if (bot.conviction >= 30) {
                         bigEnemyMuckSizes.add(bot.conviction);
+                        bigEnemyMuckLocs.add(bot.location);
                     }
                 }
             } else if (bot.team == myTeam) {
@@ -494,13 +499,20 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 int mucksize = 1;
-                if (allowance >= 100) {
+                if (allowance <= 100) {
+
+                }
+                else if (allowance <= 200) {
                     mucksize = 2;
-                } else if (allowance >= 200) {
+                } else if (allowance <= 300) {
                     mucksize = 3;
                 } else if (allowance >= 400) {
                     mucksize = allowance / 100;
                 }
+                if (turnCount - lastTurnBuiltMediumMuck > 30) {
+                    
+                }
+                
                 RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, mucksize, dir);
                 if (newbot != null) {
                     spentInfluence += 1;
@@ -684,6 +696,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
                         if (rc.getLocation().distanceSquaredTo(muckloc) <= 150) {
                             bigEnemyMuckSizes.add(data[1]);
+                            bigEnemyMuckLocs.add(muckloc);
                         }
                         // System.out.println("found muck by muck at " + muckloc + " size: " + data[1]);
                         break;

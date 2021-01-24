@@ -25,7 +25,7 @@ public class Muckraker extends Unit {
     static final int SCOUT_BUT_ALLOW_RUSH = 3;
     static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
-    static int role = LATTICE_NETWORK;
+    static int role = SCOUT_BUT_ALLOW_RUSH;
     static final int LATTICE_SIZE = 5;
     static Direction scoutDir = null;
 
@@ -183,32 +183,7 @@ public class Muckraker extends Unit {
             }
         }
 
-        // search in sensor range for close stuff
-        MapLocation currLoc = rc.getLocation();
-        MapLocation closestLatticeLoc = null;
-        if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 4) {
-            closestLatticeLoc = currLoc;
-        }
-        // if (role == LATTICE_NETWORK) {
-        for (int i = 0; ++i < BFS30.length;) {
-            int[] deltas = BFS30[i];
-
-            MapLocation checkLoc = new MapLocation(currLoc.x + deltas[0], currLoc.y + deltas[1]);
-            if (rc.onTheMap(checkLoc)) {
-                if (closestLatticeLoc == null && checkLoc.x % LATTICE_SIZE == 0 && checkLoc.y % LATTICE_SIZE == 0
-                        && checkLoc.distanceSquaredTo(homeEC) > 4) {
-                    RobotInfo bot = rc.senseRobotAtLocation(checkLoc);
-                    if (bot == null || bot.ID == rc.getID()) {
-                        closestLatticeLoc = checkLoc;
-                    }
-                }
-            }
-        }
-        // }
         // scout corners / scout map if no good lattice position found
-        if (closestLatticeLoc == null) {
-            role = SCOUT_BUT_ALLOW_RUSH;
-        }
         if (enemyECLocs.size > 0) {
             // role = RUSH
         }

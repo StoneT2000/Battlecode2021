@@ -61,7 +61,7 @@ public class Slanderer extends Unit {
                     case POLITICIAN: {
                         int flag = rc.getFlag(bot.ID);
                         switch (Comms.SIGNAL_TYPE_MASK & flag) {
-                            case Comms.TARGETED_MUCK:
+                            case Comms.TARGETED_MUCK: {
                                 int[] data = Comms.readTargetedMuckSignal(flag);
                                 int dx = data[1];
                                 int dy = data[1];
@@ -72,6 +72,17 @@ public class Slanderer extends Unit {
                                     locOfClosestEnemyMuckraker = muckloc;
                                 }
                                 break;
+                            }
+                            case Comms.SPOTTED_MUCK: {
+                                int[] data = Comms.readSpottedMuckSignal(flag, rc);
+                                MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
+                                int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
+                                if (distToSpottedMuck < distToClosestEnemyMuckraker) {
+                                    distToClosestEnemyMuckraker = distToSpottedMuck;
+                                    locOfClosestEnemyMuckraker = muckloc;
+                                }
+                                break;
+                            }
                                 // TODO: add signal for just seeing a muck but not targeting
                                 // TODO: propagate that signal backwards through the network of units
                         }
