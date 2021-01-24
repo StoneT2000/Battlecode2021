@@ -114,14 +114,14 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
-        System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
-                + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
-                + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
-                + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
-                + minBidAmount);
+        // System.out.println("TURN: " + turnCount + " | EC At " + rc.getLocation() + " - Influence: " + rc.getInfluence()
+        //         + " - Conviction: " + rc.getConviction() + " - CD: " + rc.getCooldownTurns() + " - ROLE: " + role
+        //         + " - Units Controlled EC: " + ecIDs.size + ", S: " + slandererIDs.size + ", P: " + politicianIDs.size
+        //         + ", M: " + muckrakerIDs.size + " | Gained " + influenceGainedLastTurn + " influence | min bid "
+        //         + minBidAmount);
 
-        System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: "
-                + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
+        // System.out.println("My buff: " + rc.getEmpowerFactor(myTeam, 0) + " | Opp buff: "
+        //         + rc.getEmpowerFactor(oppTeam, 0) + " | my buff in 10: " + rc.getEmpowerFactor(myTeam, 10));
 
         // global comms code independent of role
 
@@ -195,7 +195,7 @@ public class EnlightmentCenter extends RobotPlayer {
         ECDetails neutralECLocToTake = null;
         int closestDist = 99999999;
         neutralECLocs.resetIterator();
-        System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
+        // System.out.println("There are " + neutralECLocs.size + " neutral ECs - " + enemyECLocs.size + " enemy ECs ");
         HashMapNodeVal<Integer, ECDetails> neutralHashNode = neutralECLocs.next();
         while (neutralHashNode != null) {
             MapLocation loc = neutralHashNode.val.location;
@@ -335,7 +335,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
 
-                System.out.println("antiBuffMuckPoliSizeNeeded: " + antiBuffMuckPoliSizeNeeded);
+                // System.out.println("antiBuffMuckPoliSizeNeeded: " + antiBuffMuckPoliSizeNeeded);
                 // if theres a enemy muck to deal with and we have an allowance of at least 20, spawn a poli to defend!
                 if (bigEnemyMucksToDealWith && allowance >= 20) {
                     int size = (int) Math.min(((double) antiBuffMuckPoliSizeNeeded) / 0.8, (double) allowance);
@@ -354,8 +354,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 
                 
 
-                System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
-                        + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
+                // System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
+                        // + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
                 // capture netural ECs
                 if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 200) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
