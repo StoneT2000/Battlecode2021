@@ -473,7 +473,6 @@ public class Politician extends Unit {
                         // shouldnt happen...
                     } else if (enemyEC.team == myTeam) {
                         // if converted to our team, stand by to recapture if necessary
-                        System.out.println("dist to firend " + distToEC);
                         if (distToEC < 20) {
                             Direction awayDir = enemyEC.location.directionTo(rc.getLocation());
                             targetLoc = rc.getLocation().add(awayDir).add(awayDir);
