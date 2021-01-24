@@ -110,12 +110,6 @@ public class Politician extends Unit {
             multiPartMessagesByBotID.remove(homeECID);
         }
 
-        if (role == SACRIFICE) {
-            if (rc.canEmpower(1)) {
-                rc.empower(1);
-            }
-        }
-
         if (rc.getConviction() < 14) {
             role = SCOUT;
         }
@@ -202,7 +196,7 @@ public class Politician extends Unit {
                         break;
                     case Comms.TARGETED_EC:
                         MapLocation targetedECLoc = Comms.readTargetedECSignal(flag, rc);
-                        if (targetedECLoc.equals(attackLoc)) {
+                        if (attackLoc != null && targetedECLoc.distanceSquaredTo(attackLoc) < 5) {
                             // same enemy, combine firepower
                             nearbyFirePower += bot.influence;
                         }
@@ -373,13 +367,6 @@ public class Politician extends Unit {
                     // relatively close
                     RobotInfo[] muckLocsToCheck = new RobotInfo[] { targetedEnemyMuck, closestEnemyMuck };
 
-                    if (targetedEnemyMuck != null) {
-                        // System.out.println("Target " + targetedEnemyMuck.location + " - Closest " +
-                        // closestEnemyMuck.location);
-                    }
-                    if (closestEnemyMuck.location != null) {
-
-                    }
 
                     checkIfSlandererInDanger: {
                         for (RobotInfo muckInfo : muckLocsToCheck) {
@@ -387,14 +374,9 @@ public class Politician extends Unit {
                                 continue;
                             }
                             MapLocation muckLoc = muckInfo.location;
-                            // System.out.println("eying " + muckLoc + " - min dist "
-                            // + minDistAwayFromProtectLoc);
+
                             if (homeEC != null) {
                                 int muckDistToHome = muckLoc.distanceSquaredTo(homeEC);
-                                // if (muckDistToHome < minDistAwayFromProtectLoc) {
-                                // slandererInDanger = true;
-                                // break checkIfSlandererInDanger;
-                                // }
                                 int myDistToHome = rc.getLocation().distanceSquaredTo(homeEC);
                                 if (myDistToHome >= muckDistToHome && muckDistToHome < 30) {
                                     slandererInDanger = true;
@@ -476,8 +458,7 @@ public class Politician extends Unit {
                     // if not enemy anymore, just supply the EC with eco
 
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
-                    
-                    if (enemyEC == null && nearestEnemyEC != null) {
+                    if (enemyEC == null || enemyEC.type != RobotType.ENLIGHTENMENT_CENTER && nearestEnemyEC != null) {
                         // check surroundings?!??!?
                         attackLoc = nearestEnemyEC.location;
                         enemyEC = nearestEnemyEC;
@@ -487,9 +468,14 @@ public class Politician extends Unit {
                         // rc.getLocation());
                         // shouldnt happen...
                     } else if (enemyEC.team == myTeam) {
-                        if (distToEC == 1) {
-                            rc.empower(1);
+                        // if converted to our team, stand by to recapture if necessary
+                        if (rc.getLocation().distanceSquaredTo(enemyEC.location) < 2) {
+                            Direction awayDir = enemyEC.location.directionTo(rc.getLocation());
+                            targetLoc = rc.getLocation().add(awayDir).add(awayDir);
                         }
+                        // if (distToEC == 1) {
+                        //     rc.empower(1);
+                        // }
                     } else {
                         // measure if worth
                         int friendlyUnitsInRadius = 0;
@@ -505,8 +491,8 @@ public class Politician extends Unit {
                                         rc.getConviction() + (int) (nearbyFirePower), 0) / n;
 
                                 double discountFactor = 0.5;
-                                System.out.println("nearby fire " +  nearbyFirePower + " - buff" + rc.getEmpowerFactor(myTeam, 0));
-                                System.out.println("Dist " + i  +"  - per " + speechInfluencePerUnit + " - ec conv" + enemyEC.conviction + " - nb " + nearbyEnemyFirePower);
+                                // System.out.println("nearby fire " +  nearbyFirePower + " - buff" + rc.getEmpowerFactor(myTeam, 0));
+                                // System.out.println("Dist " + i  +"  - per " + speechInfluencePerUnit + " - ec conv" + enemyEC.conviction + " - nb " + nearbyEnemyFirePower);
                                 if (speechInfluencePerUnit >= enemyEC.conviction
                                         + (nearbyEnemyFirePower - GameConstants.EMPOWER_TAX * nearbyEnemyPolis)
                                                 * discountFactor) {

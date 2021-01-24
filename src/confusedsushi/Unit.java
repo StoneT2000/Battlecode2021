@@ -161,7 +161,6 @@ public abstract class Unit extends RobotPlayer {
                 }
             }
         }
-        // System.out.println("HOMEEC: " + homeEC + " - " + homeECID);
     }
 
     // TODO: optimize this using the array of locs sorted by distance or smth to self

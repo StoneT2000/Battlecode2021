@@ -65,7 +65,6 @@ public class Slanderer extends Unit {
                                 int[] data = Comms.readTargetedMuckSignal(flag);
                                 int dx = data[1];
                                 int dy = data[1];
-                                // System.out.println("Muck spotted at " + dx + " - " + dy + " - of " + bot.location);
                                 MapLocation muckloc = new MapLocation(bot.location.x + dx, bot.location.y + dy);
                                 int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
                                 if (distToSpottedMuck < distToClosestEnemyMuckraker) {
@@ -158,11 +157,6 @@ public class Slanderer extends Unit {
         }
 
         if (locOfClosestEnemyMuckraker != null) {
-            Direction awayDir = findDirAwayFromLocations(new MapLocation[] { locOfClosestEnemyMuckraker });
-            // targetLoc = rc.getLocation().add(awayDir);
-            System.out.println("running away from muck at " + locOfClosestEnemyMuckraker + " - dir " + awayDir);
-            // originPoint = originPoint.add(awayDir);
-            // use different pathing algo for running away
             Direction greedyDir = Direction.CENTER;
             int bestDist = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuckraker);
             if (rc.isReady()) {
@@ -178,9 +172,8 @@ public class Slanderer extends Unit {
                         }
                     }
                 }
-                System.out.println("chose " + greedyDir);
             } else {
-                System.out.println("cant move ");
+                // cant move
             }
             
             if (greedyDir != Direction.CENTER) {
