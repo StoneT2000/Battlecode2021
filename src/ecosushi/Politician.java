@@ -166,8 +166,8 @@ public class Politician extends Unit {
                 flag = rc.getFlag(bot.ID);
                 handleFlag(flag);
             }
-            // TODO: comm slanderer and home id otherwise polis might go super far away
-            if (flag == Comms.IMASLANDERERR) {
+            // check if flag is slanderer flag
+            if (flag == Comms.IMASLANDERERR || ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.SLAND_SPOTTED_MUCK)) {
                 locsOfFriendSlands.add(bot.location);
                 if (homeEC != null) {
                     numberOfNearbyFriendlySlanderers += 1;

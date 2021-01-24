@@ -24,7 +24,7 @@ public class Slanderer extends Unit {
 
     public static void run() throws GameActionException {
         setFlagThisTurn = false;
-        setFlag(Comms.IMASLANDERERR);
+        rc.setFlag(Comms.IMASLANDERERR);
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
             switch (Comms.SIGNAL_TYPE_MASK & homeECFlag) {
@@ -83,8 +83,25 @@ public class Slanderer extends Unit {
                                 }
                                 break;
                             }
-                                // TODO: add signal for just seeing a muck but not targeting
-                                // TODO: propagate that signal backwards through the network of units
+                            case Comms.SLAND_SPOTTED_MUCK: {
+                                
+                                    // this is a slanderer as well
+                                    MapLocation muckloc = Comms.readSlandererSpottedMuckSignal(flag, rc);
+                                    int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
+                                    int theirDist = bot.location.distanceSquaredTo(muckloc);
+                                    // weaken this signal by distance.
+                                    if (theirDist >= distToSpottedMuck || distToSpottedMuck > 500) {
+                                        // ignore messages from slanderers behind me
+                                        break;
+                                    }
+                                    if (distToSpottedMuck < distToClosestEnemyMuckraker) {
+                                        distToClosestEnemyMuckraker = distToSpottedMuck;
+                                        locOfClosestEnemyMuckraker = muckloc;
+                                    }
+                                break;
+                            }
+                            // TODO: add signal for just seeing a muck but not targeting
+                            // TODO: propagate that signal backwards through the network of units
                         }
                         break;
                     }
@@ -168,6 +185,7 @@ public class Slanderer extends Unit {
         }
 
         if (locOfClosestEnemyMuckraker != null) {
+            System.out.println("closest enemy muck: " + locOfClosestEnemyMuckraker);
             Direction greedyDir = Direction.CENTER;
             int bestDist = rc.getLocation().distanceSquaredTo(locOfClosestEnemyMuckraker);
             if (rc.isReady()) {
@@ -186,10 +204,15 @@ public class Slanderer extends Unit {
             } else {
                 // cant move
             }
-            
+
             if (greedyDir != Direction.CENTER) {
                 rc.move(greedyDir);
             }
+
+            // report loc! propagate message!
+            int signal = Comms.getSlandererSpottedMuckSignal(locOfClosestEnemyMuckraker);
+            setFlag(signal);
+
         } else {
             if (rc.isReady()) {
                 Direction dir = getNextDirOnPath(targetLoc);

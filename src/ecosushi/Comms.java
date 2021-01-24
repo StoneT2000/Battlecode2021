@@ -46,6 +46,8 @@ public class Comms {
 
     public static final int SPOTTED_MUCK = 0xd00000;
 
+    public static final int SLAND_SPOTTED_MUCK = 0xe00000;
+
     // some long hash map locs in event we don't have map dims
     // this thing below is for checking if the signal shoudl be proccessed as a
     // found ec signal
@@ -279,5 +281,12 @@ public class Comms {
         int hash = (signal & 0x0fffc0) >> 6;
         int conviction = signal & 0x00003f;
         return new int[]{hash, conviction * 20};
+    }
+
+    public static int getSlandererSpottedMuckSignal(MapLocation muckLoc) {
+        return SLAND_SPOTTED_MUCK | (encodeMapLocation(muckLoc));
+    }
+    public static MapLocation readSlandererSpottedMuckSignal(int signal, RobotController rc) {
+        return decodeMapLocation(signal & SIGNAL_MASK, rc);
     }
 }
