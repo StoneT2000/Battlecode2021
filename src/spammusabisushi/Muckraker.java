@@ -22,6 +22,7 @@ public class Muckraker extends Unit {
             { 2, 5 }, { 3, 4 }, { 4, 3 }, { 5, 2 } };
     /** Roles for this unit */
     static final int SCOUT = 0;
+    static final int SCOUT_BUT_ALLOW_RUSH = 3;
     static final int RUSH = 1;
     static final int LATTICE_NETWORK = 10;
     static int role = LATTICE_NETWORK;
@@ -95,9 +96,12 @@ public class Muckraker extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if (turnCount < 2) {
-                    role = RUSH;
-                    attackLoc = Comms.readAttackECSignal(flag, rc);
+                if ((Comms.SIGNAL_TYPE_5BIT_MASK & flag) == Comms.ATTACK_EC) {
+
+                    if (turnCount < 2 || role == SCOUT_BUT_ALLOW_RUSH) {
+                        role = RUSH;
+                        attackLoc = Comms.readAttackECSignal(flag, rc);
+                    }
                 }
             case Comms.SMALL_SIGNAL:
                 break;
@@ -184,13 +188,16 @@ public class Muckraker extends Unit {
         }
         // scout corners / scout map if no good lattice position found
         if (closestLatticeLoc == null) {
-            role = SCOUT;
+            role = SCOUT_BUT_ALLOW_RUSH;
         }
         if (enemyECLocs.size > 0) {
             // role = RUSH
         }
 
+        // System.out.println("Role " + role + " attackLoc " + attackLoc);
+
         switch (role) {
+            case SCOUT_BUT_ALLOW_RUSH:
             case SCOUT:
                 scoutCorners();
                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
@@ -218,8 +225,10 @@ public class Muckraker extends Unit {
                     targetSlanderers(locOfClosestSlanderer);
                     if (rc.canSenseLocation(attackLoc)) {
                         RobotInfo info = rc.senseRobotAtLocation(attackLoc);
-                        if (info.team != oppTeam) {
+                        if (info.team == myTeam) {
                             // TODO no longer attack here
+                            // go back to scouting
+                            role = SCOUT_BUT_ALLOW_RUSH;
                         }
                     }
                 }
