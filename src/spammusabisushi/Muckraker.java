@@ -136,33 +136,50 @@ public class Muckraker extends Unit {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == myTeam) {
                 handleFlag(rc.getFlag(bot.ID));
-            }
-            if (bot.team == oppTeam && bot.type == RobotType.SLANDERER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToSlosestSlanderer) {
-                    distToSlosestSlanderer = dist;
-                    locOfClosestSlanderer = bot.location;
+                switch (bot.type) {
+                    case MUCKRAKER: {
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToClosestFriendlyMuckraker) {
+                            distToClosestFriendlyMuckraker = dist;
+                            locOfClosestFriendlyMuckraker = bot.location;
+                        }
+                        break;
+                    }
+                    case ENLIGHTENMENT_CENTER:
+                        handleFoundEC(bot);
+                        break;
+                    case SLANDERER: {
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist <= SLANDERER_SENSE_RADIUS + 10) {
+                            friendlySlandererInSlandererRange = true;
+                        }
+                        break;
+                    }
                 }
-            } else if (bot.team == myTeam && bot.type == RobotType.MUCKRAKER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestFriendlyMuckraker) {
-                    distToClosestFriendlyMuckraker = dist;
-                    locOfClosestFriendlyMuckraker = bot.location;
+            } else if (bot.team == oppTeam) {
+                switch (bot.type) {
+                    case SLANDERER: {
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToSlosestSlanderer) {
+                            distToSlosestSlanderer = dist;
+                            locOfClosestSlanderer = bot.location;
+                        }
+                        break;
+                    }
+                    case ENLIGHTENMENT_CENTER:
+                        handleFoundEC(bot);
+                        break;
+                    case MUCKRAKER: {
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToClosestEnemyMuck) {
+                            distToClosestEnemyMuck = dist;
+                            closestEnemyMuck = bot;
+                        }
+                    }
+
                 }
             } else if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                // we always send these signals out in the event the EC changes team
                 handleFoundEC(bot);
-            } else if (bot.team == oppTeam && bot.type == RobotType.MUCKRAKER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist < distToClosestEnemyMuck) {
-                    distToClosestEnemyMuck = dist;
-                    closestEnemyMuck = bot;
-                }
-            } else if (bot.team == myTeam && bot.type == RobotType.SLANDERER) {
-                int dist = rc.getLocation().distanceSquaredTo(bot.location);
-                if (dist <= SLANDERER_SENSE_RADIUS + 10) {
-                    friendlySlandererInSlandererRange = true;
-                }
             }
         }
 
@@ -172,6 +189,7 @@ public class Muckraker extends Unit {
         if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0 && currLoc.distanceSquaredTo(homeEC) > 4) {
             closestLatticeLoc = currLoc;
         }
+        // if (role == LATTICE_NETWORK) {
         for (int i = 0; ++i < BFS30.length;) {
             int[] deltas = BFS30[i];
 
@@ -186,6 +204,7 @@ public class Muckraker extends Unit {
                 }
             }
         }
+        // }
         // scout corners / scout map if no good lattice position found
         if (closestLatticeLoc == null) {
             role = SCOUT_BUT_ALLOW_RUSH;
@@ -209,7 +228,7 @@ public class Muckraker extends Unit {
                 while (!rc.onTheMap(targetLoc)) {
                     i++;
                     targetLoc = rc.getLocation().add(dirs[i]).add(dirs[i]).add(dirs[i]);
-                    
+
                 }
                 if (i != -1) {
                     scoutDir = dirs[i];
@@ -288,7 +307,7 @@ public class Muckraker extends Unit {
         // YOU ACTUALLY CAN SEE EC FLAGS AND ECS CAN SEE ALL FLAGS
         int turnCountMod = 2;
 
-         if (!haveMapDimensions() && !setFlagThisTurn) {
+        if (!haveMapDimensions() && !setFlagThisTurn) {
             // if we have more corner points, send those out as well
             int signalX = -1;
             if (turnCount % turnCountMod == 0) {
@@ -318,7 +337,6 @@ public class Muckraker extends Unit {
             }
         }
 
-
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER && rc.canMove(dir)) {
@@ -328,6 +346,7 @@ public class Muckraker extends Unit {
                 for (Direction wiggleDir : DIRECTIONS) {
                     if (rc.canMove(wiggleDir)) {
                         rc.move(wiggleDir);
+                        break;
                     }
                 }
             }

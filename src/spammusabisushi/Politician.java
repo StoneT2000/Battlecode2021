@@ -608,6 +608,7 @@ public class Politician extends Unit {
                         // MapLocation loc = rc.getLocation().add(wiggleDir);
                         if (rc.canMove(wiggleDir)) {
                             rc.move(wiggleDir);
+                            break;
                         }
                     }
                 }

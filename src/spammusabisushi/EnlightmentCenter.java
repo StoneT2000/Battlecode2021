@@ -493,8 +493,15 @@ public class EnlightmentCenter extends RobotPlayer {
                         break;
                     }
                 }
-
-                RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, 1, dir);
+                int mucksize = 1;
+                if (allowance >= 100) {
+                    mucksize = 2;
+                } else if (allowance >= 200) {
+                    mucksize = 3;
+                } else if (allowance >= 400) {
+                    mucksize = allowance / 100;
+                }
+                RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, mucksize, dir);
                 if (newbot != null) {
                     spentInfluence += 1;
                     break;
