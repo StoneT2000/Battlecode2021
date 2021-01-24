@@ -503,8 +503,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                 Direction dir = DIRECTIONS[lastRushBuildIndex];
 
-                if (buildPoli && allowance >= 17) {
-                    int influenceWant = 17;
+                if (buildPoli && allowance >= 20) {
+                    int influenceWant = 20;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, influenceWant, dir);
                     if (newbot != null) {
                         spentInfluence += influenceWant;
