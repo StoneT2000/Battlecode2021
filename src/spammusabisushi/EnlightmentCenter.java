@@ -189,6 +189,12 @@ public class EnlightmentCenter extends RobotPlayer {
                 tryToBuildAnywhere(RobotType.SLANDERER, 130);
                 buildCount += 1;
             } else if (buildCount <= 20) {
+                if (buildCount == 7) {
+                    RobotInfo bot = tryToBuildAnywhere(RobotType.POLITICIAN, 16);
+                    if (bot != null){
+                        buildCount += 1;
+                    }
+                }
                 if (buildCount % 2 == 0) {
                     tryToBuildAnywhere(RobotType.SLANDERER, findOptimalSlandererInfluenceUnderX(rc.getInfluence()));
                     buildCount += 1;
