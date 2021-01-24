@@ -260,7 +260,7 @@ public class EnlightmentCenter extends RobotPlayer {
             neutralHashNode = neutralECLocs.next();
         }
         if (neutralECLocToTake != null) {
-            if (rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 100) {
+            if (rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 120) {
 
             } else {
                 stockInfluenceForNeutral = true;
@@ -408,14 +408,18 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
 
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
-                        + (neutralECLocToTake != null ? neutralECLocToTake.location : null));
+                        + (neutralECLocToTake != null ? neutralECLocToTake.location : null) + " | stock? " + stockInfluenceForNeutral);
+                
+                
                 // capture netural ECs
-                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 200 && influenceGainedLastTurn * 5 >= neutralECLocToTake.lastKnownConviction + 200) {
+                // lower threshold for generation per turn as time progresses
+                int extraInfFactor = 5;
+                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 120 && influenceGainedLastTurn * extraInfFactor >= neutralECLocToTake.lastKnownConviction + 120) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     // limit ourselves to send only one poli per neutral
                     if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                         // TODO: dont do this if enemy is near and can capture easily
-                        int want = neutralECLocToTake.lastKnownConviction + 100;
+                        int want = neutralECLocToTake.lastKnownConviction + 120;
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, want,
                                 rc.getLocation().directionTo(neutralECLocToTake.location));
                         if (newbot != null) {
