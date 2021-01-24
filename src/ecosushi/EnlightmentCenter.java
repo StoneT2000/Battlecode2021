@@ -238,6 +238,7 @@ public class EnlightmentCenter extends RobotPlayer {
             }
         }
 
+        int allowance = rc.getInfluence() - nearbyEnemyFirePower;
         // strategy for taking ecs
         boolean stockInfluenceForNeutral = false;
         /** closest neutral ec loc */
@@ -251,7 +252,7 @@ public class EnlightmentCenter extends RobotPlayer {
             int hash = Comms.encodeMapLocation(loc);
             if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
                 int dist = rc.getLocation().distanceSquaredTo(neutralHashNode.val.location);
-                int score = dist + neutralHashNode.val.lastKnownConviction * 0;
+                int score = dist + neutralHashNode.val.lastKnownConviction * 100;
                 if (bestScore > score) {
                     bestScore = score;
                     neutralECLocToTake = neutralHashNode.val;
@@ -260,7 +261,7 @@ public class EnlightmentCenter extends RobotPlayer {
             neutralHashNode = neutralECLocs.next();
         }
         if (neutralECLocToTake != null) {
-            if (rc.getInfluence() >= neutralECLocToTake.lastKnownConviction + 120) {
+            if (allowance >= neutralECLocToTake.lastKnownConviction + 120) {
 
             } else {
                 stockInfluenceForNeutral = true;
@@ -322,7 +323,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 // }
                 break;
             case NORMAL:
-                int allowance = rc.getInfluence() - nearbyEnemyFirePower;
+                
 
                 // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                 boolean buildSlanderer = false;
@@ -340,6 +341,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
                 if (slandererIDs.size / (politicianIDs.size + 0.1) > ratio) {
                     buildPoli = true;
+                } else {
+                    buildSlanderer = true;
                 }
                 if (enemyMuckrakersSeen > nearbyPolis) {
                     buildPoli = true;
@@ -413,7 +416,16 @@ public class EnlightmentCenter extends RobotPlayer {
                 
                 // capture netural ECs
                 // lower threshold for generation per turn as time progresses
-                int extraInfFactor = 5;
+                int extraInfFactor = 8;
+                if (rc.getRoundNum() <= 100) {
+                    
+                } else if (rc.getRoundNum() <= 200) {
+                    extraInfFactor = 15;
+                } else if (rc.getRoundNum() <= 300) {
+                    extraInfFactor = 30;
+                } else {
+                    extraInfFactor = 10000;
+                }
                 if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 120 && influenceGainedLastTurn * extraInfFactor >= neutralECLocToTake.lastKnownConviction + 120) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     // limit ourselves to send only one poli per neutral
@@ -434,9 +446,8 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 // spawn buff muck
-                if (!stockInfluenceForNeutral && enemyECLocToTake != null && attackingMucks.size == 0
-                        && allowance >= 571 + 20) {
-                    int want = 571;
+                if (enemyECLocToTake != null && considerAttackingEnemy && attackingMucks.size < attackingPolis.size / 2) {
+                    int want = allowance;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
                     if (newbot != null) {
