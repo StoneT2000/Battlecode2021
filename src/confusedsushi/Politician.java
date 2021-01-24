@@ -458,18 +458,23 @@ public class Politician extends Unit {
                     // if not enemy anymore, just supply the EC with eco
 
                     RobotInfo enemyEC = rc.senseRobotAtLocation(attackLoc);
-                    if (enemyEC == null || enemyEC.type != RobotType.ENLIGHTENMENT_CENTER && nearestEnemyEC != null) {
+                    if ((enemyEC == null || enemyEC.type != RobotType.ENLIGHTENMENT_CENTER) && nearestEnemyEC != null) {
                         // check surroundings?!??!?
                         attackLoc = nearestEnemyEC.location;
                         enemyEC = nearestEnemyEC;
                     }
+                    if (enemyEC != null) {
+                        distToEC = rc.getLocation().distanceSquaredTo(enemyEC.location);
+                    }
+                    
                     if (enemyEC == null) {
                         // System.out.println("attackLoc: " + attackLoc + " - myloc" +
                         // rc.getLocation());
                         // shouldnt happen...
                     } else if (enemyEC.team == myTeam) {
                         // if converted to our team, stand by to recapture if necessary
-                        if (rc.getLocation().distanceSquaredTo(enemyEC.location) < 2) {
+                        System.out.println("dist to firend " + distToEC);
+                        if (distToEC < 20) {
                             Direction awayDir = enemyEC.location.directionTo(rc.getLocation());
                             targetLoc = rc.getLocation().add(awayDir).add(awayDir);
                         }
@@ -487,6 +492,11 @@ public class Politician extends Unit {
                             neutralsInRadius += neutralUnitsAtDistanceCount[i];
                             int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
                             if (distToEC <= i) {
+                                if (enemyEC.team == Team.NEUTRAL) {
+                                    if (i > 3 && n > 0) {
+                                        continue;
+                                    }
+                                }
                                 int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
                                         rc.getConviction() + (int) (nearbyFirePower), 0) / n;
 

@@ -60,6 +60,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static boolean firstEC = false;
     static int buildCount = 0;
+    static LinkedList<Integer> buildScoutedDirs = new LinkedList<>();
 
     public static void setup() throws GameActionException {
         // role = BUILD_SCOUTS;
@@ -68,6 +69,10 @@ public class EnlightmentCenter extends RobotPlayer {
 
         if (rc.getRoundNum() < 2) {
             firstEC = true;
+        }
+        int[] order  =new int[]{1, 3, 5, 7,0,2,4,6};
+        for (int i : order) {
+            buildScoutedDirs.add(i);
         }
     }
 
@@ -139,7 +144,6 @@ public class EnlightmentCenter extends RobotPlayer {
         int enemyMuckrakersSeen = 0;
         int nearbyPolis = 0;
         // list of enemy mucks with larger inf
-        
 
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
@@ -186,12 +190,38 @@ public class EnlightmentCenter extends RobotPlayer {
                 } else {
                     lastRushBuildIndex = (lastRushBuildIndex + 1) % DIRECTIONS.length;
                     Direction dir = DIRECTIONS[lastRushBuildIndex];
-                    tryToBuildAnywhere(RobotType.MUCKRAKER, 1, dir);
-                    buildCount += 1;
-                    if (turnCount <= 20) {
-                        specialMessageQueue.add(SKIP_FLAG);
-                        specialMessageQueue.add(Comms.GO_SCOUT);
+
+                    boolean built = false;
+                    if (buildScoutedDirs.size > 0) {
+                        Node<Integer> node = buildScoutedDirs.head;
+                        while(node != null) {
+                            if (rc.canBuildRobot(RobotType.MUCKRAKER, DIRECTIONS[node.val], 1)) {
+                                rc.buildRobot(RobotType.MUCKRAKER, DIRECTIONS[node.val], 1);
+                                buildScoutedDirs.remove(node.val);
+                                buildCount += 1;
+                                specialMessageQueue.add(SKIP_FLAG);
+                                specialMessageQueue.add(Comms.GO_SCOUT);
+                                RobotInfo bot = rc.senseRobotAtLocation(rc.getLocation().add(DIRECTIONS[node.val]));
+                                muckrakerIDs.add(bot.ID);
+                                built = true;
+                                lastBuildTurn = turnCount;
+                                break;
+                            }
+                            node = node.next;
+                        }
                     }
+                    if (!built) {
+                        RobotInfo bot = tryToBuildAnywhere(RobotType.MUCKRAKER, 1, dir);
+                        if (bot != null){
+                            buildCount += 1;
+                            if (turnCount <= 40) {
+                                specialMessageQueue.add(SKIP_FLAG);
+                                specialMessageQueue.add(Comms.GO_SCOUT);
+                            }
+                        }
+                    }
+
+                       
                 }
             }
         }
@@ -384,7 +414,8 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 // spawn buff muck
-                if (!stockInfluenceForNeutral && enemyECLocToTake != null && attackingMucks.size == 0 && allowance >= 571 + 20) {
+                if (!stockInfluenceForNeutral && enemyECLocToTake != null && attackingMucks.size == 0
+                        && allowance >= 571 + 20) {
                     int want = 571;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
@@ -642,12 +673,12 @@ public class EnlightmentCenter extends RobotPlayer {
                         processFoundECFlag(flag);
                         break;
                     case Comms.SPOTTED_MUCK:
-                        int[] data  = Comms.readSpottedMuckSignal(flag, rc);
+                        int[] data = Comms.readSpottedMuckSignal(flag, rc);
                         MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
                         if (rc.getLocation().distanceSquaredTo(muckloc) <= 150) {
                             bigEnemyMuckSizes.add(data[1]);
                         }
-                        // System.out.println("found muck by muck at " + muckloc + " size: "  + data[1]);
+                        // System.out.println("found muck by muck at " + muckloc + " size: " + data[1]);
                         break;
 
                 }
