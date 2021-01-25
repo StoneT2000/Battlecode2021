@@ -139,6 +139,22 @@ public class Muckraker extends Unit {
                         role = SCOUT;
                         scoutDir = Direction.WEST;
                         break;
+                    case Comms.GO_SCOUT_NORTHEAST:
+                        role = SCOUT;
+                        scoutDir = Direction.NORTHEAST;
+                        break;
+                    case Comms.GO_SCOUT_NORTHWEST:
+                        role = SCOUT;
+                        scoutDir = Direction.NORTHWEST;
+                        break;
+                    case Comms.GO_SCOUT_SOUTHEAST:
+                        role = SCOUT;
+                        scoutDir = Direction.SOUTHEAST;
+                        break;
+                    case Comms.GO_SCOUT_SOUTHWEST:
+                        role = SCOUT;
+                        scoutDir = Direction.SOUTHWEST;
+                        break;
 
                 }
                 if (role == SCOUT) {
@@ -297,6 +313,12 @@ public class Muckraker extends Unit {
                     ecDetailsNode.val.lastKnownConviction);
             specialMessageQueue.add(signal);
             foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
+        }
+
+        // report slanderer locations to EC to indicate promising scouting directions
+        if (locOfClosestSlanderer != null) {
+            int sig = Comms.getFoundEnemySlandererSignal(locOfClosestSlanderer);
+            specialMessageQueue.add(sig);
         }
 
         // handle flags that arernt corner stuff

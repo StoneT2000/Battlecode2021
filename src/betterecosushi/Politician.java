@@ -18,7 +18,6 @@ public class Politician extends Unit {
             { -1, 4 }, { 0, 5 }, { 1, 4 }, { 2, 3 }, { 3, 2 }, { 4, 1 }, { 4, -2 }, { 3, -3 }, { 2, -4 }, { -2, -4 },
             { -3, -3 }, { -4, -2 }, { -4, 2 }, { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 4, -3 }, { 3, -4 },
             { -3, -4 }, { -4, -3 }, { -4, 3 }, { -3, 4 }, { 3, 4 }, { 4, 3 } };
-    static final int SACRIFICE = 0;
     static final int DEFEND_SLANDERER = 2;
     static final int ATTACK_EC = 3;
     static final int ATTACK_NEUTRAL_EC = 4;
@@ -40,7 +39,6 @@ public class Politician extends Unit {
         // find ec spawned from
         setHomeEC();
         if (homeEC == null) {
-            // role = SACRIFICE;
             // this means we were captured probably
             exploreDir = randomDirection();
         } else {
@@ -60,11 +58,6 @@ public class Politician extends Unit {
                 int[] vs2 = Comms.readMapOffsetSignalYHeight(flag);
                 offsety = vs2[0];
                 mapHeight = vs2[1];
-                break;
-            case Comms.POLI_SACRIFICE:
-                if (turnCount < 2) {
-                    role = SACRIFICE;
-                }
                 break;
             case Comms.FOUND_EC:
                 processFoundECFlag(flag);

@@ -40,16 +40,12 @@ public class EnlightmentCenter extends RobotPlayer {
     static int multiPartMessageType = 0;
     static final int SKIP_FLAG = -1;
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
+    static int[] dirsToEnemySlands = new int[]{-1, -1, -1, -1, -1, -1, -1, -1};
 
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
     static int lastTurnSawEnemyMuck = -10;
 
     static int lastTurnBuiltMediumMuck = -10;
-
-    // maps north, east, south, west to last turn we built a sacrifice poli there
-    // if turnCount - SacrificePoliBuildDirToTurnCount[i] == 10, try avoid spawning
-    // a unit adjacent to direction
-    static int[] SacrificePoliBuildDirToTurnCount = new int[] { -100, -100, -100, -100, -100, -100, -100, -100 };
 
     static class Stats {
         static int muckrakersBuilt = 0;
@@ -465,12 +461,26 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                         
                         Direction scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
+                        // first choose from promising directions
+
+                        boolean usedPromisingDir = false;
+                        for (int i = 0; i < dirsToEnemySlands.length; i++) {
+                            if (dirsToEnemySlands[i] != -1) {
+                                // promising if not default sentinel val of -1
+                                Direction dir = DIRECTIONS[i];
+                                scoutDir = dir;
+                                dirsToEnemySlands[i] = -1;
+                                usedPromisingDir = true;
+                                break;
+                            } 
+
+                        }
+
                         // scout directions that arent off map / we can see
                         while(!rc.onTheMap(rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir))) {
                             scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
                             lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
                         }
-                        // System.out.println("build buff scout");
                         RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want, scoutDir);
                         if (newbot != null) {
                             lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
@@ -480,14 +490,26 @@ public class EnlightmentCenter extends RobotPlayer {
                                 case NORTH:
                                     specialMessageQueue.add(Comms.GO_SCOUT_NORTH);
                                     break;
+                                case NORTHEAST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_NORTHEAST);
+                                    break;
                                 case EAST:
                                     specialMessageQueue.add(Comms.GO_SCOUT_EAST);
+                                    break;
+                                case SOUTHEAST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_SOUTHEAST);
                                     break;
                                 case SOUTH:
                                     specialMessageQueue.add(Comms.GO_SCOUT_SOUTH);
                                     break;
+                                case SOUTHWEST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_SOUTHWEST);
+                                    break;
                                 case WEST:
                                     specialMessageQueue.add(Comms.GO_SCOUT_WEST);
+                                    break;
+                                case NORTHWEST:
+                                    specialMessageQueue.add(Comms.GO_SCOUT_NORTHWEST);
                                     break;
                                 default:
                                     // shouldn't happen
@@ -496,6 +518,10 @@ public class EnlightmentCenter extends RobotPlayer {
                             }
                             spentInfluence += want;
                             break;
+                        } else if (usedPromisingDir) {
+                            // if used primising direction but didnt build anything, reset val
+                            int d = dirToInt(scoutDir);
+                            dirsToEnemySlands[d] = 0;
                         }
                     }
                 }
@@ -724,6 +750,14 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                         // System.out.println("found muck by muck at " + muckloc + " size: " + data[1]);
                         break;
+                    case Comms.FOUND_ENEMY_SLANDERER: {
+                        MapLocation slandLoc = Comms.readFoundEnemySlandererSignal(flag, rc);
+                        Direction dir = rc.getLocation().directionTo(slandLoc);
+                        int ind = dirToInt(dir);
+                        dirsToEnemySlands[ind] = 0;
+                        break;
+                    }
+                        
 
                 }
             } else {

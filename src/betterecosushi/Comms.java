@@ -24,11 +24,13 @@ public class Comms {
     public static final int MAP_OFFSET_Y_AND_HEIGHT = 0x400000;
     /** bits 4-5 for unit type, rest for id */
     public static final int BUILT_UNIT = 0x500000;
-    public static final int POLI_SACRIFICE = 0x600000;
+
+    public static final int FOUND_ENEMY_SLANDERER = 0x600000;
+
     // TODO: add scouting on EC influence each turn...
     public static final int FOUND_EC = 0x700000;
-    // shout details about self
-    public static final int UNIT_DETAILS = 0x800000;
+
+    
     // cram more single message signals that don't require much space
     public static final int SMALL_SIGNAL = 0x900000;
     // small signals:
@@ -38,8 +40,16 @@ public class Comms {
     public static final int GO_SCOUT_EAST = 0x900004;
     public static final int GO_SCOUT_SOUTH = 0x900005;
     public static final int GO_SCOUT_WEST = 0x900006;
-    public static final int IM_ATTACKING_NEUTRAL_EC = 0x900003;
-    public static final int IM_STOPPING_BUFF_MUCK = 0x900004;
+    public static final int GO_SCOUT_NORTHEAST = 0x900007;
+    public static final int GO_SCOUT_SOUTHEAST = 0x900008;
+    public static final int GO_SCOUT_SOUTHWEST = 0x900009;
+    public static final int GO_SCOUT_NORTHWEST = 0x90000a;
+
+
+    public static final int UNIT_DETAILS = 0x90000b;
+
+    public static final int IM_ATTACKING_NEUTRAL_EC = 0x90000b;
+    public static final int IM_STOPPING_BUFF_MUCK = 0x90000c;
 
     public static final int ATTACK_EC = 0xa00000;
     public static final int ATTACK_NEUTRAL_EC = 0xa80000;
@@ -174,11 +184,6 @@ public class Comms {
         int id = (SIGNAL_MASK & signal) & 0x00ffff;
         return new int[] { id, typeind };
     }
-
-    public static int getPoliSacrificeSignal() {
-        return POLI_SACRIFICE;
-    }
-
     public static int getFoundECSignal(MapLocation ECLoc, int teamind, int ecInfluence) {
         // we send the type, friend, enemy, or neutral 2 bits (0, 1, 2)
         // location: 14 bits, team ind is 2 bits, 4 bits for ec inf
@@ -291,6 +296,13 @@ public class Comms {
         return SLAND_SPOTTED_MUCK | (encodeMapLocation(muckLoc));
     }
     public static MapLocation readSlandererSpottedMuckSignal(int signal, RobotController rc) {
+        return decodeMapLocation(signal & SIGNAL_MASK, rc);
+    }
+
+    public static int getFoundEnemySlandererSignal(MapLocation muckLoc) {
+        return FOUND_ENEMY_SLANDERER | (encodeMapLocation(muckLoc));
+    }
+    public static MapLocation readFoundEnemySlandererSignal(int signal, RobotController rc) {
         return decodeMapLocation(signal & SIGNAL_MASK, rc);
     }
 }
