@@ -267,7 +267,6 @@ public class Muckraker extends Unit {
 
         switch (role) {
             case SCOUT_BUT_ALLOW_RUSH:
-                System.out.println("there are " + enemyECLocs.size + " enemy lcos");
             case SCOUT: {
                 scoutCorners();
                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
@@ -289,7 +288,6 @@ public class Muckraker extends Unit {
             }
             case RUSH: {
                 targetLoc = attackLoc;
-                System.out.println("there are " + enemyECLocs.size + " enemy lcos");
                 if (!haveMapDimensions()) {
                     scoutCorners();
                 }
@@ -356,14 +354,12 @@ public class Muckraker extends Unit {
                     int protectivePoliConviction = 0;
                     if (protectingPoli != null) {
                         protectivePoliConviction += protectingPoli.conviction;
-                        System.out.println(" PROTECT " + protectingPoli.ID);
                     }
 
                     if (protectingPoli != null && muckShouldHeal(rc.getInfluence(), rc.getConviction(), potentialMaxDamageInOneTurn)) {
 
                         // stay put if already close enogh to friend poli
                         int distToProtectivePoli = rc.getLocation().distanceSquaredTo(protectingPoli.location);
-                        System.out.println("trying to find poli to heal self! dist " + distToProtectivePoli);
                         targetLoc = protectingPoli.location;
                         // if (distToProtectivePoli > 1) {
                         absolutelyDONOTWIGGLE = true;

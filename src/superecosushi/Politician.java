@@ -83,14 +83,10 @@ public class Politician extends Unit {
                             if (rc.getConviction() >= 100 && (role == SCOUT || role == DEFEND_SLANDERER_BUT_OPEN_TO_RUSH_CHANGE)) {
                                 // if high conviction but was scout or defending slanderers, switch to an attacking role!
                                 acceptRole = true;
-                                System.out.println("high convict and switch!");
                             }
                             if (turnCount < 2 || (needsnewTarget && role == ATTACK_EC) || acceptRole) {
                                 role = ATTACK_EC;
                                 attackLoc = Comms.readAttackECSignal(flag, rc);
-                                if (acceptRole) {
-                                    System.out.println("switched to " + attackLoc);
-                                }
                             }
                             break;
                         } else {
@@ -119,7 +115,6 @@ public class Politician extends Unit {
     }
 
     public static void run() throws GameActionException {
-        System.out.println("role - " + role);
         if (exploreDir == null) {
             // for units that convert
             if (homeEC == null) {
@@ -521,7 +516,6 @@ public class Politician extends Unit {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
 
-            System.out.println("Attacking " + targetLoc);
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
                     // if not enemy anymore, just supply the EC with eco
@@ -638,10 +632,7 @@ public class Politician extends Unit {
                             // woudl need to count this separately
                             int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
                                     rc.getConviction(), 0) / n;
-                            System.out
-                                    .println("n " + n + " in/pu " + speechInfluencePerUnit + " - dist - " + distToMuck);
                             if (speechInfluencePerUnit >= rc.getConviction() / 2 || muckToProtect.conviction + speechInfluencePerUnit > potentialMaxDamageInOneTurn) {
-                                System.out.println("empower now at radius " + i);
                                 rc.empower(i);
                                 break;
                             }
@@ -718,7 +709,6 @@ public class Politician extends Unit {
         } else if (role == PROTECT_BUFF_MUCK && muckToProtect != null) {
             canWiggle = false;
         }
-        System.out.println("Going to " + targetLoc);
         if (absolutelydonotwiggle) {
             // do completely greedy movement
             if (rc.isReady() && targetLoc != null) {

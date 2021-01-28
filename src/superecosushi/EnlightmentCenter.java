@@ -52,6 +52,8 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static int numberofattackingpolisneedingnewattacktarget = 0;
 
+    static int timeToFirstEnemyMuck = -1;
+
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -274,6 +276,8 @@ public class EnlightmentCenter extends RobotPlayer {
 
         ECDetails enemyECLocToTake = null;
         int closestDist = 99999999;
+        ECDetails closestEnemyEC = null;
+        int closestEnemyECDist = 9999999;
         enemyECLocs.resetIterator();
         HashMapNodeVal<Integer, ECDetails> enemyHashNode = enemyECLocs.next();
         while (enemyHashNode != null) {
@@ -286,6 +290,10 @@ public class EnlightmentCenter extends RobotPlayer {
             if (dist < closestDist) {
                 closestDist = dist;
                 enemyECLocToTake = enemyHashNode.val;
+            }
+            if (dist < closestEnemyECDist) {
+                closestEnemyEC = enemyHashNode.val;
+                closestEnemyECDist = dist;
             }
             // }
             enemyHashNode = enemyECLocs.next();
@@ -302,19 +310,47 @@ public class EnlightmentCenter extends RobotPlayer {
                     buildSlanderer = true;
                 }
                 if (enemyMuckrakersSeen > 0) {
+                    if (!sawFirstEnemyMuck) {
+                        timeToFirstEnemyMuck = turnCount;
+                    }
                     sawFirstEnemyMuck = true;
                     buildSlanderer = false;
                 }
                 boolean buildPoli = false;
-                double ratio = 2 - threatFactor;
+                double ratiocap = 1.7;
+                double distToClosestEnemyEC = 99999;
+                
+                if (closestEnemyEC != null) {
+                    
+                    distToClosestEnemyEC = closestEnemyEC.location.distanceSquaredTo(rc.getLocation());
+                    if (distToClosestEnemyEC <= 155) {
+                        ratiocap = 1.15;
+                    }
+                    else if (distToClosestEnemyEC <= 200) {
+                        ratiocap = 1.2;
+                    } else if (distToClosestEnemyEC <= 425) {
+                        ratiocap = 1.35;
+                    } else {
+                        ratiocap = 2;
+                    }
+                } else {
+                    // use this metric if closest enemy ec not known
+                    if (timeToFirstEnemyMuck != -1 && timeToFirstEnemyMuck <= 100) {
+                        ratiocap = 1.5;
+                    } else {
+                        ratiocap = 1.7;
+                    }
+                }
+
+                double ratio = ratiocap - threatFactor;
                 if (rc.getRoundNum() < 100 && !sawFirstEnemyMuck) {
-                    ratio = 4 - threatFactor * 1.5;
+                    ratio = ratiocap * 2 - threatFactor * 1.5;
                 }
                 if (rc.getRoundNum() % 10 == 0) {
                     // every 10 turns reduce threat
                     threatFactor = Math.max(0, (threatFactor - 0.075) * 0.9);
                 }
-                System.out.println("pratio - " + ratio);
+                System.out.println("pratio - " + ratio + " - ratio cap " + ratiocap);
                 if (slandererIDs.size / (politicianIDs.size + 0.1) > ratio) {
                     buildPoli = true;
                 } else {
@@ -485,9 +521,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 }
 
                 // tell polis to attack new place if theyre all just milling around
-                if (numberofattackingpolisneedingnewattacktarget > attackingPolis.size
-                 / 2 && enemyECLocToTake != null) {
-                    System.out.println("making new signal to attack new ec with  " + numberofattackingpolisneedingnewattacktarget + " needing new target - " + enemyECLocToTake.location);
+                if (numberofattackingpolisneedingnewattacktarget > attackingPolis.size / 2
+                        && enemyECLocToTake != null) {
                     int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
                     specialMessageQueue.add(sig1);
                 }
@@ -530,7 +565,7 @@ public class EnlightmentCenter extends RobotPlayer {
                                     usedPromisingDir = true;
                                     break;
                                 }
-    
+
                             }
                         }
                         // scout directions that arent off map / we can see
@@ -670,14 +705,12 @@ public class EnlightmentCenter extends RobotPlayer {
         if (enemyECLocs.size > 0) {
             turnCountModulus = 5;
         }
-        System.out.println("turncountmod " + turnCountModulus);
 
         // send locations of changed ECs
         if (!setFlagThisTurn && recentlyAddedEnemyECHashes.size > 0) {
             Node<Integer> hash = recentlyAddedEnemyECHashes.dequeue();
             ECDetails ecDetails = enemyECLocs.get(hash.val);
             if (ecDetails != null) {
-                System.out.println("Sending changed enemy " + ecDetails.location);
                 int signal = Comms.getFoundECSignal(ecDetails.location, TEAM_ENEMY, ecDetails.lastKnownConviction);
                 setFlag(signal);
             }
@@ -687,7 +720,6 @@ public class EnlightmentCenter extends RobotPlayer {
             Node<Integer> hash = recentlyAddedFriendECHashes.dequeue();
             ECDetails ecDetails = enemyECLocs.get(hash.val);
             if (ecDetails != null) {
-                System.out.println("Sending changed friend " + ecDetails.location);
                 int signal = Comms.getFoundECSignal(ecDetails.location, TEAM_FRIEND, ecDetails.lastKnownConviction);
                 setFlag(signal);
 
@@ -703,7 +735,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 ecLocHashNode = enemyECLocs.next();
             }
             MapLocation ECLoc = ecLocHashNode.val.location;
-            System.out.println("Sending " + ECLoc);
             int signal = Comms.getFoundECSignal(ECLoc, TEAM_ENEMY, ecLocHashNode.val.lastKnownConviction);
             setFlag(signal);
         }
@@ -833,7 +864,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     case Comms.FOUND_ENEMY_SLANDERER: {
                         int[] data = Comms.readFoundEnemyUnitSignal(flag, rc);
-                        MapLocation unitLoc =Comms.decodeMapLocation(data[0], rc);
+                        MapLocation unitLoc = Comms.decodeMapLocation(data[0], rc);
                         Direction dir = rc.getLocation().directionTo(unitLoc);
                         int ind = dirToInt(dir);
                         if (data[1] == TYPE_POLITICIAN) {
@@ -841,7 +872,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         } else if (data[1] == TYPE_SLANDERER) {
                             dirsToEnemySlands[ind] = 0;
                         }
-                        
+
                         break;
                     }
 
@@ -922,11 +953,10 @@ public class EnlightmentCenter extends RobotPlayer {
                         processFoundECFlag(flag);
                         break;
                     case Comms.SMALL_SIGNAL: {
-                         if (flag == Comms.I_NEED_EC_ATTACK_LOC) {
-                            numberofattackingpolisneedingnewattacktarget+= 1;
-                         }
+                        if (flag == Comms.I_NEED_EC_ATTACK_LOC) {
+                            numberofattackingpolisneedingnewattacktarget += 1;
+                        }
                     }
-
 
                 }
             } else {
