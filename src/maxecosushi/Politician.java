@@ -441,10 +441,10 @@ public class Politician extends Unit {
                             if (homeEC != null) {
                                 int muckDistToHome = muckLoc.distanceSquaredTo(homeEC);
                                 int myDistToHome = rc.getLocation().distanceSquaredTo(homeEC);
-                                if (myDistToHome >= muckDistToHome && muckDistToHome < 30) {
+                                if ((myDistToHome >= muckDistToHome && muckDistToHome < 30) || muckDistToHome < 40) {
                                     slandererInDanger = true;
                                     break checkIfSlandererInDanger;
-                                }
+                                } 
                             }
                             Node<MapLocation> currNode = locsOfFriendSlands.head;
                             while (currNode != null) {

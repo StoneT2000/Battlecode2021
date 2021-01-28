@@ -911,8 +911,9 @@ public class EnlightmentCenter extends RobotPlayer {
         }
 
         currIDNode = slandererIDs.next();
+        int currRound = rc.getRoundNum();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 8000) {
+            if (Clock.getBytecodesLeft() < 8500) {
                 System.out.println("==== quit sland loop early ====");
                 break;
             }
@@ -931,8 +932,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     // computation
                     Integer buildTurn = slanderersBuildTurn.get(currIDNode.val);
                     if (buildTurn != null) {
-                        System.out.println(currIDNode.val + " - built " + buildTurn);
-                        if (rc.getRoundNum() - buildTurn < 50) {
+                        if (currRound - buildTurn < 50) {
                             totalMoneyMakingSlanderersAlive += 1;
                         } else {
                             slanderersBuildTurn.remove(currIDNode.val);
@@ -957,7 +957,7 @@ public class EnlightmentCenter extends RobotPlayer {
 
         currIDNode = politicianIDs.next();
         while (currIDNode != null) {
-            if (Clock.getBytecodesLeft() < 6000) {
+            if (Clock.getBytecodesLeft() < 7000) {
                 System.out.println("==== quit poli loop early ====");
                 break;
             }
@@ -983,6 +983,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         if (flag == Comms.I_NEED_EC_ATTACK_LOC) {
                             numberofattackingpolisneedingnewattacktarget += 1;
                         }
+                        break;
                     }
 
                 }

@@ -217,9 +217,8 @@ public class Slanderer extends Unit {
             }
             Direction dirToMuck = rc.getLocation().directionTo(locOfClosestEnemyMuckraker);
             MapLocation potential = originPoint.add(dirToMuck.opposite());
-            if (potential.distanceSquaredTo(homeEC) < 16) {
-                // originPoint = potential;
-                // System.out.println("move origin " + originPoint + " to " + dirTo
+            if (potential.distanceSquaredTo(homeEC) < 32) {
+                originPoint = potential;
             }
 
             // report loc! propagate message!
@@ -229,7 +228,11 @@ public class Slanderer extends Unit {
         } else {
             if (rc.isReady()) {
                 Direction dir = getNextDirOnPath(targetLoc);
-                if (dir != Direction.CENTER && rc.canMove(dir)) {
+                MapLocation newLoc = rc.getLocation().add(dir);
+                if (newLoc.distanceSquaredTo(homeEC) < 3 && (rc.getLocation().distanceSquaredTo(homeEC) >= 3)) {
+
+                }
+                else if (dir != Direction.CENTER && rc.canMove(dir)) {
                     rc.move(dir);
                 }
             }

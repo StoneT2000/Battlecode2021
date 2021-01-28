@@ -316,7 +316,7 @@ public class Muckraker extends Unit {
                 if (rc.canSenseLocation(attackLoc) && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
                     RobotInfo info = rc.senseRobotAtLocation(attackLoc);
                     checkedECHashes.add(Comms.encodeMapLocation(attackLoc));
-                    if (info.team == myTeam || turnCount - lastTurnSawSlanderer > 10) {
+                    if (info != null && (info.team == myTeam || turnCount - lastTurnSawSlanderer > 10)) {
                         // go back to scouting
                         role = SCOUT_BUT_ALLOW_RUSH;
                         HashMapNodeVal<Integer, ECDetails> node = enemyECLocs.next();
