@@ -213,7 +213,7 @@ public class Slanderer extends Unit {
                 // cant move
             }
 
-            if (greedyDir != Direction.CENTER) {
+            if (greedyDir != Direction.CENTER && rc.canMove(greedyDir)) {
                 rc.move(greedyDir);
             }
 

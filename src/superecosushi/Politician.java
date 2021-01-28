@@ -735,7 +735,7 @@ public class Politician extends Unit {
         } else {
             if (rc.isReady() && targetLoc != null) {
                 Direction dir = getNextDirOnPath(targetLoc);
-                if (dir != Direction.CENTER) {
+                if (dir != Direction.CENTER && rc.canMove(dir)) {
                     rc.move(dir);
                 } else if (!rc.getLocation().equals(targetLoc) && canWiggle) {
                     // wiggle out if perhaps stuck
