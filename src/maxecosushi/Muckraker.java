@@ -188,12 +188,15 @@ public class Muckraker extends Unit {
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == myTeam) {
-                int flag = rc.getFlag(bot.ID);
-                boolean isEC = false;
-                if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
-                    isEC = true;
+                int flag = 0;
+                if (rc.canGetFlag(bot.ID)) {
+                    flag = rc.getFlag(bot.ID);
+                    boolean isEC = false;
+                    if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                        isEC = true;
+                    }
+                    handleFlag(flag, isEC);
                 }
-                handleFlag(flag, isEC);
 
                 switch (bot.type) {
                     case MUCKRAKER: {
@@ -356,7 +359,8 @@ public class Muckraker extends Unit {
                         protectivePoliConviction += protectingPoli.conviction;
                     }
 
-                    if (protectingPoli != null && muckShouldHeal(rc.getInfluence(), rc.getConviction(), potentialMaxDamageInOneTurn)) {
+                    if (protectingPoli != null
+                            && muckShouldHeal(rc.getInfluence(), rc.getConviction(), potentialMaxDamageInOneTurn)) {
 
                         // stay put if already close enogh to friend poli
                         int distToProtectivePoli = rc.getLocation().distanceSquaredTo(protectingPoli.location);
@@ -421,12 +425,12 @@ public class Muckraker extends Unit {
             announcedToProtectingPoliAttackLoc = true;
         }
 
-        // report slanderer locations or poli locs to EC to indicate promising scouting directions
+        // report slanderer locations or poli locs to EC to indicate promising scouting
+        // directions
         if (locOfClosestSlanderer != null) {
             int sig = Comms.getFoundEnemyUnitSignal(locOfClosestSlanderer, TYPE_SLANDERER);
             specialMessageQueue.add(sig);
-        }
-        else if (locOfClosestEnemyPoli != null) {
+        } else if (locOfClosestEnemyPoli != null) {
             int sig = Comms.getFoundEnemyUnitSignal(locOfClosestEnemyPoli, TYPE_POLITICIAN);
             specialMessageQueue.add(sig);
         }
