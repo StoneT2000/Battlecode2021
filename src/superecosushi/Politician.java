@@ -19,9 +19,11 @@ public class Politician extends Unit {
             { -3, -3 }, { -4, -2 }, { -4, 2 }, { -3, 3 }, { -2, 4 }, { 2, 4 }, { 3, 3 }, { 4, 2 }, { 4, -3 }, { 3, -4 },
             { -3, -4 }, { -4, -3 }, { -4, 3 }, { -3, 4 }, { 3, 4 }, { 4, 3 } };
     static final int DEFEND_SLANDERER = 2;
+    static final int DEFEND_SLANDERER_BUT_OPEN_TO_RUSH_CHANGE = 10;
     static final int ATTACK_EC = 3;
     static final int ATTACK_NEUTRAL_EC = 4;
     static final int SCOUT = 5;
+    static final int PROTECT_BUFF_MUCK = 6;
     static Direction exploreDir = Direction.NORTH;
     static int role = DEFEND_SLANDERER;
     static MapLocation targetLoc = null;
@@ -32,8 +34,11 @@ public class Politician extends Unit {
     static MapLocation targetedEnemyLoc = null;
 
     static MapLocation protectLocation = null;
+    static MapLocation protectedBuffMuckAttackLoc = null;
     /** radius of defence lattice */
     static int minDistAwayFromProtectLoc = 3;
+
+    static int idOfMuckToProtect = -1;
 
     public static void setup() throws GameActionException {
         // find ec spawned from
@@ -47,7 +52,7 @@ public class Politician extends Unit {
         // first turn set flag to indiciate unit type
     }
 
-    public static void handleFlag(int flag) throws GameActionException {
+    public static void handleFlag(int flag, boolean homeEC) throws GameActionException {
         switch (Comms.SIGNAL_TYPE_MASK & flag) {
             case Comms.MAP_OFFSET_X_AND_WIDTH:
                 int[] vs = Comms.readMapOffsetSignalXWidth(flag);
@@ -65,18 +70,35 @@ public class Politician extends Unit {
             case Comms.ATTACK_EC:
                 switch (Comms.SIGNAL_TYPE_5BIT_MASK & flag) {
                     case Comms.ATTACK_EC:
-                        boolean needsnewTarget = false;
-                        if (attackLoc != null && rc.canSenseLocation(attackLoc)) {
-                            RobotInfo info = rc.senseRobotAtLocation(attackLoc);
-                            if (info != null && info.team == myTeam) {
-                                needsnewTarget = true;
+                        if (homeEC) {
+                            boolean needsnewTarget = false;
+                            if (attackLoc != null && rc.canSenseLocation(attackLoc)) {
+                                RobotInfo info = rc.senseRobotAtLocation(attackLoc);
+                                if (info != null && info.team == myTeam) {
+                                    needsnewTarget = true;
+                                }
+                            }
+
+                            boolean acceptRole = false;
+                            if (rc.getConviction() >= 100 && (role == SCOUT || role == DEFEND_SLANDERER_BUT_OPEN_TO_RUSH_CHANGE)) {
+                                // if high conviction but was scout or defending slanderers, switch to an attacking role!
+                                acceptRole = true;
+                                System.out.println("high convict and switch!");
+                            }
+                            if (turnCount < 2 || (needsnewTarget && role == ATTACK_EC) || acceptRole) {
+                                role = ATTACK_EC;
+                                attackLoc = Comms.readAttackECSignal(flag, rc);
+                                if (acceptRole) {
+                                    System.out.println("switched to " + attackLoc);
+                                }
+                            }
+                            break;
+                        } else {
+                            // is unit announcing this
+                            if (role == PROTECT_BUFF_MUCK) {
+                                protectedBuffMuckAttackLoc = Comms.readAttackECSignal(flag, rc);
                             }
                         }
-                        if (turnCount < 2 || (needsnewTarget && role == ATTACK_EC)) {
-                            role = ATTACK_EC;
-                            attackLoc = Comms.readAttackECSignal(flag, rc);
-                        }
-                        break;
                     case Comms.ATTACK_NEUTRAL_EC:
                         if (turnCount < 2) {
                             role = ATTACK_NEUTRAL_EC;
@@ -86,18 +108,34 @@ public class Politician extends Unit {
                 }
 
                 break;
+            case Comms.PROTECT_BUFF_MUCK:
+                if (turnCount < 2 && homeEC) {
+                    int idToProtect = Comms.readProtectBuffMuckSignal(flag);
+                    idOfMuckToProtect = idToProtect;
+                    role = PROTECT_BUFF_MUCK;
+                }
 
         }
     }
 
     public static void run() throws GameActionException {
+        System.out.println("role - " + role);
+        if (exploreDir == null) {
+            // for units that convert
+            if (homeEC == null) {
+                // this means we were captured probably
+                exploreDir = randomDirection();
+            } else {
+                exploreDir = homeEC.directionTo(rc.getLocation());
+            }
+        }
         setFlagThisTurn = false;
         // control whether the unit will prefer to stay still as opposed to wigglign out
         // of tight space
         boolean absolutelydonotwiggle = false;
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
-            handleFlag(homeECFlag);
+            handleFlag(homeECFlag, true);
         } else {
             // clean out this
             multiPartMessagesByBotID.remove(homeECID);
@@ -112,6 +150,19 @@ public class Politician extends Unit {
             protectLocation = homeEC;
         } else if (protectLocation == null) {
             protectLocation = rc.getLocation();
+        }
+
+        RobotInfo muckToProtect = null;
+
+        if (role == PROTECT_BUFF_MUCK) {
+            if (rc.canSenseRobot(idOfMuckToProtect)) {
+                RobotInfo bot = rc.senseRobot(idOfMuckToProtect);
+                // verify this is our bot lmao
+                if (bot.team == myTeam) {
+                    // targetLoc = bot.location;
+                    muckToProtect = bot;
+                }
+            }
         }
 
         RobotInfo[] nearbyEnemyBots = rc.senseNearbyRobots(POLI_SENSE_RADIUS, oppTeam);
@@ -157,7 +208,11 @@ public class Politician extends Unit {
 
             if (rc.canGetFlag(bot.ID)) {
                 flag = rc.getFlag(bot.ID);
-                handleFlag(flag);
+                if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                    handleFlag(flag, true);
+                } else {
+                    handleFlag(flag, false);
+                }
             }
             // check if flag is slanderer flag
             if (flag == Comms.IMASLANDERERR || ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.SLAND_SPOTTED_MUCK)) {
@@ -225,7 +280,7 @@ public class Politician extends Unit {
                 // check if muck is already completely suurrounded if its buff
                 boolean mucksurrounded = true;
                 if (bot.conviction >= BUFF_MUCK_THRESHOLD) {
-                    for (Direction dir: DIRECTIONS) {
+                    for (Direction dir : DIRECTIONS) {
                         MapLocation check = bot.location.add(dir);
                         if (rc.canSenseLocation(check)) {
                             RobotInfo info = rc.senseRobotAtLocation(check);
@@ -288,7 +343,7 @@ public class Politician extends Unit {
         MapLocation bestLatticeLoc = null;
         int bestLatticeLocVal = Integer.MIN_VALUE;
         findbestLatticeLoc: {
-            if (homeEC == null) { 
+            if (homeEC == null) {
                 break findbestLatticeLoc;
             }
             if (currLoc.x % LATTICE_SIZE == 0 && currLoc.y % LATTICE_SIZE == 0
@@ -319,7 +374,7 @@ public class Politician extends Unit {
 
         boolean succesfullyCapturedEC = false;
 
-        if (role == DEFEND_SLANDERER) {
+        if (isDefending()) {
             if (targetedEnemyMuck != null || closestEnemyMuck != null) {
                 boolean targetBuffMuck = false;
                 if (rc.getConviction() > STANDARD_DEFEND_POLI_CONVICTION && highestTargetableBuffMuck != null) {
@@ -465,6 +520,7 @@ public class Politician extends Unit {
             targetLoc = attackLoc;
             int distToEC = rc.getLocation().distanceSquaredTo(attackLoc);
 
+            System.out.println("Attacking " + targetLoc);
             if (rc.canEmpower(1)) {
                 if (distToEC <= POLI_ACTION_RADIUS) {
                     // if not enemy anymore, just supply the EC with eco
@@ -542,6 +598,60 @@ public class Politician extends Unit {
             if (i != -1) {
                 exploreDir = dirs[i];
             }
+        } else if (role == PROTECT_BUFF_MUCK) {
+            // System.out.println("Im at " + rc.getLocation() + " protecting bot: " + idOfMuckToProtect);
+            if (muckToProtect != null) {
+                targetLoc = protectedBuffMuckAttackLoc;
+                if (rc.getLocation().distanceSquaredTo(muckToProtect.location) > 3) {
+                    targetLoc = rc.getLocation();
+                }
+                // check expose range
+                int myConviction = rc.getConviction();
+                int distToMuck = rc.getLocation().distanceSquaredTo(muckToProtect.location);
+                RobotInfo[] enemyBots = rc.senseNearbyRobots(muckToProtect.location, 2, oppTeam);
+                int potentialMaxDamageInOneTurn = 0;
+                for (int i = 0; i < enemyBots.length; i++) {
+                    RobotInfo bot = enemyBots[i];
+                    if (bot.type == RobotType.POLITICIAN) {
+                        int damage = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
+                        if (damage > potentialMaxDamageInOneTurn) {
+                            potentialMaxDamageInOneTurn = damage;
+                        }
+                    }
+                }
+
+                if (muckShouldHeal(muckToProtect.influence, muckToProtect.conviction, potentialMaxDamageInOneTurn)) {
+                    // System.out.println("trying to heal");
+                    int friendlyUnitsInRadius = 0;
+                    int oppUnitsInRadius = 0;
+                    int neutralsInRadius = 0;
+                    for (int i = 1; i <= 9; i++) {
+                        oppUnitsInRadius += oppUnitsAtDistanceCount[i];
+                        friendlyUnitsInRadius += friendlyUnitsAtDistanceCount[i];
+                        neutralsInRadius += neutralUnitsAtDistanceCount[i];
+                        int n = (oppUnitsInRadius + friendlyUnitsInRadius + neutralsInRadius);
+
+                        if (distToMuck <= i) {
+                            // TODO: allow inflence to be diluted onto buff polis close to the muckraker
+                            // woudl need to count this separately
+                            int speechInfluencePerUnit = calculatePoliticianEmpowerConviction(myTeam,
+                                    rc.getConviction(), 0) / n;
+                            System.out
+                                    .println("n " + n + " in/pu " + speechInfluencePerUnit + " - dist - " + distToMuck);
+                            if (speechInfluencePerUnit >= rc.getConviction() / 2 || muckToProtect.conviction + speechInfluencePerUnit > potentialMaxDamageInOneTurn) {
+                                System.out.println("empower now at radius " + i);
+                                rc.empower(i);
+                                break;
+                            }
+                        }
+                    }
+
+                }
+            } else {
+                // no muck unit found, go towards enemy ec
+                targetLoc = protectedBuffMuckAttackLoc;
+            }
+            // if any of the above fails, head towards attack location
         }
 
         int pauseSpecialMessageQueue = 1;
@@ -583,6 +693,9 @@ public class Politician extends Unit {
             } else if (role == ATTACK_EC) {
                 int sig = Comms.getTargetedECSignal(attackLoc);
                 setFlag(sig);
+            } else if (role == PROTECT_BUFF_MUCK && idOfMuckToProtect != -1) {
+                int sig = Comms.getProtectBuffMuckSignal(idOfMuckToProtect);
+                setFlag(sig);
             }
         }
         if (!setFlagThisTurn) {
@@ -590,9 +703,13 @@ public class Politician extends Unit {
         }
 
         boolean canWiggle = true;
+        
         if (role == ATTACK_EC && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
             canWiggle = false;
+        } else if (role == PROTECT_BUFF_MUCK && muckToProtect != null) {
+            canWiggle = false;
         }
+        System.out.println("Going to " + targetLoc);
         if (absolutelydonotwiggle) {
             // do completely greedy movement
             if (rc.isReady() && targetLoc != null) {
@@ -632,5 +749,8 @@ public class Politician extends Unit {
                 }
             }
         }
+    }
+    private static boolean isDefending() {
+        return role == DEFEND_SLANDERER_BUT_OPEN_TO_RUSH_CHANGE || role == DEFEND_SLANDERER;
     }
 }

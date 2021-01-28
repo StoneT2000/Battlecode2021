@@ -40,12 +40,14 @@ public class EnlightmentCenter extends RobotPlayer {
     static int multiPartMessageType = 0;
     static final int SKIP_FLAG = -1;
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
-    static int[] dirsToEnemySlands = new int[]{-1, -1, -1, -1, -1, -1, -1, -1};
+    static int[] dirsToEnemySlands = new int[] { -1, -1, -1, -1, -1, -1, -1, -1 };
 
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
     static int lastTurnSawEnemyMuck = -10;
 
     static int lastTurnBuiltMediumMuck = -10;
+
+    static int buildPoliForBuffMuckId = -1;
 
     static class Stats {
         static int muckrakersBuilt = 0;
@@ -70,7 +72,7 @@ public class EnlightmentCenter extends RobotPlayer {
         if (rc.getRoundNum() < 2) {
             firstEC = true;
         }
-        int[] order  =new int[]{1, 3, 5, 7,0,2,4,6};
+        int[] order = new int[] { 1, 3, 5, 7, 0, 2, 4, 6 };
         for (int i : order) {
             buildScoutedDirs.add(i);
         }
@@ -188,7 +190,7 @@ public class EnlightmentCenter extends RobotPlayer {
             } else if (buildCount <= 20) {
                 if (buildCount == 7) {
                     RobotInfo bot = tryToBuildAnywhere(RobotType.POLITICIAN, 16);
-                    if (bot != null){
+                    if (bot != null) {
                         buildCount += 1;
                     }
                 }
@@ -202,7 +204,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     boolean built = false;
                     if (buildScoutedDirs.size > 0) {
                         Node<Integer> node = buildScoutedDirs.head;
-                        while(node != null) {
+                        while (node != null) {
                             if (rc.canBuildRobot(RobotType.MUCKRAKER, DIRECTIONS[node.val], 1)) {
                                 rc.buildRobot(RobotType.MUCKRAKER, DIRECTIONS[node.val], 1);
                                 buildScoutedDirs.remove(node.val);
@@ -220,7 +222,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                     if (!built) {
                         RobotInfo bot = tryToBuildAnywhere(RobotType.MUCKRAKER, 1, dir);
-                        if (bot != null){
+                        if (bot != null) {
                             buildCount += 1;
                             if (turnCount <= 40) {
                                 specialMessageQueue.add(SKIP_FLAG);
@@ -229,7 +231,6 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                     }
 
-                       
                 }
             }
         }
@@ -287,7 +288,6 @@ public class EnlightmentCenter extends RobotPlayer {
             case BUILD_SCOUTS:
                 break;
             case NORMAL:
-                
 
                 // otherwise spam muckrakers wherever possible and ocassionally build slanderers
                 boolean buildSlanderer = false;
@@ -368,21 +368,38 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
 
-                if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance) || allowance >= 900) {
+                // if we built buff muck last time and want accompanying poli and we still have
+                // the money
+                if (buildPoliForBuffMuckId != -1 && allowance >= 20) {
+                    RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, allowance);
+                    if (newbot != null) {
+                        spentInfluence += allowance;
+                        specialMessageQueue.add(SKIP_FLAG);
+                        int sig = Comms.getProtectBuffMuckSignal(buildPoliForBuffMuckId);
+                        specialMessageQueue.add(sig);
+
+                        // reset for future
+                        buildPoliForBuffMuckId = -1;
+                        break;
+                    }
+                }
+
+                if ((allowance >= 300 && influenceGainedLastTurn * 10 >= allowance)
+                        || (allowance >= 300 && influenceGainedLastTurn * 5 >= allowance) || allowance >= 900) {
                     if (!stockInfluenceForNeutral) {
                         considerAttackingEnemy = true;
                     }
                 }
 
                 System.out.println("Consider attack: " + considerAttackingEnemy + " | Neutral to take "
-                        + (neutralECLocToTake != null ? neutralECLocToTake.location : null) + " | stock? " + stockInfluenceForNeutral);
-                
-                
+                        + (neutralECLocToTake != null ? neutralECLocToTake.location : null) + " | stock? "
+                        + stockInfluenceForNeutral);
+
                 // capture netural ECs
                 // lower threshold for generation per turn as time progresses
                 int extraInfFactor = 8;
                 if (rc.getRoundNum() <= 100) {
-                    
+
                 } else if (rc.getRoundNum() <= 200) {
                     extraInfFactor = 15;
                 } else if (rc.getRoundNum() <= 300) {
@@ -390,7 +407,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 } else {
                     extraInfFactor = 10000;
                 }
-                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 120 && influenceGainedLastTurn * extraInfFactor >= neutralECLocToTake.lastKnownConviction + 120) {
+                if (neutralECLocToTake != null && allowance >= neutralECLocToTake.lastKnownConviction + 120
+                        && influenceGainedLastTurn * extraInfFactor >= neutralECLocToTake.lastKnownConviction + 120) {
                     int hash = Comms.encodeMapLocation(neutralECLocToTake.location);
                     // limit ourselves to send only one poli per neutral
                     if (!locHashesOfCurrentlyAttackedNeutralECs.contains(hash)) {
@@ -411,7 +429,11 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
                 // spawn buff muck
-                if (enemyECLocToTake != null && considerAttackingEnemy && attackingMucks.size < attackingPolis.size / 2) {
+                // and then set ec to try and build a buff poli to heal or stop buff enemy polis
+                if (enemyECLocToTake != null && considerAttackingEnemy
+                        && attackingMucks.size < attackingPolis.size / 2) {
+                    // int want = Math.min(allowance, allowance / 2 + (int) (influenceGainedLastTurn
+                    // * 1.8));
                     int want = allowance;
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, want,
                             rc.getLocation().directionTo(enemyECLocToTake.location));
@@ -422,6 +444,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         specialMessageQueue.add(SKIP_FLAG);
                         specialMessageQueue.add(sig1);
                         spentInfluence += want;
+                        // buildPoliForBuffMuckId = newbot.ID;
                         break;
                     }
                 }
@@ -455,11 +478,12 @@ public class EnlightmentCenter extends RobotPlayer {
                     // consider spawning somewhat buff scout mucks
                     if (allowance >= 450) {
                         int want = 200;
-                        // if heavily stocked and nothing to spend on (not even 949 slanderer), build even bigger muck then
+                        // if heavily stocked and nothing to spend on (not even 949 slanderer), build
+                        // even bigger muck then
                         if (allowance > 1000) {
                             want = 900;
                         }
-                        
+
                         Direction scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
                         // first choose from promising directions
 
@@ -472,12 +496,12 @@ public class EnlightmentCenter extends RobotPlayer {
                                 dirsToEnemySlands[i] = -1;
                                 usedPromisingDir = true;
                                 break;
-                            } 
+                            }
 
                         }
 
                         // scout directions that arent off map / we can see
-                        while(!rc.onTheMap(rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir))) {
+                        while (!rc.onTheMap(rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir))) {
                             scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
                             lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
                         }
@@ -486,7 +510,7 @@ public class EnlightmentCenter extends RobotPlayer {
                             lastScoutBuildDirIndex = (lastScoutBuildDirIndex + 1) % CARD_DIRECTIONS.length;
                             lastTurnBuiltBuffScoutMuck = turnCount;
                             specialMessageQueue.add(SKIP_FLAG);
-                            switch(scoutDir) {
+                            switch (scoutDir) {
                                 case NORTH:
                                     specialMessageQueue.add(Comms.GO_SCOUT_NORTH);
                                     break;
@@ -551,8 +575,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 int mucksize = 1;
                 if (allowance <= 100) {
 
-                }
-                else if (allowance <= 200) {
+                } else if (allowance <= 200) {
                     mucksize = 2;
                 } else if (allowance <= 300) {
                     mucksize = 3;
@@ -560,9 +583,9 @@ public class EnlightmentCenter extends RobotPlayer {
                     mucksize = allowance / 100;
                 }
                 if (turnCount - lastTurnBuiltMediumMuck > 30) {
-                    
+
                 }
-                
+
                 RobotInfo newbot = tryToBuildAnywhere(RobotType.MUCKRAKER, mucksize, dir);
                 if (newbot != null) {
                     spentInfluence += 1;
@@ -616,8 +639,30 @@ public class EnlightmentCenter extends RobotPlayer {
         }
         System.out.println("turncountmod " + turnCountModulus);
 
-        // send locations of enemy ECs
-        if (!setFlagThisTurn && turnCount % turnCountModulus > 1 && enemyECLocs.size > 0) {
+        // send locations of changed ECs
+        if (!setFlagThisTurn && recentlyAddedEnemyECHashes.size > 0) {
+            Node<Integer> hash = recentlyAddedEnemyECHashes.dequeue();
+            ECDetails ecDetails = enemyECLocs.get(hash.val);
+            if (ecDetails != null) {
+                System.out.println("Sending changed enemy " + ecDetails.location);
+                int signal = Comms.getFoundECSignal(ecDetails.location, TEAM_ENEMY, ecDetails.lastKnownConviction);
+                setFlag(signal);
+            }
+        }
+
+        if (!setFlagThisTurn && recentlyAddedFriendECHashes.size > 0) {
+            Node<Integer> hash = recentlyAddedFriendECHashes.dequeue();
+            ECDetails ecDetails = enemyECLocs.get(hash.val);
+            if (ecDetails != null) {
+                System.out.println("Sending changed friend " + ecDetails.location);
+                int signal = Comms.getFoundECSignal(ecDetails.location, TEAM_FRIEND, ecDetails.lastKnownConviction);
+                setFlag(signal);
+
+            }
+        }
+
+        // send locations of enemy ECs then our own Ecs
+        if (!setFlagThisTurn && enemyECLocs.size > 0) {
 
             HashMapNodeVal<Integer, ECDetails> ecLocHashNode = enemyECLocs.next();
             if (ecLocHashNode == null) {
@@ -631,19 +676,20 @@ public class EnlightmentCenter extends RobotPlayer {
         }
 
         // send map dimensions
-        if (mapHeight >= 32 && mapWidth >= 32) {
-            System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ") - Width: " + mapWidth
-                    + " - Height: " + mapHeight);
-            if (!setFlagThisTurn) {
-                if (turnCount % turnCountModulus == 0) {
-                    int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
-                    setFlag(sig);
-                } else if (turnCount % turnCountModulus == 1) {
-                    int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
-                    setFlag(sig);
-                }
-            }
-        }
+        // if (mapHeight >= 32 && mapWidth >= 32) {
+        // System.out.println("Map Details: Offsets: (" + offsetx + ", " + offsety + ")
+        // - Width: " + mapWidth
+        // + " - Height: " + mapHeight);
+        // if (!setFlagThisTurn) {
+        // if (turnCount % turnCountModulus == 0) {
+        // int sig = Comms.getMapOffsetSignalXWidth(offsetx, mapWidth);
+        // setFlag(sig);
+        // } else if (turnCount % turnCountModulus == 1) {
+        // int sig = Comms.getMapOffsetSignalYHeight(offsety, mapHeight);
+        // setFlag(sig);
+        // }
+        // }
+        // }
     }
 
     private static RobotInfo tryToBuildAnywhere(RobotType type, int influence) throws GameActionException {
@@ -721,6 +767,7 @@ public class EnlightmentCenter extends RobotPlayer {
         LinkedList<Integer> idsToRemove = new LinkedList<>();
         while (currIDNode != null) {
             if (Clock.getBytecodesLeft() < 10000) {
+                System.out.println("==== quit muck loop early ====");
                 break;
             }
             if (rc.canGetFlag(currIDNode.val)) {
@@ -757,7 +804,6 @@ public class EnlightmentCenter extends RobotPlayer {
                         dirsToEnemySlands[ind] = 0;
                         break;
                     }
-                        
 
                 }
             } else {
@@ -781,20 +827,22 @@ public class EnlightmentCenter extends RobotPlayer {
         currIDNode = slandererIDs.next();
         while (currIDNode != null) {
             if (Clock.getBytecodesLeft() < 8000) {
+                System.out.println("==== quit sland loop early ====");
                 break;
             }
-            try {
+            if (rc.canGetFlag(currIDNode.val)) {
 
                 int flag = rc.getFlag(currIDNode.val);
-                if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.UNIT_DETAILS) {
+                if (flag == Comms.IM_SLAND_CONVERTED_TO_POLI) {
                     // check if switched to politican, and remove/add appropriately
+                    System.out.println("Swtiched");
                     int[] data = Comms.readUnitDetails(flag);
                     if (data[0] == TYPE_POLITICIAN) {
                         idsToRemove.add(currIDNode.val);
                         politicianIDs.add(currIDNode.val);
                     }
                 }
-            } catch (GameActionException error) {
+            } else {
                 idsToRemove.add(currIDNode.val);
             }
             currIDNode = slandererIDs.next();
@@ -812,9 +860,10 @@ public class EnlightmentCenter extends RobotPlayer {
         currIDNode = politicianIDs.next();
         while (currIDNode != null) {
             if (Clock.getBytecodesLeft() < 6000) {
+                System.out.println("==== quit poli loop early ====");
                 break;
             }
-            try {
+            if (rc.canGetFlag(currIDNode.val)) {
                 int flag = rc.getFlag(currIDNode.val);
                 switch (Comms.SIGNAL_TYPE_MASK & flag) {
                     case Comms.CORNER_LOC_X:
@@ -834,7 +883,7 @@ public class EnlightmentCenter extends RobotPlayer {
                         break;
 
                 }
-            } catch (GameActionException error) {
+            } else {
                 idsToRemove.add(currIDNode.val);
             }
             currIDNode = politicianIDs.next();

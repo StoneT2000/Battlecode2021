@@ -184,4 +184,11 @@ public abstract class Unit extends RobotPlayer {
             ECDetailsToSend.add(new ECDetails(bot.location, bot.conviction, teamInd));
         }
     }
+
+    public static boolean muckShouldHeal(int muckInfluence, int muckConviction, int potentialMaxDamageInOneTurn) {
+        if (muckConviction - potentialMaxDamageInOneTurn <= 0) {
+            return true;
+        }
+        return false;
+    }
 }

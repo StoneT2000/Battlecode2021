@@ -30,6 +30,9 @@ public class Comms {
     // TODO: add scouting on EC influence each turn...
     public static final int FOUND_EC = 0x700000;
 
+    /** message about muck to protect. read by poli from ec, and muck from poli */
+    public static final int PROTECT_BUFF_MUCK = 0x800000;
+
     
     // cram more single message signals that don't require much space
     public static final int SMALL_SIGNAL = 0x900000;
@@ -46,7 +49,7 @@ public class Comms {
     public static final int GO_SCOUT_NORTHWEST = 0x90000a;
 
 
-    public static final int UNIT_DETAILS = 0x90000b;
+    public static final int IM_SLAND_CONVERTED_TO_POLI = 0x90000b;
 
     public static final int IM_ATTACKING_NEUTRAL_EC = 0x90000b;
     public static final int IM_STOPPING_BUFF_MUCK = 0x90000c;
@@ -82,6 +85,7 @@ public class Comms {
         MapLocation original = new MapLocation(offsetX128 * 128 + x, offsetY128 * 128 + y);
         MapLocation proposed = original;
         MapLocation alt = original.translate(-128, 0);
+        System.out.println("O: " + original + " Hash: " + hash + " x " + x + " y " + y);
         if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
             proposed = alt;
         }
@@ -94,6 +98,24 @@ public class Comms {
             proposed = alt;
         }
         alt = original.translate(0, 128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
+        }
+        
+        // why???? why is the above chekcs bugged and not enough
+        alt = original.translate(128, 128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
+        }
+        alt = original.translate(128, -128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
+        }
+        alt = original.translate(-128, 128);
+        if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
+            proposed = alt;
+        }
+        alt = original.translate(-128, -128);
         if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
             proposed = alt;
         }
@@ -212,8 +234,8 @@ public class Comms {
         return new int[] { team, lochash, ecInf };
     }
 
-    public static int getUnitDetailsSignal(int unittype) {
-        return UNIT_DETAILS | (unittype << 18);
+    public static int getConvertedToPoliSignal() {
+        return IM_SLAND_CONVERTED_TO_POLI;
     }
 
     /**
@@ -304,5 +326,12 @@ public class Comms {
     }
     public static MapLocation readFoundEnemySlandererSignal(int signal, RobotController rc) {
         return decodeMapLocation(signal & SIGNAL_MASK, rc);
+    }
+
+    public static int getProtectBuffMuckSignal(int buffMuckID) {
+        return PROTECT_BUFF_MUCK | (buffMuckID);
+    }
+    public static int readProtectBuffMuckSignal(int sig) {
+        return SIGNAL_MASK & sig;
     }
 }

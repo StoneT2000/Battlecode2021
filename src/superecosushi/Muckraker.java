@@ -27,6 +27,7 @@ public class Muckraker extends Unit {
     static final int LATTICE_NETWORK = 10;
     static int role = SCOUT_BUT_ALLOW_RUSH;
     static final int LATTICE_SIZE = 5;
+    static boolean announcedToProtectingPoliAttackLoc = false;
     static Direction scoutDir = null;
 
     static Direction lastMoveAwayFromMucksDir = null;
@@ -43,6 +44,12 @@ public class Muckraker extends Unit {
 
     // whether to always rotate left or rotate right
     static boolean rotateLeftScoutDir = false;
+
+    static int protectingPoliID = -1;
+
+    static int lastTurnSawSlanderer = -100;
+
+    static HashTable<Integer> checkedECHashes = new HashTable<>(10);
 
     public static void setup() throws GameActionException {
         setHomeEC();
@@ -65,7 +72,7 @@ public class Muckraker extends Unit {
         }
     }
 
-    public static void handleFlag(int flag) {
+    public static void handleFlag(int flag, boolean homeEC) {
 
         switch (Comms.SIGNAL_TYPE_MASK & flag) {
             case Comms.CORNER_LOC_X:
@@ -96,11 +103,13 @@ public class Muckraker extends Unit {
                 processFoundECFlag(flag);
                 break;
             case Comms.ATTACK_EC:
-                if ((Comms.SIGNAL_TYPE_5BIT_MASK & flag) == Comms.ATTACK_EC) {
+                if (homeEC) {
+                    if ((Comms.SIGNAL_TYPE_5BIT_MASK & flag) == Comms.ATTACK_EC) {
 
-                    if (turnCount < 2 || role == SCOUT_BUT_ALLOW_RUSH) {
-                        role = RUSH;
-                        attackLoc = Comms.readAttackECSignal(flag, rc);
+                        if (turnCount < 2 || role == SCOUT_BUT_ALLOW_RUSH) {
+                            role = RUSH;
+                            attackLoc = Comms.readAttackECSignal(flag, rc);
+                        }
                     }
                 }
             case Comms.SMALL_SIGNAL:
@@ -111,13 +120,14 @@ public class Muckraker extends Unit {
     public static void run() throws GameActionException {
         rc.setFlag(0);
         setFlagThisTurn = false;
+        boolean absolutelyDONOTWIGGLE = false;
         // global comms code independent of role
 
         // sense ec flags
         // TODO: possible issue if home ec is taken by opponent...
         if (rc.canGetFlag(homeECID)) {
             int homeECFlag = rc.getFlag(homeECID);
-            handleFlag(homeECFlag);
+            handleFlag(homeECFlag, true);
             if (turnCount < 4) {
                 switch (homeECFlag) {
                     case Comms.GO_SCOUT:
@@ -163,7 +173,7 @@ public class Muckraker extends Unit {
             }
 
         }
-
+        RobotInfo protectingPoli = null;
         RobotInfo[] nearbyBots = rc.senseNearbyRobots();
 
         MapLocation locOfClosestSlanderer = null;
@@ -176,7 +186,13 @@ public class Muckraker extends Unit {
         for (int i = nearbyBots.length; --i >= 0;) {
             RobotInfo bot = nearbyBots[i];
             if (bot.team == myTeam) {
-                handleFlag(rc.getFlag(bot.ID));
+                int flag = rc.getFlag(bot.ID);
+                boolean isEC = false;
+                if (bot.type == RobotType.ENLIGHTENMENT_CENTER) {
+                    isEC = true;
+                }
+                handleFlag(flag, isEC);
+
                 switch (bot.type) {
                     case MUCKRAKER: {
                         int dist = rc.getLocation().distanceSquaredTo(bot.location);
@@ -196,6 +212,16 @@ public class Muckraker extends Unit {
                         }
                         break;
                     }
+                    case POLITICIAN: {
+                        if ((Comms.SIGNAL_TYPE_MASK & flag) == Comms.PROTECT_BUFF_MUCK) {
+                            int id = Comms.readProtectBuffMuckSignal(flag);
+                            if (id == rc.getID()) {
+                                protectingPoliID = bot.ID;
+                                protectingPoli = bot;
+                            }
+                        }
+                        break;
+                    }
                 }
             } else if (bot.team == oppTeam) {
                 switch (bot.type) {
@@ -204,6 +230,7 @@ public class Muckraker extends Unit {
                         if (dist < distToSlosestSlanderer) {
                             distToSlosestSlanderer = dist;
                             locOfClosestSlanderer = bot.location;
+                            lastTurnSawSlanderer = turnCount;
                         }
                         break;
                     }
@@ -223,17 +250,14 @@ public class Muckraker extends Unit {
                 handleFoundEC(bot);
             }
         }
-
-        // scout corners / scout map if no good lattice position found
-        if (enemyECLocs.size > 0) {
-            // role = RUSH
+        if (protectingPoli == null && protectingPoliID != -1 && rc.canSenseRobot(protectingPoliID)) {
+            protectingPoli = rc.senseRobot(protectingPoliID);
         }
-
-        // System.out.println("Role " + role + " attackLoc " + attackLoc);
 
         switch (role) {
             case SCOUT_BUT_ALLOW_RUSH:
-            case SCOUT:
+                System.out.println("there are " + enemyECLocs.size + " enemy lcos");
+            case SCOUT: {
                 scoutCorners();
                 targetLoc = rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir);
                 Direction[] dirs = new Direction[] { scoutDir.rotateLeft(), scoutDir.rotateRight(),
@@ -251,23 +275,92 @@ public class Muckraker extends Unit {
                 }
                 targetSlanderers(locOfClosestSlanderer);
                 break;
-            case RUSH:
+            }
+            case RUSH: {
                 targetLoc = attackLoc;
+                System.out.println("there are " + enemyECLocs.size + " enemy lcos");
                 if (!haveMapDimensions()) {
                     scoutCorners();
                 }
-                if (rc.isReady()) {
-                    targetSlanderers(locOfClosestSlanderer);
-                    if (rc.canSenseLocation(attackLoc)) {
-                        RobotInfo info = rc.senseRobotAtLocation(attackLoc);
-                        if (info.team == myTeam) {
-                            // TODO no longer attack here
-                            // go back to scouting
-                            role = SCOUT_BUT_ALLOW_RUSH;
+                int curhash = Comms.encodeMapLocation(attackLoc);
+                if (!enemyECLocs.contains(curhash)) {
+                    // go back to scouting
+                    role = SCOUT_BUT_ALLOW_RUSH;
+                    HashMapNodeVal<Integer, ECDetails> node = enemyECLocs.next();
+                    if (node == null) {
+                        enemyECLocs.resetIterator();
+                        node = enemyECLocs.next();
+                    }
+                    while (node != null) {
+                        if (!node.val.location.equals(attackLoc)) {
+                            int hashthere = Comms.encodeMapLocation(node.val.location);
+                            if (!checkedECHashes.contains(hashthere)) {
+                                role = RUSH;
+                                attackLoc = node.val.location;
+                                break;
+                            }
+                        }
+                        node = enemyECLocs.next();
+                    }
+                }
+                // if we see ec and get close but no slands seen we move on
+                if (rc.canSenseLocation(attackLoc) && rc.getLocation().distanceSquaredTo(attackLoc) <= 5) {
+                    RobotInfo info = rc.senseRobotAtLocation(attackLoc);
+                    checkedECHashes.add(Comms.encodeMapLocation(attackLoc));
+                    if (info.team == myTeam || turnCount - lastTurnSawSlanderer > 10) {
+                        // go back to scouting
+                        role = SCOUT_BUT_ALLOW_RUSH;
+                        HashMapNodeVal<Integer, ECDetails> node = enemyECLocs.next();
+                        if (node == null) {
+                            enemyECLocs.resetIterator();
+                            node = enemyECLocs.next();
+                        }
+                        while (node != null) {
+                            if (!node.val.location.equals(attackLoc)) {
+                                int hashthere = Comms.encodeMapLocation(node.val.location);
+                                if (!checkedECHashes.contains(hashthere)) {
+                                    role = RUSH;
+                                    attackLoc = node.val.location;
+                                    break;
+                                }
+                            }
+                            node = enemyECLocs.next();
                         }
                     }
                 }
+                if (rc.isReady()) {
+                    targetSlanderers(locOfClosestSlanderer);
+
+                    RobotInfo[] enemyBots = rc.senseNearbyRobots(rc.getLocation(), 2, oppTeam);
+                    int potentialMaxDamageInOneTurn = 0;
+                    for (int i = 0; i < enemyBots.length; i++) {
+                        RobotInfo bot = enemyBots[i];
+                        if (bot.type == RobotType.POLITICIAN) {
+                            int damage = calculatePoliticianEmpowerConviction(oppTeam, bot.conviction, 0);
+                            if (damage > potentialMaxDamageInOneTurn) {
+                                potentialMaxDamageInOneTurn = damage;
+                            }
+                        }
+                    }
+                    int protectivePoliConviction = 0;
+                    if (protectingPoli != null) {
+                        protectivePoliConviction += protectingPoli.conviction;
+                        System.out.println(" PROTECT " + protectingPoli.ID);
+                    }
+
+                    if (protectingPoli != null && muckShouldHeal(rc.getInfluence(), rc.getConviction(), potentialMaxDamageInOneTurn)) {
+
+                        // stay put if already close enogh to friend poli
+                        int distToProtectivePoli = rc.getLocation().distanceSquaredTo(protectingPoli.location);
+                        System.out.println("trying to find poli to heal self! dist " + distToProtectivePoli);
+                        targetLoc = protectingPoli.location;
+                        // if (distToProtectivePoli > 1) {
+                        absolutelyDONOTWIGGLE = true;
+                        // } els
+                    }
+                }
                 break;
+            }
             case LATTICE_NETWORK:
                 targetLoc = rc.getLocation();
                 if (!haveMapDimensions()) {
@@ -315,6 +408,12 @@ public class Muckraker extends Unit {
             foundECLocHashes.remove(Comms.encodeMapLocation(ecDetailsNode.val.location));
         }
 
+        if (role == RUSH && protectingPoli != null && attackLoc != null) {
+            // announce rush attack loc once
+            setFlag(Comms.getAttackECSignal(attackLoc));
+            announcedToProtectingPoliAttackLoc = true;
+        }
+
         // report slanderer locations to EC to indicate promising scouting directions
         if (locOfClosestSlanderer != null) {
             int sig = Comms.getFoundEnemySlandererSignal(locOfClosestSlanderer);
@@ -358,12 +457,13 @@ public class Muckraker extends Unit {
                 setFlag(Comms.getCornerLocSignalY(cornernode.val));
             }
         }
+        System.out.println("tloc " + targetLoc + "- wiggle " + absolutelyDONOTWIGGLE);
 
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);
             if (dir != Direction.CENTER && rc.canMove(dir)) {
                 rc.move(dir);
-            } else if (!rc.getLocation().equals(targetLoc)) {
+            } else if (!absolutelyDONOTWIGGLE && !rc.getLocation().equals(targetLoc)) {
                 // wiggle out if perhaps stuck
                 for (Direction wiggleDir : DIRECTIONS) {
                     if (rc.canMove(wiggleDir)) {

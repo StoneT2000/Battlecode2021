@@ -4,6 +4,7 @@ import battlecode.common.*;
 import superecosushi.Comms;
 import superecosushi.utils.HashMap;
 import superecosushi.utils.HashTable;
+import superecosushi.utils.LinkedList;
 import superecosushi.utils.Node;
 
 import static superecosushi.Constants.*;
@@ -82,9 +83,10 @@ public strictfp class RobotPlayer {
                         break;
                     case POLITICIAN:
                         if (spawnType != rc.getType()) {
-                            setFlag(Comms.getUnitDetailsSignal(TYPE_POLITICIAN));
+                            setFlag(Comms.getConvertedToPoliSignal());
                             spawnType = rc.getType();
-                            rc.setFlag(0);
+                            Politician.role = Politician.DEFEND_SLANDERER_BUT_OPEN_TO_RUSH_CHANGE;
+                            // rc.setFlag(0);
                         }
                         Politician.run();
                         break;
@@ -132,6 +134,10 @@ public strictfp class RobotPlayer {
 
     }
 
+    static LinkedList<Integer> recentlyAddedEnemyECHashes = new LinkedList<>();
+    static LinkedList<Integer> recentlyAddedFriendECHashes = new LinkedList<>();
+    static LinkedList<Integer> recentlyAddedNeutralECHashes = new LinkedList<>();
+
     /**
      * stores EC Loc data and removes old data if necessary
      */
@@ -143,18 +149,25 @@ public strictfp class RobotPlayer {
                 // remove this from other hashtables in case they converted to enemy now
                 neutralECLocs.remove(hash);
                 friendlyECLocs.remove(hash);
+                if (rc.getType() == RobotType.ENLIGHTENMENT_CENTER) {
+                    recentlyAddedEnemyECHashes.add(hash);
+                }
             }
         } else if (teamval == TEAM_NEUTRAL) {
             if (!neutralECLocs.contains(hash)) {
                 neutralECLocs.put(hash, new ECDetails(loc, influence, TEAM_NEUTRAL));
                 friendlyECLocs.remove(hash);
                 enemyECLocs.remove(hash);
+                // recentlyAddedNeutralECHashes.add(hash);
             }
         } else {
             if (!friendlyECLocs.contains(hash)) {
                 friendlyECLocs.put(hash, new ECDetails(loc, influence, TEAM_FRIEND));
                 neutralECLocs.remove(hash);
                 enemyECLocs.remove(hash);
+                if (rc.getType() == RobotType.ENLIGHTENMENT_CENTER) {
+                    recentlyAddedFriendECHashes.add(hash);
+                }
             }
         }
     }
