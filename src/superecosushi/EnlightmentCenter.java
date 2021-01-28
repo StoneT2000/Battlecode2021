@@ -350,7 +350,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     // every 10 turns reduce threat
                     threatFactor = Math.max(0, (threatFactor - 0.075) * 0.9);
                 }
-                ratio = 1.25;
+
                 System.out.println("pratio - " + ratio + " - ratio cap " + ratiocap);
                 double comparesize = politicianIDs.size + 0.1;
                 comparesize = Math.max(comparesize, 0.1);
