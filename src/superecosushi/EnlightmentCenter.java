@@ -50,6 +50,8 @@ public class EnlightmentCenter extends RobotPlayer {
 
     static int buildPoliForBuffMuckId = -1;
 
+    static int numberofattackingpolisneedingnewattacktarget = 0;
+
     static class Stats {
         static int muckrakersBuilt = 0;
         static int politiciansBuilt = 0;
@@ -87,6 +89,7 @@ public class EnlightmentCenter extends RobotPlayer {
         // fields that reset each turn and get manipulated by other functions lmao
         bigEnemyMuckSizes = new LinkedList<>();
         bigEnemyMuckLocs = new LinkedList<>();
+        numberofattackingpolisneedingnewattacktarget = 0;
         setFlagThisTurn = false;
         // how much influence is spent on building
         int spentInfluence = 0;
@@ -481,9 +484,17 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
 
+                // tell polis to attack new place if theyre all just milling around
+                if (numberofattackingpolisneedingnewattacktarget > attackingPolis.size
+                 / 2 && enemyECLocToTake != null) {
+                    System.out.println("making new signal to attack new ec with  " + numberofattackingpolisneedingnewattacktarget + " needing new target - " + enemyECLocToTake.location);
+                    int sig1 = Comms.getAttackECSignal(enemyECLocToTake.location);
+                    specialMessageQueue.add(sig1);
+                }
+
                 // build scouting buff mucks that "flank"
                 if (neutralECLocToTake == null && enemyECLocToTake == null
-                        && turnCount > lastTurnBuiltBuffScoutMuck + 0) {
+                        && turnCount > lastTurnBuiltBuffScoutMuck + 15) {
                     // consider spawning somewhat buff scout mucks
                     if (allowance >= 450) {
                         int want = (int) (allowance * 0.25);
@@ -910,6 +921,12 @@ public class EnlightmentCenter extends RobotPlayer {
                     case Comms.FOUND_EC:
                         processFoundECFlag(flag);
                         break;
+                    case Comms.SMALL_SIGNAL: {
+                         if (flag == Comms.I_NEED_EC_ATTACK_LOC) {
+                            numberofattackingpolisneedingnewattacktarget+= 1;
+                         }
+                    }
+
 
                 }
             } else {

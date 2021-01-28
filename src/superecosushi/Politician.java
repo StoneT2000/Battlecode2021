@@ -255,7 +255,7 @@ public class Politician extends Unit {
                 if (homeEC == null) {
                     homeEC = bot.location;
                 }
-                // handleFoundEC(bot);
+                handleFoundEC(bot);
             }
         }
 
@@ -374,6 +374,7 @@ public class Politician extends Unit {
 
         boolean succesfullyCapturedEC = false;
 
+        boolean attackmodebutneednewtarget = false;
         if (isDefending()) {
             if (targetedEnemyMuck != null || closestEnemyMuck != null) {
                 boolean targetBuffMuck = false;
@@ -544,6 +545,7 @@ public class Politician extends Unit {
                         if (distToEC < 20) {
                             Direction awayDir = enemyEC.location.directionTo(rc.getLocation());
                             targetLoc = rc.getLocation().add(awayDir).add(awayDir);
+                            attackmodebutneednewtarget = true;
                         }
                         // if (distToEC == 1) {
                         // rc.empower(1);
@@ -691,8 +693,15 @@ public class Politician extends Unit {
                 }
 
             } else if (role == ATTACK_EC) {
-                int sig = Comms.getTargetedECSignal(attackLoc);
-                setFlag(sig);
+                if (attackmodebutneednewtarget) {
+                    // shout i have no target lol
+                    int sig = Comms.I_NEED_EC_ATTACK_LOC;
+                    setFlag(sig);
+                }
+                else {
+                    int sig = Comms.getTargetedECSignal(attackLoc);
+                    setFlag(sig);
+                }
             } else if (role == PROTECT_BUFF_MUCK && idOfMuckToProtect != -1) {
                 int sig = Comms.getProtectBuffMuckSignal(idOfMuckToProtect);
                 setFlag(sig);

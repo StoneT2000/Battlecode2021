@@ -51,8 +51,9 @@ public class Comms {
 
     public static final int IM_SLAND_CONVERTED_TO_POLI = 0x90000b;
 
-    public static final int IM_ATTACKING_NEUTRAL_EC = 0x90000b;
-    public static final int IM_STOPPING_BUFF_MUCK = 0x90000c;
+    public static final int IM_ATTACKING_NEUTRAL_EC = 0x90000c;
+    public static final int IM_STOPPING_BUFF_MUCK = 0x90000d;
+    public static final int I_NEED_EC_ATTACK_LOC = 0x90000e;
 
     public static final int ATTACK_EC = 0xa00000;
     public static final int ATTACK_NEUTRAL_EC = 0xa80000;

@@ -143,7 +143,6 @@ public class Slanderer extends Unit {
             }
         }
 
-        System.out.println("Closest enemy: " + locOfClosestEnemyMuckraker);
         targetLoc = rc.getLocation();
         if (rc.getLocation().distanceSquaredTo(homeEC) <= 4) {
             targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
