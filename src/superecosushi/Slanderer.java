@@ -84,20 +84,25 @@ public class Slanderer extends Unit {
                                 break;
                             }
                             case Comms.SLAND_SPOTTED_MUCK: {
-                                
-                                    // this is a slanderer as well
-                                    MapLocation muckloc = Comms.readSlandererSpottedMuckSignal(flag, rc);
-                                    int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
-                                    int theirDist = bot.location.distanceSquaredTo(muckloc);
-                                    // weaken this signal by distance.
-                                    if (theirDist >= distToSpottedMuck || distToSpottedMuck > 500) {
-                                        // ignore messages from slanderers behind me
-                                        break;
-                                    }
-                                    if (distToSpottedMuck < distToClosestEnemyMuckraker) {
-                                        distToClosestEnemyMuckraker = distToSpottedMuck;
-                                        locOfClosestEnemyMuckraker = muckloc;
-                                    }
+
+                                // this is a slanderer as well
+                                MapLocation muckloc = Comms.readSlandererSpottedMuckSignal(flag, rc);
+                                int distToSpottedMuck = rc.getLocation().distanceSquaredTo(muckloc);
+                                int theirDist = bot.location.distanceSquaredTo(muckloc);
+                                // strengthen the signal if on lower passability
+
+                                double passability = rc.sensePassability(rc.getLocation());
+                                int movedelay = (int) (1 / passability);
+                                // we want to give ourselves more space depending on movedelay
+                                // don't bother running away if muck is more than 8 + movedelay squares away
+                                if (theirDist >= distToSpottedMuck || distToSpottedMuck > Math.pow(6 + movedelay, 2)) {
+                                    // ignore messages from slanderers behind me
+                                    break;
+                                }
+                                if (distToSpottedMuck < distToClosestEnemyMuckraker) {
+                                    distToClosestEnemyMuckraker = distToSpottedMuck;
+                                    locOfClosestEnemyMuckraker = muckloc;
+                                }
                                 break;
                             }
                             // TODO: add signal for just seeing a muck but not targeting
@@ -138,6 +143,7 @@ public class Slanderer extends Unit {
             }
         }
 
+        System.out.println("Closest enemy: " + locOfClosestEnemyMuckraker);
         targetLoc = rc.getLocation();
         if (rc.getLocation().distanceSquaredTo(homeEC) <= 4) {
             targetLoc = rc.getLocation().add(rc.getLocation().directionTo(homeEC).opposite());
@@ -192,10 +198,13 @@ public class Slanderer extends Unit {
                     if (rc.canMove(dir)) {
                         MapLocation newloc = rc.getLocation().add(dir);
                         if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
-                            int thisDist = newloc.distanceSquaredTo(locOfClosestEnemyMuckraker);
-                            if (thisDist > bestDist) {
-                                greedyDir = dir;
-                                bestDist = thisDist;
+                            int distToHome = newloc.distanceSquaredTo(homeEC);
+                            if (distToHome > 3) {
+                                int thisDist = newloc.distanceSquaredTo(locOfClosestEnemyMuckraker);
+                                if (thisDist > bestDist) {
+                                    greedyDir = dir;
+                                    bestDist = thisDist;
+                                }
                             }
                         }
                     }

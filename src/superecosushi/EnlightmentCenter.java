@@ -41,6 +41,7 @@ public class EnlightmentCenter extends RobotPlayer {
     static final int SKIP_FLAG = -1;
     static LinkedList<Integer> specialMessageQueue = new LinkedList<>();
     static int[] dirsToEnemySlands = new int[] { -1, -1, -1, -1, -1, -1, -1, -1 };
+    static int[] dirsToEnemyPolis = new int[] { -1, -1, -1, -1, -1, -1, -1, -1 };
 
     static HashTable<Integer> locHashesOfCurrentlyAttackedNeutralECs = new HashTable<>(10);
     static int lastTurnSawEnemyMuck = -10;
@@ -54,6 +55,9 @@ public class EnlightmentCenter extends RobotPlayer {
         static int politiciansBuilt = 0;
         static int slanderersBuilt = 0;
     }
+
+    // 0 means like no slandereers are dying (few mucks attacking)
+    static double threatFactor = 0;
 
     static int lastTurnBuiltBuffScoutMuck = -1;
 
@@ -299,10 +303,15 @@ public class EnlightmentCenter extends RobotPlayer {
                     buildSlanderer = false;
                 }
                 boolean buildPoli = false;
-                double ratio = 1;
+                double ratio = 2 - threatFactor;
                 if (rc.getRoundNum() < 100 && !sawFirstEnemyMuck) {
-                    ratio = 1.25;
+                    ratio = 4 - threatFactor * 1.5;
                 }
+                if (rc.getRoundNum() % 10 == 0) {
+                    // every 10 turns reduce threat
+                    threatFactor = Math.max(0, (threatFactor - 0.075) * 0.9);
+                }
+                System.out.println("pratio - " + ratio);
                 if (slandererIDs.size / (politicianIDs.size + 0.1) > ratio) {
                     buildPoli = true;
                 } else {
@@ -474,14 +483,14 @@ public class EnlightmentCenter extends RobotPlayer {
 
                 // build scouting buff mucks that "flank"
                 if (neutralECLocToTake == null && enemyECLocToTake == null
-                        && turnCount > lastTurnBuiltBuffScoutMuck + 20) {
+                        && turnCount > lastTurnBuiltBuffScoutMuck + 0) {
                     // consider spawning somewhat buff scout mucks
                     if (allowance >= 450) {
-                        int want = 200;
+                        int want = (int) (allowance * 0.25);
                         // if heavily stocked and nothing to spend on (not even 949 slanderer), build
                         // even bigger muck then
                         if (allowance > 1000) {
-                            want = 900;
+                            want = (int) (allowance * 0.5);
                         }
 
                         Direction scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
@@ -499,7 +508,20 @@ public class EnlightmentCenter extends RobotPlayer {
                             }
 
                         }
-
+                        // if havvent found promisig direction, use these 2nd rate guesses
+                        if (!usedPromisingDir) {
+                            for (int i = 0; i < dirsToEnemyPolis.length; i++) {
+                                if (dirsToEnemyPolis[i] != -1) {
+                                    // promising if not default sentinel val of -1
+                                    Direction dir = DIRECTIONS[i];
+                                    scoutDir = dir;
+                                    dirsToEnemyPolis[i] = -1;
+                                    usedPromisingDir = true;
+                                    break;
+                                }
+    
+                            }
+                        }
                         // scout directions that arent off map / we can see
                         while (!rc.onTheMap(rc.getLocation().add(scoutDir).add(scoutDir).add(scoutDir).add(scoutDir))) {
                             scoutDir = CARD_DIRECTIONS[lastScoutBuildDirIndex];
@@ -788,7 +810,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     case Comms.FOUND_EC:
                         processFoundECFlag(flag);
                         break;
-                    case Comms.SPOTTED_MUCK:
+                    case Comms.SPOTTED_MUCK: {
                         int[] data = Comms.readSpottedMuckSignal(flag, rc);
                         MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
                         if (rc.getLocation().distanceSquaredTo(muckloc) <= 150) {
@@ -797,11 +819,18 @@ public class EnlightmentCenter extends RobotPlayer {
                         }
                         // System.out.println("found muck by muck at " + muckloc + " size: " + data[1]);
                         break;
+                    }
                     case Comms.FOUND_ENEMY_SLANDERER: {
-                        MapLocation slandLoc = Comms.readFoundEnemySlandererSignal(flag, rc);
-                        Direction dir = rc.getLocation().directionTo(slandLoc);
+                        int[] data = Comms.readFoundEnemyUnitSignal(flag, rc);
+                        MapLocation unitLoc =Comms.decodeMapLocation(data[0], rc);
+                        Direction dir = rc.getLocation().directionTo(unitLoc);
                         int ind = dirToInt(dir);
-                        dirsToEnemySlands[ind] = 0;
+                        if (data[1] == TYPE_POLITICIAN) {
+                            dirsToEnemyPolis[ind] = 0;
+                        } else if (data[1] == TYPE_SLANDERER) {
+                            dirsToEnemySlands[ind] = 0;
+                        }
+                        
                         break;
                     }
 
@@ -835,7 +864,6 @@ public class EnlightmentCenter extends RobotPlayer {
                 int flag = rc.getFlag(currIDNode.val);
                 if (flag == Comms.IM_SLAND_CONVERTED_TO_POLI) {
                     // check if switched to politican, and remove/add appropriately
-                    System.out.println("Swtiched");
                     int[] data = Comms.readUnitDetails(flag);
                     if (data[0] == TYPE_POLITICIAN) {
                         idsToRemove.add(currIDNode.val);
@@ -843,6 +871,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     }
                 }
             } else {
+                threatFactor = (threatFactor + .1) * 0.9;
                 idsToRemove.add(currIDNode.val);
             }
             currIDNode = slandererIDs.next();

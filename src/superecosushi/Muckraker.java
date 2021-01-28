@@ -178,6 +178,8 @@ public class Muckraker extends Unit {
 
         MapLocation locOfClosestSlanderer = null;
         int distToSlosestSlanderer = 99999999;
+        MapLocation locOfClosestEnemyPoli = null;
+        int distToClosestEnemyPoli = 99999999;
         MapLocation locOfClosestFriendlyMuckraker = null;
         int distToClosestFriendlyMuckraker = 999999999;
         int distToClosestEnemyMuck = 9999999;
@@ -243,6 +245,15 @@ public class Muckraker extends Unit {
                             distToClosestEnemyMuck = dist;
                             closestEnemyMuck = bot;
                         }
+                        break;
+                    }
+                    case POLITICIAN: {
+                        int dist = rc.getLocation().distanceSquaredTo(bot.location);
+                        if (dist < distToClosestEnemyPoli) {
+                            locOfClosestEnemyPoli = bot.location;
+                            distToClosestEnemyPoli = dist;
+                        }
+                        break;
                     }
 
                 }
@@ -414,9 +425,13 @@ public class Muckraker extends Unit {
             announcedToProtectingPoliAttackLoc = true;
         }
 
-        // report slanderer locations to EC to indicate promising scouting directions
+        // report slanderer locations or poli locs to EC to indicate promising scouting directions
         if (locOfClosestSlanderer != null) {
-            int sig = Comms.getFoundEnemySlandererSignal(locOfClosestSlanderer);
+            int sig = Comms.getFoundEnemyUnitSignal(locOfClosestSlanderer, TYPE_SLANDERER);
+            specialMessageQueue.add(sig);
+        }
+        else if (locOfClosestEnemyPoli != null) {
+            int sig = Comms.getFoundEnemyUnitSignal(locOfClosestEnemyPoli, TYPE_POLITICIAN);
             specialMessageQueue.add(sig);
         }
 
@@ -457,7 +472,6 @@ public class Muckraker extends Unit {
                 setFlag(Comms.getCornerLocSignalY(cornernode.val));
             }
         }
-        System.out.println("tloc " + targetLoc + "- wiggle " + absolutelyDONOTWIGGLE);
 
         if (rc.isReady()) {
             Direction dir = getNextDirOnPath(targetLoc);

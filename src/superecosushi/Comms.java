@@ -85,7 +85,6 @@ public class Comms {
         MapLocation original = new MapLocation(offsetX128 * 128 + x, offsetY128 * 128 + y);
         MapLocation proposed = original;
         MapLocation alt = original.translate(-128, 0);
-        System.out.println("O: " + original + " Hash: " + hash + " x " + x + " y " + y);
         if (curr.distanceSquaredTo(alt) <= curr.distanceSquaredTo(proposed)) {
             proposed = alt;
         }
@@ -321,11 +320,15 @@ public class Comms {
         return decodeMapLocation(signal & SIGNAL_MASK, rc);
     }
 
-    public static int getFoundEnemySlandererSignal(MapLocation muckLoc) {
-        return FOUND_ENEMY_SLANDERER | (encodeMapLocation(muckLoc));
+    public static int getFoundEnemyUnitSignal(MapLocation muckLoc, int typeind) {
+        return FOUND_ENEMY_SLANDERER | (encodeMapLocation(muckLoc) << 6) | typeind;
     }
-    public static MapLocation readFoundEnemySlandererSignal(int signal, RobotController rc) {
-        return decodeMapLocation(signal & SIGNAL_MASK, rc);
+
+    // returns [maphash, typeind]
+    public static int[] readFoundEnemyUnitSignal(int signal, RobotController rc) {
+        int locHash = (signal & SIGNAL_MASK) >> 6;
+        int typeind = signal & 0x000003;
+        return new int[]{locHash, typeind};
     }
 
     public static int getProtectBuffMuckSignal(int buffMuckID) {
