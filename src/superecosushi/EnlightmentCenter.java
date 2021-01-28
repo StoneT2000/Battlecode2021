@@ -350,8 +350,11 @@ public class EnlightmentCenter extends RobotPlayer {
                     // every 10 turns reduce threat
                     threatFactor = Math.max(0, (threatFactor - 0.075) * 0.9);
                 }
+                ratio = 1.25;
                 System.out.println("pratio - " + ratio + " - ratio cap " + ratiocap);
-                if (slandererIDs.size / (politicianIDs.size + 0.1) > ratio) {
+                double comparesize = politicianIDs.size + 0.1;
+                comparesize = Math.max(comparesize, 0.1);
+                if (slandererIDs.size / (comparesize) > ratio) {
                     buildPoli = true;
                 } else {
                     buildSlanderer = true;
@@ -359,6 +362,8 @@ public class EnlightmentCenter extends RobotPlayer {
                 if (enemyMuckrakersSeen > nearbyPolis) {
                     buildPoli = true;
                 }
+
+                
 
                 // if we have this much influence and we're trying to build slanderers, nope,
                 // build polis, slanderers wont really help ...
@@ -407,7 +412,7 @@ public class EnlightmentCenter extends RobotPlayer {
                 // if theres a enemy muck to deal with and we have an allowance of at least 20,
                 // spawn a poli to defend!
                 if (bigEnemyMucksToDealWith && allowance >= 20) {
-                    int size = (int) Math.min(((double) antiBuffMuckPoliSizeNeeded) / 0.8, (double) allowance);
+                    int size = (int) Math.min(((double) antiBuffMuckPoliSizeNeeded) / 0.7, (double) allowance);
                     // TODO: spawn in direction of that buff muck
                     RobotInfo newbot = tryToBuildAnywhere(RobotType.POLITICIAN, size);
                     if (newbot != null) {
@@ -855,7 +860,7 @@ public class EnlightmentCenter extends RobotPlayer {
                     case Comms.SPOTTED_MUCK: {
                         int[] data = Comms.readSpottedMuckSignal(flag, rc);
                         MapLocation muckloc = Comms.decodeMapLocation(data[0], rc);
-                        if (rc.getLocation().distanceSquaredTo(muckloc) <= 150) {
+                        if (rc.getLocation().distanceSquaredTo(muckloc) <= 200) {
                             bigEnemyMuckSizes.add(data[1]);
                             bigEnemyMuckLocs.add(muckloc);
                         }

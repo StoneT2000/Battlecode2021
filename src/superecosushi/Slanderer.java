@@ -198,7 +198,7 @@ public class Slanderer extends Unit {
                         MapLocation newloc = rc.getLocation().add(dir);
                         if (rc.onTheMap(newloc) && rc.senseRobotAtLocation(newloc) == null) {
                             int distToHome = newloc.distanceSquaredTo(homeEC);
-                            if (distToHome > 3) {
+                            if (distToHome > 3 && locOnLattice(newloc)) {
                                 int thisDist = newloc.distanceSquaredTo(locOfClosestEnemyMuckraker);
                                 if (thisDist > bestDist) {
                                     greedyDir = dir;
