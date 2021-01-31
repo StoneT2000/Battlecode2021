@@ -15,4 +15,4 @@ This code is very very messy. I'm not sure how helpful it is to read bot code, e
 
 Also, for a tldr; of Battlecode 2021 and my bot in relation to Battlecode, this summarizes it quite concisely:
 
-![](./skill.png)
+![](./skill?.png)
