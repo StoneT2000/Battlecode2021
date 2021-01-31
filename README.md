@@ -11,3 +11,8 @@ My final submission is in `src/maxecosushi`. The bot names are a bit unintuitive
 I'll also be posting a postmortem soon on my [blog](https://www.stoneztao.com/blog/) and will link other postmortems here as they get posted around the internet / the battlecode discord.
 
 This code is very very messy. I'm not sure how helpful it is to read bot code, even amongst the other top bots, other than to learn about some of the neat bytecode optimizing tricks teams might employ. In my case, the only stand out "code" are my custom data structures that save a significant amount of bytecode (although they are far from perfect). Otherwise, have fun trying to understand my strategy! And feel free to compete against it :)
+
+
+Also, for a tldr; of Battlecode 2021 and my bot in relation to Battlecode, this summarizes it quite concisely:
+
+![](./skill.png)
