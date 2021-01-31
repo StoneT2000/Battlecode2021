@@ -1,114 +1,13 @@
-# Battlecode 2021 Scaffold
+# Battlecode 2021 - Team California Roll
 
-This is the Battlecode 2021 scaffold, containing an `examplefuncsplayer`. Read https://2021.battlecode.org/getting-started!
+This is my repository for my Battlecode 2021 code. 
 
-### Project Structure
+My team name this year was California Roll and I soloed this year again and I made finals and got 9th! Unfortunately 4 rankings lower than last year, but again, RNG is the essense of Battlecode (this years winners, team babyducks, lost in the round of 16, only to then when ever single match from the loser's bracket to take home 1st place)
 
-- `README.md`
-  This file.
-- `build.gradle`
-  The Gradle build file used to build and run players.
-- `src/`
-  Player source code.
-- `test/`
-  Player test code.
-- `client/`
-  Contains the client. The proper executable can be found in this folder (don't move this!)
-- `build/`
-  Contains compiled player code and other artifacts of the build process. Can be safely ignored.
-- `matches/`
-  The output folder for match files.
-- `maps/`
-  The default folder for custom maps.
-- `gradlew`, `gradlew.bat`
-  The Unix (OS X/Linux) and Windows versions, respectively, of the Gradle wrapper. These are nifty scripts that you can execute in a terminal to run the Gradle build tasks of this project. If you aren't planning to do command line development, these can be safely ignored.
-- `gradle/`
-  Contains files used by the Gradle wrapper scripts. Can be safely ignored.
+(note, although on the bc21 database it says my team name is Chop Suey but tldr; I didn't want to lose my ranking on the leaderboard because I wanted to change my team name).
 
-### Useful Commands
+My final submission is in `src/maxecosushi`. The bot names are a bit unintuitive in terms of what tournament I submitted them for but they are named after my current feelings / strategies at the time. More detailed in my postmortem soon on my [blog](https://www.stoneztao.com/blog/)
 
-- `./gradlew run`
-  Runs a game with the settings in gradle.properties
-- `./gradlew update`
-  Update to the newest version! Run every so often
+I'll also link other postmortems as they get posted around the internet / the battlecode discord
 
-## Random strats we thought of
-
-- Mega brain / computer of units in the back sending info to the front
-- Using slowness of slanderers to determine if unit is politician or slanderer
-- Muckrakers build with 1 influence, makes politicians waste influence on them. Sending them one by one can cause a lot of trouble
-- Muckraker wall to protect slanderers in the back cheaply.
-- have Beefy politicians that defend
-- Slanderers in multiples of 20. Politicians also maybe to hide them.
-- Use different strats depending on passability of the EC. if low passability, build beefy units, if high passability, prefer spamming. Moreeover, if EC is on back line or closer to opponent, have a different building schedule / priority. Passability and location and influence required to control a neutral / opponent EC -> impact value of taking that EC perhaps.
-- Building network of muckrakers helps kill slanderers, buff our politicians, and relay messages across network.
-- cheap 1 cost muckrakers to protect important units (surround it so if opposing politican empowers, most of the influence is diluted away)
-- aggro walls. Send muckrakers to block opponent ECs or wtv, forcing them to waste politicians and / or lose slanderers
-
-Priority Strats:
-
-- use scouts to figure out how much opponents bid each round
-- first 3-4 scouts are to find corners, rest separate and form lattice
-- if starting ec is near another neutral ec, build buff politician first
-- find symmetry first then explore where ECs
-
-
-Comm stuff
-
-- muckrakers should constantly read locally flags from other muckrakers. if from different ecs, this will propgate info both ecs have
-  - e.g. corner data in case one ec doesnt get it as early
-  - e.g. EC locations etc.
-  - e.g. flag of friendly ec?
-
-How to do multi-part messages:
-
-have a multipartMessageStage counter (resets to 0 when done)
-
-hopefully make sure no other branch is trying to send a multipart signal as well...
-
-Send them in order as pleases
-
-To process, if the msg is a multipart one (e.g. process ecloc x and y in their original coords), first put all messages received in string into hash map that maps the id of the  bot sending that multipart msg to an aray containing every message. Upon rreceiving final message, process all of it.
-
-## Important questions to answer ASAP
-
-Q: How many dudes can a center build per round? Is it limited by space around the center...  
-A: once then cd goes up
-
-Q: Can a bot tell they are near the edge of the map?  
-A: check if loc is on map or not and scan
-
-Q: Bytecode is less than last year? What pathing to use.  
-A:
-
-Q: Can we acess the value of the current empower buff value globally?  
-A: yes, rc.getEmpowerFactor(Team team, int roundsInFuture)
-
-Q: What information do we know about the bids once they occur? Can we get the winning bid? Can we see the other guy's bid?  
-A: We can calculate if an allied EC won the bid, or our own EC instance won the bid. loss or tie is indistinguishable. we cant see opponent bid. We can only see our own vote and our own instance's bid (not allied EC bids).
-
-
-
-## REPLAYS
-
-me vs babyducks
-
-https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/2768baa239534feaaa4de3e5b98cf4.bc21
-- highkey winning and very very strong start
-- lose later because first EC doesn't spend its insane influence and just take the win
-  - can fix with ecs communicating with each other (sync up info on ECs especially...)
-- not taking easy neutrals earlier cuz mixed signals for ATTACK_EC is making some polis go the wrong direction
-- we lose slanderers easily since we dont make them go to "our side"
-  - have scouting mucks report regions with high empty space and to the edge near our ec
-  - polis are bad with lattice, they dont reform
-  - IMPORTANT, have units report mucks they see!!!?!?!??!?! slands  run away from scoped out mucks
-  - build more polis earlier...?
-
-## Funny / Best Replays
-
-1. Chicken vs DaMa - Sprint Tournament 1
-  - https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/9edc7a4174040a012618d532618552.bc21
-  - The little poli that could: 
-2. Chop Suey (California Roll) vs babyducks
-  - https://2021.battlecode.org/visualizer.html?https://2021.battlecode.org/replays/306f7fce39c733e7285bc5d2ac8c58.bc21
-  - In game 1, round 1154, Chop Suey is winning with total influence. But then a EC at the top right spends all its influence on one politician and gets captured. Luckily the big politician goes to the left and captures a EC! Only to then spawn the biggest slanderer ever and get exposed and lose everything
+This code is very very messy. I'm not sure how helpful it is to read bot code, even amongst the other top bots, other than to learn about some of the neat bytecode optimizing tricks teams might employ. In my case, the only stand out "code" are my custom data structures that save a significant amount of bytecode (although they are far from perfect). Otherwise, have fun trying to understand my strategy! And feel free to attempt to compete against it
