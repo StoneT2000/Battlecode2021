@@ -16,7 +16,7 @@ llllllll’s Disciple Postmortem (3rd in HS Tourney) - https://ivyzhang.me/bc21-
 
 I will link other postmortems here as they get posted around the internet / the battlecode discord.
 
-
+## Other
 
 This code is very very messy. I'm not sure how helpful it is to read my bot code, even amongst the other top bots, other than to learn about some of the neat bytecode optimizing tricks teams might employ. In my case, the only stand out "code" are my custom data structures that save a significant amount of bytecode (although they are far from perfect). Otherwise, have fun trying to understand my strategy! And feel free to compete against it :)
 
