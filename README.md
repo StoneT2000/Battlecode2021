@@ -2,7 +2,7 @@
 
 This is my repository for my Battlecode 2021 code. 
 
-My team name this year was California Roll and I soloed this year again (did have a teammate for about a week but he unfortunately dropped). I made finals and got 9th! Unfortunately 4 rankings lower than last year, but again, RNG is the essense of Battlecode. In fact, this years winners, team babyducks, lost in the round of 16, only to then win every single match from the loser's bracket to take home 1st place! As Barcode always says, "Maps win games baby!", as also echoed by team smite.
+My team name this year was California Roll (listed as Chop Suey online) and I soloed this year again (did have a teammate for about a week but he unfortunately dropped). I made finals and got 9th! Unfortunately 4 rankings lower than last year, but again, RNG is the essense of Battlecode. In fact, this years winners, team babyducks, lost in the round of 16, only to then win every single match from the loser's bracket to take home 1st place! As Barcode always says, "Maps win games baby!", as also echoed by team smite.
 
 Also I won the "Adaptive Strategy" award, which was a special award given to me since I spearheaded the development of a really useful strategy this year known as "muck flanking." I'm quite sure I wasn't the first team to have some form of "muck flanking" but it appears that I was the first to give it a name and talk about it and show people it's effects (it worked quite well against babyducks at one point!)
 
